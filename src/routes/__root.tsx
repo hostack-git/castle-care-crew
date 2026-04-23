@@ -45,6 +45,12 @@ export const Route = createRootRoute({
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Torridon Volunteer Hub" },
+      { name: "description", content: "Haven Hub centralizes volunteer management for international accommodations, streamlining onboarding, tasks, and communication." },
+      { property: "og:description", content: "Haven Hub centralizes volunteer management for international accommodations, streamlining onboarding, tasks, and communication." },
+      { name: "twitter:description", content: "Haven Hub centralizes volunteer management for international accommodations, streamlining onboarding, tasks, and communication." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/4f1ea4be-fca2-45de-93ac-86cbe81dd9d4/id-preview-83b16467--4a1e4c77-89b3-4432-955d-de2ed62005cc.lovable.app-1776978184225.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/4f1ea4be-fca2-45de-93ac-86cbe81dd9d4/id-preview-83b16467--4a1e4c77-89b3-4432-955d-de2ed62005cc.lovable.app-1776978184225.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
