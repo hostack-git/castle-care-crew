@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useI18n } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
 import { TASK_TYPE_LABELS, TASK_TYPE_DOT, type TaskType, startOfWeek, addDays, fmtDate } from "@/lib/constants";
 import { Calendar, Clock, MapPin, Megaphone } from "lucide-react";
@@ -31,6 +32,7 @@ type Announcement = {
 
 function Dashboard() {
   const { user, profile } = useAuth();
+  const { t, lang } = useI18n();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [anns, setAnns] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,31 +65,33 @@ function Dashboard() {
   const today = fmtDate(new Date());
   const todayTasks = tasks.filter((t) => t.scheduled_date === today);
   const upcoming = tasks.filter((t) => t.scheduled_date > today);
+  const localeMap: Record<string, string> = { en: "en-GB", pt: "pt-BR", es: "es-ES", de: "de-DE", gd: "gd-GB" };
+  const locale = localeMap[lang] ?? "en-GB";
 
   return (
     <div className="space-y-10">
       <header>
         <p className="text-sm text-muted-foreground">
-          {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}
+          {new Date().toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long" })}
         </p>
         <h1 className="font-display text-4xl font-semibold mt-1">
-          Hi, {profile?.full_name?.split(" ")[0] || "friend"} 👋
+          {t("dash.hi")}, {profile?.full_name?.split(" ")[0] || t("dash.friend")} 👋
         </h1>
-        <p className="text-muted-foreground mt-2">Here's your week at Torridon House.</p>
+        <p className="text-muted-foreground mt-2">{t("dash.weekIntro")}</p>
       </header>
 
       {/* Today */}
       <section>
         <h2 className="font-display text-xl font-semibold mb-4 flex items-center gap-2">
-          <Clock className="h-4 w-4 text-accent" /> Today
+          <Clock className="h-4 w-4 text-accent" /> {t("dash.today")}
         </h2>
         {loading ? (
           <SkeletonList />
         ) : todayTasks.length === 0 ? (
-          <EmptyCard icon={<Calendar className="h-5 w-5" />} text="No tasks for today — enjoy the Highlands." />
+          <EmptyCard icon={<Calendar className="h-5 w-5" />} text={t("dash.noToday")} />
         ) : (
           <div className="space-y-3">
-            {todayTasks.map((t) => <TaskCard key={t.id} task={t} />)}
+            {todayTasks.map((t) => <TaskCard key={t.id} task={t} locale={locale} />)}
           </div>
         )}
       </section>
@@ -96,16 +100,16 @@ function Dashboard() {
       <section>
         <div className="flex items-baseline justify-between mb-4">
           <h2 className="font-display text-xl font-semibold flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-accent" /> Coming up this week
+            <Calendar className="h-4 w-4 text-accent" /> {t("dash.upcoming")}
           </h2>
-          <Link to="/app/calendar" className="text-sm text-accent hover:underline">Full calendar →</Link>
+          <Link to="/app/calendar" className="text-sm text-accent hover:underline">{t("dash.fullCal")}</Link>
         </div>
         {loading ? (
           <SkeletonList />
         ) : upcoming.length === 0 ? (
-          <EmptyCard icon={<Calendar className="h-5 w-5" />} text="Nothing else scheduled this week." />
+          <EmptyCard icon={<Calendar className="h-5 w-5" />} text={t("dash.noUpcoming")} />
         ) : (
-          <div className="space-y-3">{upcoming.map((t) => <TaskCard key={t.id} task={t} />)}</div>
+          <div className="space-y-3">{upcoming.map((t) => <TaskCard key={t.id} task={t} locale={locale} />)}</div>
         )}
       </section>
 
@@ -113,19 +117,19 @@ function Dashboard() {
       <section>
         <div className="flex items-baseline justify-between mb-4">
           <h2 className="font-display text-xl font-semibold flex items-center gap-2">
-            <Megaphone className="h-4 w-4 text-accent" /> Notice board
+            <Megaphone className="h-4 w-4 text-accent" /> {t("dash.notices")}
           </h2>
-          <Link to="/app/announcements" className="text-sm text-accent hover:underline">All notices →</Link>
+          <Link to="/app/announcements" className="text-sm text-accent hover:underline">{t("dash.allNotices")}</Link>
         </div>
         {anns.length === 0 ? (
-          <EmptyCard icon={<Megaphone className="h-5 w-5" />} text="No notices yet." />
+          <EmptyCard icon={<Megaphone className="h-5 w-5" />} text={t("dash.noNotices")} />
         ) : (
           <div className="grid sm:grid-cols-2 gap-4">
             {anns.map((a) => (
               <article key={a.id} className="rounded-2xl border bg-card p-5 shadow-soft">
                 <div className="flex items-center gap-2 mb-2">
-                  {a.priority === "high" && <Badge className="bg-accent text-accent-foreground">Important</Badge>}
-                  <p className="text-xs text-muted-foreground">{new Date(a.created_at).toLocaleDateString()}</p>
+                  {a.priority === "high" && <Badge className="bg-accent text-accent-foreground">{t("dash.important")}</Badge>}
+                  <p className="text-xs text-muted-foreground">{new Date(a.created_at).toLocaleDateString(locale)}</p>
                 </div>
                 <h3 className="font-display text-lg font-semibold">{a.title}</h3>
                 <p className="text-sm text-muted-foreground mt-2 line-clamp-3">{a.content}</p>
@@ -138,7 +142,7 @@ function Dashboard() {
   );
 }
 
-function TaskCard({ task }: { task: Task }) {
+function TaskCard({ task, locale }: { task: Task; locale: string }) {
   const dot = TASK_TYPE_DOT[task.type];
   return (
     <div className="flex items-center gap-4 rounded-xl border bg-card p-4 shadow-soft hover:shadow-warm transition">
@@ -153,7 +157,7 @@ function TaskCard({ task }: { task: Task }) {
             <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{task.start_time.slice(0, 5)}{task.end_time ? ` – ${task.end_time.slice(0, 5)}` : ""}</span>
           )}
           {task.location && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{task.location}</span>}
-          <span>{new Date(task.scheduled_date).toLocaleDateString("en-GB", { weekday: "short", day: "numeric" })}</span>
+          <span>{new Date(task.scheduled_date).toLocaleDateString(locale, { weekday: "short", day: "numeric" })}</span>
         </div>
       </div>
     </div>
