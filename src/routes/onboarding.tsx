@@ -105,7 +105,7 @@ function Onboarding() {
               </div>
               <div className="space-y-2">
                 <Label>Preferred language</Label>
-                <Select value={language} onValueChange={(v) => setLanguage(v as "en" | "pt" | "es" | "de")}>
+                <Select value={language} onValueChange={(v) => setLanguage(v as "en" | "pt" | "es" | "de" | "gd")}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {LANGUAGES.map((l) => (
