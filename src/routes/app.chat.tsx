@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { useAuth } from "@/hooks/useAuth";
+import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Mountain, Send, Sparkles, Loader2 } from "lucide-react";
@@ -11,15 +12,10 @@ export const Route = createFileRoute("/app/chat")({ component: ChatPage });
 
 type Msg = { role: "user" | "assistant"; content: string };
 
-const SUGGESTIONS = [
-  "What are my tasks today?",
-  "How do I clean a cottage?",
-  "What time is breakfast served?",
-  "What are the house rules I should know?",
-];
-
 function ChatPage() {
   const { profile } = useAuth();
+  const { t, lang } = useI18n();
+  const SUGGESTIONS = useMemo(() => [t("chat.s1"), t("chat.s2"), t("chat.s3"), t("chat.s4")], [t]);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
