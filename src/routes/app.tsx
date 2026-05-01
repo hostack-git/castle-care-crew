@@ -1,6 +1,8 @@
 import { createFileRoute, Outlet, Link, useNavigate, useLocation } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useI18n } from "@/lib/i18n";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Mountain, LayoutDashboard, Calendar, BookOpen, Mountain as Trail, Megaphone, MessageCircle, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -10,6 +12,7 @@ export const Route = createFileRoute("/app")({
 
 function AppLayout() {
   const { user, profile, loading, isAdmin, signOut } = useAuth();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const loc = useLocation();
 
@@ -20,16 +23,16 @@ function AppLayout() {
   }, [loading, user, profile, navigate]);
 
   if (loading || !user) {
-    return <div className="min-h-screen grid place-items-center text-muted-foreground">Loading…</div>;
+    return <div className="min-h-screen grid place-items-center text-muted-foreground">{t("common.loading")}</div>;
   }
 
   const nav = [
-    { to: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { to: "/app/calendar", label: "Calendar", icon: Calendar },
-    { to: "/app/guidebook", label: "Guidebook", icon: BookOpen },
-    { to: "/app/adventures", label: "Adventures", icon: Trail },
-    { to: "/app/announcements", label: "Announcements", icon: Megaphone },
-    { to: "/app/chat", label: "Ask Torra", icon: MessageCircle },
+    { to: "/app/dashboard", label: t("nav.dashboard"), icon: LayoutDashboard },
+    { to: "/app/calendar", label: t("nav.calendar"), icon: Calendar },
+    { to: "/app/guidebook", label: t("nav.guidebook"), icon: BookOpen },
+    { to: "/app/adventures", label: t("nav.adventures"), icon: Trail },
+    { to: "/app/announcements", label: t("nav.announcements"), icon: Megaphone },
+    { to: "/app/chat", label: t("nav.chat"), icon: MessageCircle },
   ];
 
   return (
@@ -66,15 +69,18 @@ function AppLayout() {
                   : "text-foreground hover:bg-secondary"
               }`}
             >
-              <Settings className="h-4 w-4" /> Admin
+              <Settings className="h-4 w-4" /> {t("nav.admin")}
             </Link>
           )}
         </nav>
-        <div className="border-t pt-4">
-          <p className="text-xs text-muted-foreground mb-1">Signed in as</p>
-          <p className="text-sm font-medium truncate">{profile?.full_name || profile?.email}</p>
-          <Button variant="ghost" size="sm" onClick={signOut} className="mt-3 w-full justify-start text-muted-foreground">
-            <LogOut className="h-4 w-4 mr-2" /> Sign out
+        <div className="border-t pt-4 space-y-3">
+          <LanguageSwitcher />
+          <div>
+            <p className="text-xs text-muted-foreground mb-1">{t("nav.signedInAs")}</p>
+            <p className="text-sm font-medium truncate">{profile?.full_name || profile?.email}</p>
+          </div>
+          <Button variant="ghost" size="sm" onClick={signOut} className="w-full justify-start text-muted-foreground">
+            <LogOut className="h-4 w-4 mr-2" /> {t("nav.signOut")}
           </Button>
         </div>
       </aside>
@@ -85,7 +91,10 @@ function AppLayout() {
           <Mountain className="h-5 w-5 text-primary" />
           <span className="font-display font-semibold">Torridon</span>
         </Link>
-        <Button variant="ghost" size="sm" onClick={signOut}><LogOut className="h-4 w-4" /></Button>
+        <div className="flex items-center gap-2">
+          <LanguageSwitcher compact />
+          <Button variant="ghost" size="sm" onClick={signOut}><LogOut className="h-4 w-4" /></Button>
+        </div>
       </header>
 
       <main className="lg:pl-64">
