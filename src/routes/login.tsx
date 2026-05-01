@@ -1,6 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useI18n } from "@/lib/i18n";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +15,7 @@ export const Route = createFileRoute("/login")({
 
 function Login() {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -46,27 +49,28 @@ function Login() {
         <p className="text-xs text-cream/60">Volunteer Hub · Torridon House, Scotland</p>
       </div>
 
-      <div className="flex items-center justify-center p-8">
+      <div className="flex items-center justify-center p-8 relative">
+        <div className="absolute top-4 right-4"><LanguageSwitcher compact /></div>
         <form onSubmit={onSubmit} className="w-full max-w-sm space-y-6">
           <div>
-            <h1 className="font-display text-3xl font-semibold">Welcome back</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Sign in to your volunteer account.</p>
+            <h1 className="font-display text-3xl font-semibold">{t("auth.welcome")}</h1>
+            <p className="mt-1 text-sm text-muted-foreground">{t("auth.signinSub")}</p>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t("auth.email")}</Label>
             <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">{t("auth.password")}</Label>
             <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
           </div>
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Signing in…" : "Sign in"}
+            {loading ? t("auth.signingIn") : t("auth.signIn")}
           </Button>
           <p className="text-center text-sm text-muted-foreground">
-            New here?{" "}
+            {t("auth.newHere")}{" "}
             <Link to="/signup" className="text-accent font-medium hover:underline">
-              Create an account
+              {t("auth.createAcc")}
             </Link>
           </p>
         </form>
