@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { useAuth } from "@/hooks/useAuth";
+import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Mountain, Send, Sparkles, Loader2 } from "lucide-react";
@@ -11,15 +12,10 @@ export const Route = createFileRoute("/app/chat")({ component: ChatPage });
 
 type Msg = { role: "user" | "assistant"; content: string };
 
-const SUGGESTIONS = [
-  "What are my tasks today?",
-  "How do I clean a cottage?",
-  "What time is breakfast served?",
-  "What are the house rules I should know?",
-];
-
 function ChatPage() {
   const { profile } = useAuth();
+  const { t, lang } = useI18n();
+  const SUGGESTIONS = useMemo(() => [t("chat.s1"), t("chat.s2"), t("chat.s3"), t("chat.s4")], [t]);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -49,7 +45,7 @@ function ChatPage() {
         },
         body: JSON.stringify({
           messages: next,
-          language: profile?.language ?? "en",
+          language: lang,
         }),
       });
 
@@ -120,10 +116,10 @@ function ChatPage() {
           </div>
           <div>
             <h1 className="font-display text-2xl font-semibold flex items-center gap-2">
-              Ask Torra <Sparkles className="h-4 w-4 text-accent" />
+              {t("chat.title")} <Sparkles className="h-4 w-4 text-accent" />
             </h1>
             <p className="text-sm text-muted-foreground">
-              Your AI guide for life at Torridon House — tasks, guidebook, rules.
+              {t("chat.sub")}
             </p>
           </div>
         </div>
@@ -139,9 +135,9 @@ function ChatPage() {
               <Mountain className="h-8 w-8 text-primary-foreground" />
             </div>
             <div>
-              <h2 className="font-display text-xl font-semibold">Hi {profile?.full_name?.split(" ")[0] || "there"} 👋</h2>
+              <h2 className="font-display text-xl font-semibold">{t("chat.hi")} {profile?.full_name?.split(" ")[0] || t("chat.there")} 👋</h2>
               <p className="text-muted-foreground text-sm mt-1 max-w-md">
-                I know the guidebook, your weekly tasks, and house rules. Ask me anything.
+                {t("chat.intro")}
               </p>
             </div>
             <div className="grid sm:grid-cols-2 gap-2 w-full max-w-xl">
@@ -198,7 +194,7 @@ function ChatPage() {
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask Torra anything about Torridon House…"
+          placeholder={t("chat.placeholder")}
           disabled={loading}
           className="h-12 rounded-xl"
         />

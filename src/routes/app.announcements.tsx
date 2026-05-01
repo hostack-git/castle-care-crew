@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,6 +17,7 @@ type Ann = { id: string; title: string; content: string; priority: string; creat
 
 function AnnouncementsPage() {
   const { isAdmin, user } = useAuth();
+  const { t } = useI18n();
   const [items, setItems] = useState<Ann[]>([]);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -39,24 +41,24 @@ function AnnouncementsPage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="font-display text-3xl font-semibold flex items-center gap-2"><Megaphone className="h-6 w-6 text-accent" /> Notice board</h1>
-        <p className="text-muted-foreground text-sm mt-1">Important updates from the team.</p>
+        <h1 className="font-display text-3xl font-semibold flex items-center gap-2"><Megaphone className="h-6 w-6 text-accent" /> {t("ann.title")}</h1>
+        <p className="text-muted-foreground text-sm mt-1">{t("ann.sub")}</p>
       </header>
 
       {isAdmin && (
         <div className="rounded-2xl border bg-card p-5 shadow-soft space-y-3">
-          <h2 className="font-medium flex items-center gap-2"><Plus className="h-4 w-4" /> New notice</h2>
-          <Input placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
-          <Textarea placeholder="Message…" value={content} onChange={(e) => setContent(e.target.value)} rows={3} />
+          <h2 className="font-medium flex items-center gap-2"><Plus className="h-4 w-4" /> {t("ann.new")}</h2>
+          <Input placeholder={t("ann.titleField")} value={title} onChange={(e) => setTitle(e.target.value)} />
+          <Textarea placeholder={t("ann.message")} value={content} onChange={(e) => setContent(e.target.value)} rows={3} />
           <div className="flex items-center justify-between gap-2">
             <Select value={priority} onValueChange={setPriority}>
               <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="normal">Normal</SelectItem>
-                <SelectItem value="high">Important</SelectItem>
+                <SelectItem value="normal">{t("ann.normal")}</SelectItem>
+                <SelectItem value="high">{t("ann.high")}</SelectItem>
               </SelectContent>
             </Select>
-            <Button onClick={post} disabled={!title || !content}>Post</Button>
+            <Button onClick={post} disabled={!title || !content}>{t("ann.post")}</Button>
           </div>
         </div>
       )}
@@ -65,7 +67,7 @@ function AnnouncementsPage() {
         {items.map((a) => (
           <article key={a.id} className="rounded-2xl border bg-card p-5 shadow-soft">
             <div className="flex items-center gap-2 mb-2">
-              {a.priority === "high" && <Badge className="bg-accent text-accent-foreground">Important</Badge>}
+              {a.priority === "high" && <Badge className="bg-accent text-accent-foreground">{t("ann.high")}</Badge>}
               <p className="text-xs text-muted-foreground">{new Date(a.created_at).toLocaleDateString()}</p>
             </div>
             <h3 className="font-display text-lg font-semibold">{a.title}</h3>

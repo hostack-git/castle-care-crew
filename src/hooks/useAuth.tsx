@@ -6,7 +6,7 @@ type Profile = {
   id: string;
   full_name: string | null;
   nationality: string | null;
-  language: "en" | "pt" | "es" | "de";
+  language: "en" | "pt" | "es" | "de" | "gd";
   phone: string | null;
   email: string | null;
   passport_number: string | null;

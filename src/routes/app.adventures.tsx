@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,6 +20,7 @@ type Adventure = {
 
 function Adventures() {
   const { user } = useAuth();
+  const { t } = useI18n();
   const [items, setItems] = useState<Adventure[]>([]);
   const [imgs, setImgs] = useState<Record<string, string>>({});
   const [open, setOpen] = useState(false);
@@ -78,21 +80,21 @@ function Adventures() {
     <div className="space-y-6">
       <header className="flex items-end justify-between flex-wrap gap-4">
         <div>
-          <h1 className="font-display text-3xl font-semibold">Adventures</h1>
-          <p className="text-muted-foreground text-sm mt-1">Trails, swims and discoveries from your days off.</p>
+          <h1 className="font-display text-3xl font-semibold">{t("adv.title")}</h1>
+          <p className="text-muted-foreground text-sm mt-1">{t("adv.sub")}</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-accent text-accent-foreground hover:bg-accent/90"><Plus className="h-4 w-4 mr-1" /> Share</Button>
+            <Button className="bg-accent text-accent-foreground hover:bg-accent/90"><Plus className="h-4 w-4 mr-1" /> {t("adv.share")}</Button>
           </DialogTrigger>
           <DialogContent>
-            <DialogHeader><DialogTitle>Share an adventure</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>{t("adv.shareTitle")}</DialogTitle></DialogHeader>
             <div className="space-y-3">
-              <Input placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
-              <Input placeholder="Location (optional)" value={location} onChange={(e) => setLocation(e.target.value)} />
-              <Textarea placeholder="Tell us about it…" value={desc} onChange={(e) => setDesc(e.target.value)} rows={4} />
+              <Input placeholder={t("ann.titleField")} value={title} onChange={(e) => setTitle(e.target.value)} />
+              <Input placeholder={t("adv.location")} value={location} onChange={(e) => setLocation(e.target.value)} />
+              <Textarea placeholder={t("adv.tellUs")} value={desc} onChange={(e) => setDesc(e.target.value)} rows={4} />
               <Input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-              <Button onClick={submit} disabled={busy || !title} className="w-full">{busy ? "Sharing…" : "Share"}</Button>
+              <Button onClick={submit} disabled={busy || !title} className="w-full">{busy ? t("adv.sharing") : t("adv.share")}</Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -115,7 +117,7 @@ function Adventures() {
         ))}
         {items.length === 0 && (
           <div className="md:col-span-2 rounded-2xl border border-dashed bg-secondary/30 p-12 text-center text-muted-foreground">
-            No adventures yet — be the first to share!
+            {t("adv.empty")}
           </div>
         )}
       </div>

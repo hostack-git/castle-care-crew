@@ -35,6 +35,7 @@ export const LANGUAGES = [
   { code: "pt", label: "Português", flag: "🇵🇹" },
   { code: "es", label: "Español", flag: "🇪🇸" },
   { code: "de", label: "Deutsch", flag: "🇩🇪" },
+  { code: "gd", label: "Gàidhlig", flag: "🏴󠁧󠁢󠁳󠁣󠁴󠁿" },
 ] as const;
 
 export type LanguageCode = (typeof LANGUAGES)[number]["code"];

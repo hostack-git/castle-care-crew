@@ -1,6 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useI18n } from "@/lib/i18n";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Sparkles, Calendar, BookOpen, MessageCircle, Mountain } from "lucide-react";
 import heroImg from "@/assets/highlands-hero.jpg";
@@ -11,6 +13,7 @@ export const Route = createFileRoute("/")({
 
 function Landing() {
   const { user, loading } = useAuth();
+  const { t } = useI18n();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -36,14 +39,15 @@ function Landing() {
             <span className="font-display text-xl font-semibold tracking-tight">Torridon</span>
           </div>
           <div className="flex items-center gap-2">
+            <LanguageSwitcher compact />
             <Link to="/login">
               <Button variant="ghost" className="text-cream hover:bg-white/10 hover:text-cream">
-                Sign in
+                {t("landing.signIn")}
               </Button>
             </Link>
             <Link to="/signup">
               <Button className="bg-accent text-accent-foreground hover:bg-accent/90 shadow-warm">
-                Join the team
+                {t("landing.join")}
               </Button>
             </Link>
           </div>
@@ -51,19 +55,18 @@ function Landing() {
 
         <main className="mx-auto flex min-h-[calc(100vh-88px)] max-w-6xl flex-col items-start justify-center px-6 pb-20">
           <span className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-medium uppercase tracking-widest text-cream backdrop-blur">
-            <Sparkles className="h-3 w-3" /> Scottish Highlands · Torridon House
+            <Sparkles className="h-3 w-3" /> {t("landing.tagline")}
           </span>
           <h1 className="font-display text-5xl font-semibold leading-[1.05] text-cream sm:text-6xl md:text-7xl max-w-3xl">
-            A calmer way to live <span className="italic text-accent">&amp; work</span> together.
+            {t("landing.title1")} <span className="italic text-accent">{t("landing.title2")}</span> {t("landing.title3")}
           </h1>
           <p className="mt-6 max-w-xl text-lg leading-relaxed text-cream/85">
-            One home for your weekly tasks, the team calendar, the house guidebook and the
-            adventures you share with the rest of the volunteers — no more scrolling through WhatsApp.
+            {t("landing.subtitle")}
           </p>
           <div className="mt-10 flex flex-wrap gap-3">
             <Link to="/signup">
               <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 shadow-warm">
-                Create your account <ArrowRight className="ml-2 h-4 w-4" />
+                {t("landing.create")} <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
             <Link to="/login">
@@ -72,7 +75,7 @@ function Landing() {
                 variant="outline"
                 className="border-white/30 bg-white/10 text-cream hover:bg-white/20 hover:text-cream"
               >
-                I already have one
+                {t("landing.have")}
               </Button>
             </Link>
           </div>
@@ -84,19 +87,19 @@ function Landing() {
         <div className="mx-auto max-w-6xl px-6">
           <div className="mx-auto max-w-2xl text-center">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
-              Everything in one quiet place
+              {t("landing.section.kicker")}
             </p>
             <h2 className="mt-3 font-display text-4xl font-semibold text-foreground">
-              Built for the way Torridon really works
+              {t("landing.section.title")}
             </h2>
           </div>
 
           <div className="mt-14 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             {[
-              { icon: Calendar, title: "Your week, at a glance", body: "See your shifts, locations and checklists for the next seven days." },
-              { icon: BookOpen, title: "The house guidebook", body: "Wifi codes, kitchen rules, cottage notes — searchable in your language." },
-              { icon: MessageCircle, title: "An assistant that knows the house", body: "Ask the chatbot in English, Português, Español or Deutsch." },
-              { icon: Mountain, title: "Adventures wall", body: "Share trails, swims and the best spots you find on your days off." },
+              { icon: Calendar, title: t("landing.feat1.t"), body: t("landing.feat1.b") },
+              { icon: BookOpen, title: t("landing.feat2.t"), body: t("landing.feat2.b") },
+              { icon: MessageCircle, title: t("landing.feat3.t"), body: t("landing.feat3.b") },
+              { icon: Mountain, title: t("landing.feat4.t"), body: t("landing.feat4.b") },
             ].map((f) => (
               <div key={f.title} className="rounded-2xl border bg-card p-6 shadow-soft">
                 <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-secondary text-primary">

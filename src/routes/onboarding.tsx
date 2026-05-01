@@ -19,7 +19,7 @@ function Onboarding() {
   const navigate = useNavigate();
   const [fullName, setFullName] = useState("");
   const [nationality, setNationality] = useState("");
-  const [language, setLanguage] = useState<"en" | "pt" | "es" | "de">("en");
+  const [language, setLanguage] = useState<"en" | "pt" | "es" | "de" | "gd">("en");
   const [phone, setPhone] = useState("");
   const [passportNumber, setPassportNumber] = useState("");
   const [passportFile, setPassportFile] = useState<File | null>(null);
@@ -105,7 +105,7 @@ function Onboarding() {
               </div>
               <div className="space-y-2">
                 <Label>Preferred language</Label>
-                <Select value={language} onValueChange={(v) => setLanguage(v as "en" | "pt" | "es" | "de")}>
+                <Select value={language} onValueChange={(v) => setLanguage(v as "en" | "pt" | "es" | "de" | "gd")}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {LANGUAGES.map((l) => (
