@@ -194,7 +194,7 @@ function ChatPage() {
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask Torra anything about Torridon House…"
+          placeholder={t("chat.placeholder")}
           disabled={loading}
           className="h-12 rounded-xl"
         />
