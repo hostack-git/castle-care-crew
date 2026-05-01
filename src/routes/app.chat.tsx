@@ -45,7 +45,7 @@ function ChatPage() {
         },
         body: JSON.stringify({
           messages: next,
-          language: profile?.language ?? "en",
+          language: lang,
         }),
       });
 
