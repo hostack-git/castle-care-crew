@@ -116,10 +116,10 @@ function ChatPage() {
           </div>
           <div>
             <h1 className="font-display text-2xl font-semibold flex items-center gap-2">
-              Ask Torra <Sparkles className="h-4 w-4 text-accent" />
+              {t("chat.title")} <Sparkles className="h-4 w-4 text-accent" />
             </h1>
             <p className="text-sm text-muted-foreground">
-              Your AI guide for life at Torridon House — tasks, guidebook, rules.
+              {t("chat.sub")}
             </p>
           </div>
         </div>
@@ -135,9 +135,9 @@ function ChatPage() {
               <Mountain className="h-8 w-8 text-primary-foreground" />
             </div>
             <div>
-              <h2 className="font-display text-xl font-semibold">Hi {profile?.full_name?.split(" ")[0] || "there"} 👋</h2>
+              <h2 className="font-display text-xl font-semibold">{t("chat.hi")} {profile?.full_name?.split(" ")[0] || t("chat.there")} 👋</h2>
               <p className="text-muted-foreground text-sm mt-1 max-w-md">
-                I know the guidebook, your weekly tasks, and house rules. Ask me anything.
+                {t("chat.intro")}
               </p>
             </div>
             <div className="grid sm:grid-cols-2 gap-2 w-full max-w-xl">
