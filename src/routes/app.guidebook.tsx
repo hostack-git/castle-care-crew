@@ -1,25 +1,38 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
-import { LANGUAGES, type LanguageCode } from "@/lib/constants";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useI18n } from "@/lib/i18n";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 
 export const Route = createFileRoute("/app/guidebook")({ component: GuidebookPage });
 
-type Section = { id: string; section: string; title: string; content: string; language: LanguageCode; icon: string | null };
+type Section = { id: string; section: string; title: string; content: string; language: string; icon: string | null };
 
 function GuidebookPage() {
-  const { profile } = useAuth();
-  const [lang, setLang] = useState<LanguageCode>(profile?.language ?? "en");
+  const { t, lang } = useI18n();
   const [sections, setSections] = useState<Section[]>([]);
   const [q, setQ] = useState("");
 
   useEffect(() => {
-    supabase.from("guidebook_sections").select("*").eq("language", lang).order("order_index")
-      .then(({ data }) => setSections((data as Section[]) ?? []));
+    // Try the active language; if no rows exist, fall back to English so content is never blank.
+    supabase
+      .from("guidebook_sections")
+      .select("*")
+      .eq("language", lang)
+      .order("order_index")
+      .then(async ({ data }) => {
+        if (data && data.length > 0) {
+          setSections(data as Section[]);
+          return;
+        }
+        const { data: fallback } = await supabase
+          .from("guidebook_sections")
+          .select("*")
+          .eq("language", "en")
+          .order("order_index");
+        setSections((fallback as Section[]) ?? []);
+      });
   }, [lang]);
 
   const filtered = sections.filter((s) =>
@@ -28,22 +41,14 @@ function GuidebookPage() {
 
   return (
     <div className="space-y-6">
-      <header className="flex items-end justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="font-display text-3xl font-semibold">House guidebook</h1>
-          <p className="text-muted-foreground text-sm mt-1">Everything you need to know about Torridon House.</p>
-        </div>
-        <Select value={lang} onValueChange={(v) => setLang(v as LanguageCode)}>
-          <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {LANGUAGES.map((l) => <SelectItem key={l.code} value={l.code}>{l.flag} {l.label}</SelectItem>)}
-          </SelectContent>
-        </Select>
+      <header>
+        <h1 className="font-display text-3xl font-semibold">{t("guide.title")}</h1>
+        <p className="text-muted-foreground text-sm mt-1">{t("guide.sub")}</p>
       </header>
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search the guidebook…" className="pl-9" />
+        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("guide.search")} className="pl-9" />
       </div>
 
       <div className="space-y-4">
@@ -56,7 +61,7 @@ function GuidebookPage() {
           </article>
         ))}
         {filtered.length === 0 && (
-          <p className="text-center text-muted-foreground py-12">No sections match "{q}".</p>
+          <p className="text-center text-muted-foreground py-12">{t("guide.empty")} "{q}".</p>
         )}
       </div>
     </div>
