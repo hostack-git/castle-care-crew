@@ -145,12 +145,17 @@ function Dashboard() {
 function TaskCard({ task, locale }: { task: Task; locale: string }) {
   const dot = TASK_TYPE_DOT[task.type];
   return (
-    <div className="flex items-center gap-4 rounded-xl border bg-card p-4 shadow-soft hover:shadow-warm transition">
+    <Link
+      to="/app/tasks/$taskId"
+      params={{ taskId: task.id }}
+      className="flex items-center gap-4 rounded-xl border bg-card p-4 shadow-soft hover:shadow-warm transition"
+    >
       <span className={`h-10 w-1.5 rounded-full ${dot}`} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <h3 className="font-medium truncate">{task.title}</h3>
           <Badge variant="secondary" className="text-[10px]">{TASK_TYPE_LABELS[task.type]}</Badge>
+          {task.status === "completed" && <Badge className="text-[10px] bg-accent text-accent-foreground">✓</Badge>}
         </div>
         <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
           {task.start_time && (
@@ -160,7 +165,7 @@ function TaskCard({ task, locale }: { task: Task; locale: string }) {
           <span>{new Date(task.scheduled_date).toLocaleDateString(locale, { weekday: "short", day: "numeric" })}</span>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 
