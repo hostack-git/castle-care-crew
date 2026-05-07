@@ -61,7 +61,7 @@ function TaskDetailPage() {
 
     // auto-update task status
     const newDone = items.map((x) => (x.id === it.id ? { ...x, is_done: next } : x)).filter((i) => i.is_done).length;
-    let newStatus: string | null = null;
+    let newStatus: "completed" | "in_progress" | "pending" | null = null;
     if (items.length > 0 && newDone === items.length) newStatus = "completed";
     else if (newDone > 0 && task.status === "pending") newStatus = "in_progress";
     else if (newDone === 0 && task.status !== "pending") newStatus = "pending";
