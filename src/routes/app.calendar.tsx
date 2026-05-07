@@ -14,7 +14,6 @@ type Task = {
   id: string; title: string; type: TaskType; scheduled_date: string;
   start_time: string | null; end_time: string | null; location: string | null;
   assigned_to: string | null;
-  profiles?: { full_name: string | null } | null;
 };
 
 function CalendarPage() {
