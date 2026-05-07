@@ -21,6 +21,8 @@ import { Route as AppCalendarRouteImport } from './routes/app.calendar'
 import { Route as AppAnnouncementsRouteImport } from './routes/app.announcements'
 import { Route as AppAdventuresRouteImport } from './routes/app.adventures'
 import { Route as AppAdminRouteImport } from './routes/app.admin'
+import { Route as AppTasksTaskIdRouteImport } from './routes/app.tasks.$taskId'
+import { Route as AppAdminStatsRouteImport } from './routes/app.admin.stats'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -82,6 +84,16 @@ const AppAdminRoute = AppAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AppRoute,
 } as any)
+const AppTasksTaskIdRoute = AppTasksTaskIdRouteImport.update({
+  id: '/tasks/$taskId',
+  path: '/tasks/$taskId',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminStatsRoute = AppAdminStatsRouteImport.update({
+  id: '/stats',
+  path: '/stats',
+  getParentRoute: () => AppAdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -89,13 +101,15 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/signup': typeof SignupRoute
-  '/app/admin': typeof AppAdminRoute
+  '/app/admin': typeof AppAdminRouteWithChildren
   '/app/adventures': typeof AppAdventuresRoute
   '/app/announcements': typeof AppAnnouncementsRoute
   '/app/calendar': typeof AppCalendarRoute
   '/app/chat': typeof AppChatRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/guidebook': typeof AppGuidebookRoute
+  '/app/admin/stats': typeof AppAdminStatsRoute
+  '/app/tasks/$taskId': typeof AppTasksTaskIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -103,13 +117,15 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/signup': typeof SignupRoute
-  '/app/admin': typeof AppAdminRoute
+  '/app/admin': typeof AppAdminRouteWithChildren
   '/app/adventures': typeof AppAdventuresRoute
   '/app/announcements': typeof AppAnnouncementsRoute
   '/app/calendar': typeof AppCalendarRoute
   '/app/chat': typeof AppChatRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/guidebook': typeof AppGuidebookRoute
+  '/app/admin/stats': typeof AppAdminStatsRoute
+  '/app/tasks/$taskId': typeof AppTasksTaskIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -118,13 +134,15 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/signup': typeof SignupRoute
-  '/app/admin': typeof AppAdminRoute
+  '/app/admin': typeof AppAdminRouteWithChildren
   '/app/adventures': typeof AppAdventuresRoute
   '/app/announcements': typeof AppAnnouncementsRoute
   '/app/calendar': typeof AppCalendarRoute
   '/app/chat': typeof AppChatRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/guidebook': typeof AppGuidebookRoute
+  '/app/admin/stats': typeof AppAdminStatsRoute
+  '/app/tasks/$taskId': typeof AppTasksTaskIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -141,6 +159,8 @@ export interface FileRouteTypes {
     | '/app/chat'
     | '/app/dashboard'
     | '/app/guidebook'
+    | '/app/admin/stats'
+    | '/app/tasks/$taskId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -155,6 +175,8 @@ export interface FileRouteTypes {
     | '/app/chat'
     | '/app/dashboard'
     | '/app/guidebook'
+    | '/app/admin/stats'
+    | '/app/tasks/$taskId'
   id:
     | '__root__'
     | '/'
@@ -169,6 +191,8 @@ export interface FileRouteTypes {
     | '/app/chat'
     | '/app/dashboard'
     | '/app/guidebook'
+    | '/app/admin/stats'
+    | '/app/tasks/$taskId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -265,27 +289,55 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/tasks/$taskId': {
+      id: '/app/tasks/$taskId'
+      path: '/tasks/$taskId'
+      fullPath: '/app/tasks/$taskId'
+      preLoaderRoute: typeof AppTasksTaskIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/admin/stats': {
+      id: '/app/admin/stats'
+      path: '/stats'
+      fullPath: '/app/admin/stats'
+      preLoaderRoute: typeof AppAdminStatsRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
   }
 }
 
+interface AppAdminRouteChildren {
+  AppAdminStatsRoute: typeof AppAdminStatsRoute
+}
+
+const AppAdminRouteChildren: AppAdminRouteChildren = {
+  AppAdminStatsRoute: AppAdminStatsRoute,
+}
+
+const AppAdminRouteWithChildren = AppAdminRoute._addFileChildren(
+  AppAdminRouteChildren,
+)
+
 interface AppRouteChildren {
-  AppAdminRoute: typeof AppAdminRoute
+  AppAdminRoute: typeof AppAdminRouteWithChildren
   AppAdventuresRoute: typeof AppAdventuresRoute
   AppAnnouncementsRoute: typeof AppAnnouncementsRoute
   AppCalendarRoute: typeof AppCalendarRoute
   AppChatRoute: typeof AppChatRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppGuidebookRoute: typeof AppGuidebookRoute
+  AppTasksTaskIdRoute: typeof AppTasksTaskIdRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppAdminRoute: AppAdminRoute,
+  AppAdminRoute: AppAdminRouteWithChildren,
   AppAdventuresRoute: AppAdventuresRoute,
   AppAnnouncementsRoute: AppAnnouncementsRoute,
   AppCalendarRoute: AppCalendarRoute,
   AppChatRoute: AppChatRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppGuidebookRoute: AppGuidebookRoute,
+  AppTasksTaskIdRoute: AppTasksTaskIdRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
@@ -300,3 +352,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
