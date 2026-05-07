@@ -90,16 +90,19 @@ function CalendarPage() {
               <div className="text-2xl font-display">{d.getDate()}</div>
               <div className="mt-3 space-y-2">
                 {dayTasks.length === 0 && <p className="text-xs text-muted-foreground/60">—</p>}
-                {dayTasks.map((t) => (
-                  <div key={t.id} className="rounded-lg bg-secondary/60 p-2 text-xs">
-                    <div className="flex items-center gap-1.5">
-                      <span className={`h-2 w-2 rounded-full ${TASK_TYPE_DOT[t.type]}`} />
-                      <span className="font-medium truncate">{t.title}</span>
+                {dayTasks.map((t) => {
+                  const vol = volunteers.find((v) => v.id === t.assigned_to);
+                  return (
+                    <div key={t.id} className="rounded-lg bg-secondary/60 p-2 text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`h-2 w-2 rounded-full ${TASK_TYPE_DOT[t.type]}`} />
+                        <span className="font-medium truncate">{t.title}</span>
+                      </div>
+                      {t.start_time && <div className="text-muted-foreground mt-0.5">{t.start_time.slice(0, 5)}</div>}
+                      {vol?.full_name && <div className="text-muted-foreground truncate">{vol.full_name}</div>}
                     </div>
-                    {t.start_time && <div className="text-muted-foreground mt-0.5">{t.start_time.slice(0, 5)}</div>}
-                    {t.profiles?.full_name && <div className="text-muted-foreground truncate">{t.profiles.full_name}</div>}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           );
