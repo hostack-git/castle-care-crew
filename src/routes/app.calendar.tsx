@@ -14,7 +14,6 @@ type Task = {
   id: string; title: string; type: TaskType; scheduled_date: string;
   start_time: string | null; end_time: string | null; location: string | null;
   assigned_to: string | null;
-  profiles?: { full_name: string | null } | null;
 };
 
 function CalendarPage() {
@@ -36,7 +35,7 @@ function CalendarPage() {
     const end = fmtDate(addDays(weekStart, 7));
     supabase
       .from("tasks")
-      .select("id, title, type, scheduled_date, start_time, end_time, location, assigned_to, profiles!tasks_assigned_to_fkey(full_name)")
+      .select("id, title, type, scheduled_date, start_time, end_time, location, assigned_to")
       .gte("scheduled_date", start).lt("scheduled_date", end)
       .order("start_time")
       .then(({ data }) => setTasks((data as unknown as Task[]) ?? []));
@@ -91,16 +90,19 @@ function CalendarPage() {
               <div className="text-2xl font-display">{d.getDate()}</div>
               <div className="mt-3 space-y-2">
                 {dayTasks.length === 0 && <p className="text-xs text-muted-foreground/60">—</p>}
-                {dayTasks.map((t) => (
-                  <div key={t.id} className="rounded-lg bg-secondary/60 p-2 text-xs">
-                    <div className="flex items-center gap-1.5">
-                      <span className={`h-2 w-2 rounded-full ${TASK_TYPE_DOT[t.type]}`} />
-                      <span className="font-medium truncate">{t.title}</span>
+                {dayTasks.map((t) => {
+                  const vol = volunteers.find((v) => v.id === t.assigned_to);
+                  return (
+                    <div key={t.id} className="rounded-lg bg-secondary/60 p-2 text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`h-2 w-2 rounded-full ${TASK_TYPE_DOT[t.type]}`} />
+                        <span className="font-medium truncate">{t.title}</span>
+                      </div>
+                      {t.start_time && <div className="text-muted-foreground mt-0.5">{t.start_time.slice(0, 5)}</div>}
+                      {vol?.full_name && <div className="text-muted-foreground truncate">{vol.full_name}</div>}
                     </div>
-                    {t.start_time && <div className="text-muted-foreground mt-0.5">{t.start_time.slice(0, 5)}</div>}
-                    {t.profiles?.full_name && <div className="text-muted-foreground truncate">{t.profiles.full_name}</div>}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           );
