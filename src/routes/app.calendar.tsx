@@ -35,7 +35,7 @@ function CalendarPage() {
     const end = fmtDate(addDays(weekStart, 7));
     supabase
       .from("tasks")
-      .select("id, title, type, scheduled_date, start_time, end_time, location, assigned_to, profiles!tasks_assigned_to_fkey(full_name)")
+      .select("id, title, type, scheduled_date, start_time, end_time, location, assigned_to")
       .gte("scheduled_date", start).lt("scheduled_date", end)
       .order("start_time")
       .then(({ data }) => setTasks((data as unknown as Task[]) ?? []));
