@@ -4,8 +4,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
 import { TASK_TYPE_LABELS, TASK_TYPE_DOT, type TaskType, startOfWeek, addDays, fmtDate } from "@/lib/constants";
-import { Calendar, Clock, MapPin, Megaphone } from "lucide-react";
+import { Calendar, Clock, MapPin, Megaphone, Home } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { RoomLegend, RoomSeatGrid, type Room } from "@/components/RoomSeatBoard";
 
 export const Route = createFileRoute("/app/dashboard")({
   component: Dashboard,
