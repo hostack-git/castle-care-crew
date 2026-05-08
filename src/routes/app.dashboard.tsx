@@ -32,11 +32,13 @@ type Announcement = {
 };
 
 function Dashboard() {
-  const { user, profile } = useAuth();
+  const { user, profile, isAdmin, isRoomManager } = useAuth();
   const { t, lang } = useI18n();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [anns, setAnns] = useState<Announcement[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
+  const canEditRooms = isAdmin || isRoomManager;
 
   useEffect(() => {
     if (!user) return;
@@ -56,11 +58,25 @@ function Dashboard() {
         .select("id, title, content, priority, created_at")
         .order("created_at", { ascending: false })
         .limit(3),
-    ]).then(([t, a]) => {
+      supabase.from("rooms").select("*").order("kind").order("name"),
+    ]).then(([t, a, r]) => {
       setTasks((t.data as Task[]) ?? []);
       setAnns((a.data as Announcement[]) ?? []);
+      setRooms((r.data as Room[]) ?? []);
       setLoading(false);
     });
+
+    const ch = supabase
+      .channel("dash-rooms")
+      .on("postgres_changes", { event: "*", schema: "public", table: "rooms" }, (payload) => {
+        setRooms((cur) => {
+          if (payload.eventType === "INSERT") return [...cur, payload.new as Room];
+          if (payload.eventType === "DELETE") return cur.filter((r) => r.id !== (payload.old as Room).id);
+          return cur.map((r) => (r.id === (payload.new as Room).id ? (payload.new as Room) : r));
+        });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
   }, [user]);
 
   const today = fmtDate(new Date());
