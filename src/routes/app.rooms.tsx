@@ -7,27 +7,16 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Bed, Home, Plus, ShieldCheck, Trash2, Users, ArrowLeft } from "lucide-react";
+import { Home, Plus, ShieldCheck, Trash2, Users, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import {
+  RoomLegend,
+  RoomSeatGrid,
+  type Room,
+  type RoomKind,
+} from "@/components/RoomSeatBoard";
 
 export const Route = createFileRoute("/app/rooms")({ component: RoomsPage });
-
-type RoomKind = "room" | "cottage";
-type RoomStatus = "ready" | "booked" | "checked_in" | "needs_cleaning" | "cleaning" | "maintenance";
-type Room = {
-  id: string; name: string; kind: RoomKind; status: RoomStatus;
-  guest_name: string | null; notes: string | null; updated_at: string; updated_by: string | null;
-};
-
-const STATUSES: { value: RoomStatus; label: string; cls: string }[] = [
-  { value: "ready", label: "Ready", cls: "bg-emerald-100 text-emerald-800 border-emerald-200" },
-  { value: "booked", label: "Booked", cls: "bg-blue-100 text-blue-800 border-blue-200" },
-  { value: "checked_in", label: "Checked-in", cls: "bg-violet-100 text-violet-800 border-violet-200" },
-  { value: "needs_cleaning", label: "Needs cleaning", cls: "bg-amber-100 text-amber-900 border-amber-200" },
-  { value: "cleaning", label: "Cleaning…", cls: "bg-orange-100 text-orange-800 border-orange-200" },
-  { value: "maintenance", label: "Maintenance", cls: "bg-rose-100 text-rose-800 border-rose-200" },
-];
-const statusMeta = (s: RoomStatus) => STATUSES.find((x) => x.value === s)!;
 
 function RoomsPage() {
   const { user, isAdmin, isRoomManager } = useAuth();
@@ -40,7 +29,6 @@ function RoomsPage() {
       setRooms((data as Room[]) ?? []);
       setLoading(false);
     });
-
     const ch = supabase
       .channel("rooms-live")
       .on("postgres_changes", { event: "*", schema: "public", table: "rooms" }, (payload) => {
@@ -53,11 +41,6 @@ function RoomsPage() {
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, []);
-
-  const updateStatus = async (id: string, status: RoomStatus) => {
-    const { error } = await supabase.from("rooms").update({ status, updated_by: user?.id }).eq("id", id);
-    if (error) toast.error(error.message);
-  };
 
   const remove = async (id: string) => {
     if (!confirm("Delete this room?")) return;
@@ -82,7 +65,7 @@ function RoomsPage() {
             <Home className="h-6 w-6 text-accent" /> Rooms & Cottages
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Live status board {canEdit ? "— tap a status to update." : "— view only."}
+            Live status board {canEdit ? "— tap a room to update." : "— view only."}
           </p>
         </div>
         <div className="flex gap-2">
@@ -91,63 +74,33 @@ function RoomsPage() {
         </div>
       </header>
 
-      <div className="flex flex-wrap gap-2">
-        {STATUSES.map((s) => (
-          <Badge key={s.value} variant="outline" className={`${s.cls} border`}>
-            {s.label} · {rooms.filter((r) => r.status === s.value).length}
-          </Badge>
-        ))}
+      <div className="rounded-2xl border bg-card/60 p-4">
+        <RoomLegend rooms={rooms} />
       </div>
 
       {loading ? (
         <p className="text-muted-foreground text-sm">Loading…</p>
       ) : (
-        <div className="space-y-8">
-          {(["rooms", "cottages"] as const).map((g) => (
-            <section key={g}>
-              <h2 className="font-display text-xl font-semibold mb-3 flex items-center gap-2">
-                {g === "rooms" ? <Bed className="h-4 w-4" /> : <Home className="h-4 w-4" />}
-                {g === "rooms" ? "B&B Rooms" : "Cottages"} ({grouped[g].length})
-              </h2>
-              {grouped[g].length === 0 ? (
-                <p className="text-sm text-muted-foreground">None yet.</p>
-              ) : (
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {grouped[g].map((r) => {
-                    const m = statusMeta(r.status);
-                    return (
-                      <article key={r.id} className="rounded-2xl border bg-card p-4 shadow-soft space-y-3">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <h3 className="font-medium truncate">{r.name}</h3>
-                            {r.guest_name && <p className="text-xs text-muted-foreground truncate">Guest: {r.guest_name}</p>}
-                          </div>
-                          {isAdmin && (
-                            <button onClick={() => remove(r.id)} className="text-muted-foreground hover:text-destructive">
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          )}
-                        </div>
-                        <Badge variant="outline" className={`${m.cls} border w-full justify-center py-1`}>{m.label}</Badge>
-                        {canEdit ? (
-                          <Select value={r.status} onValueChange={(v) => updateStatus(r.id, v as RoomStatus)}>
-                            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              {STATUSES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
-                        ) : null}
-                        <p className="text-[10px] text-muted-foreground">
-                          Updated {new Date(r.updated_at).toLocaleString()}
-                        </p>
-                      </article>
-                    );
-                  })}
-                </div>
-              )}
-            </section>
-          ))}
+        <div className="space-y-5">
+          <RoomSeatGrid title="B&B Rooms" rooms={grouped.rooms} canEdit={canEdit} userId={user?.id} />
+          <RoomSeatGrid title="Cottages" rooms={grouped.cottages} canEdit={canEdit} userId={user?.id} />
         </div>
+      )}
+
+      {isAdmin && rooms.length > 0 && (
+        <details className="rounded-xl border bg-card p-4">
+          <summary className="cursor-pointer text-sm font-medium">Manage list (rename / delete)</summary>
+          <ul className="mt-3 divide-y">
+            {rooms.map((r) => (
+              <li key={r.id} className="flex items-center justify-between py-2 text-sm">
+                <span>{r.name} <span className="text-xs text-muted-foreground">· {r.kind}</span></span>
+                <button onClick={() => remove(r.id)} className="text-muted-foreground hover:text-destructive">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </details>
       )}
     </div>
   );
