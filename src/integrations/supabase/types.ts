@@ -238,6 +238,42 @@ export type Database = {
         }
         Relationships: []
       }
+      rooms: {
+        Row: {
+          created_at: string
+          guest_name: string | null
+          id: string
+          kind: Database["public"]["Enums"]["room_kind"]
+          name: string
+          notes: string | null
+          status: Database["public"]["Enums"]["room_status"]
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          guest_name?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["room_kind"]
+          name: string
+          notes?: string | null
+          status?: Database["public"]["Enums"]["room_status"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          guest_name?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["room_kind"]
+          name?: string
+          notes?: string | null
+          status?: Database["public"]["Enums"]["room_status"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       task_checklist_items: {
         Row: {
           created_at: string
@@ -362,6 +398,14 @@ export type Database = {
     Enums: {
       app_language: "en" | "pt" | "es" | "de" | "gd"
       app_role: "admin" | "volunteer" | "room_manager"
+      room_kind: "room" | "cottage"
+      room_status:
+        | "ready"
+        | "booked"
+        | "checked_in"
+        | "needs_cleaning"
+        | "cleaning"
+        | "maintenance"
       task_status: "pending" | "in_progress" | "completed" | "skipped"
       task_type:
         | "housekeeping"
@@ -500,6 +544,15 @@ export const Constants = {
     Enums: {
       app_language: ["en", "pt", "es", "de", "gd"],
       app_role: ["admin", "volunteer", "room_manager"],
+      room_kind: ["room", "cottage"],
+      room_status: [
+        "ready",
+        "booked",
+        "checked_in",
+        "needs_cleaning",
+        "cleaning",
+        "maintenance",
+      ],
       task_status: ["pending", "in_progress", "completed", "skipped"],
       task_type: [
         "housekeeping",
