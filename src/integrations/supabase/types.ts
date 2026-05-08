@@ -361,7 +361,7 @@ export type Database = {
     }
     Enums: {
       app_language: "en" | "pt" | "es" | "de" | "gd"
-      app_role: "admin" | "volunteer"
+      app_role: "admin" | "volunteer" | "room_manager"
       task_status: "pending" | "in_progress" | "completed" | "skipped"
       task_type:
         | "housekeeping"
@@ -499,7 +499,7 @@ export const Constants = {
   public: {
     Enums: {
       app_language: ["en", "pt", "es", "de", "gd"],
-      app_role: ["admin", "volunteer"],
+      app_role: ["admin", "volunteer", "room_manager"],
       task_status: ["pending", "in_progress", "completed", "skipped"],
       task_type: [
         "housekeeping",
