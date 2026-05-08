@@ -14,6 +14,7 @@ import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppRoomsRouteImport } from './routes/app.rooms'
 import { Route as AppGuidebookRouteImport } from './routes/app.guidebook'
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
 import { Route as AppChatRouteImport } from './routes/app.chat'
@@ -48,6 +49,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoomsRoute = AppRoomsRouteImport.update({
+  id: '/rooms',
+  path: '/rooms',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppGuidebookRoute = AppGuidebookRouteImport.update({
   id: '/guidebook',
@@ -108,6 +114,7 @@ export interface FileRoutesByFullPath {
   '/app/chat': typeof AppChatRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/guidebook': typeof AppGuidebookRoute
+  '/app/rooms': typeof AppRoomsRoute
   '/app/admin/stats': typeof AppAdminStatsRoute
   '/app/tasks/$taskId': typeof AppTasksTaskIdRoute
 }
@@ -124,6 +131,7 @@ export interface FileRoutesByTo {
   '/app/chat': typeof AppChatRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/guidebook': typeof AppGuidebookRoute
+  '/app/rooms': typeof AppRoomsRoute
   '/app/admin/stats': typeof AppAdminStatsRoute
   '/app/tasks/$taskId': typeof AppTasksTaskIdRoute
 }
@@ -141,6 +149,7 @@ export interface FileRoutesById {
   '/app/chat': typeof AppChatRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/guidebook': typeof AppGuidebookRoute
+  '/app/rooms': typeof AppRoomsRoute
   '/app/admin/stats': typeof AppAdminStatsRoute
   '/app/tasks/$taskId': typeof AppTasksTaskIdRoute
 }
@@ -159,6 +168,7 @@ export interface FileRouteTypes {
     | '/app/chat'
     | '/app/dashboard'
     | '/app/guidebook'
+    | '/app/rooms'
     | '/app/admin/stats'
     | '/app/tasks/$taskId'
   fileRoutesByTo: FileRoutesByTo
@@ -175,6 +185,7 @@ export interface FileRouteTypes {
     | '/app/chat'
     | '/app/dashboard'
     | '/app/guidebook'
+    | '/app/rooms'
     | '/app/admin/stats'
     | '/app/tasks/$taskId'
   id:
@@ -191,6 +202,7 @@ export interface FileRouteTypes {
     | '/app/chat'
     | '/app/dashboard'
     | '/app/guidebook'
+    | '/app/rooms'
     | '/app/admin/stats'
     | '/app/tasks/$taskId'
   fileRoutesById: FileRoutesById
@@ -239,6 +251,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/app/rooms': {
+      id: '/app/rooms'
+      path: '/rooms'
+      fullPath: '/app/rooms'
+      preLoaderRoute: typeof AppRoomsRouteImport
+      parentRoute: typeof AppRoute
     }
     '/app/guidebook': {
       id: '/app/guidebook'
@@ -326,6 +345,7 @@ interface AppRouteChildren {
   AppChatRoute: typeof AppChatRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppGuidebookRoute: typeof AppGuidebookRoute
+  AppRoomsRoute: typeof AppRoomsRoute
   AppTasksTaskIdRoute: typeof AppTasksTaskIdRoute
 }
 
@@ -337,6 +357,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppChatRoute: AppChatRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppGuidebookRoute: AppGuidebookRoute,
+  AppRoomsRoute: AppRoomsRoute,
   AppTasksTaskIdRoute: AppTasksTaskIdRoute,
 }
 

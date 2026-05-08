@@ -21,6 +21,7 @@ type AuthCtx = {
   session: Session | null;
   profile: Profile | null;
   isAdmin: boolean;
+  isRoomManager: boolean;
   loading: boolean;
   refreshProfile: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -33,6 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isRoomManager, setIsRoomManager] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const loadProfile = async (uid: string) => {
@@ -41,7 +43,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       supabase.from("user_roles").select("role").eq("user_id", uid),
     ]);
     setProfile((p as Profile) ?? null);
-    setIsAdmin(!!roles?.some((r) => r.role === "admin"));
+    const admin = !!roles?.some((r) => r.role === "admin");
+    setIsAdmin(admin);
+    setIsRoomManager(admin || !!roles?.some((r) => r.role === "room_manager"));
   };
 
   const refreshProfile = async () => {
@@ -59,6 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         setProfile(null);
         setIsAdmin(false);
+        setIsRoomManager(false);
       }
     });
 
@@ -78,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <Ctx.Provider value={{ user, session, profile, isAdmin, loading, refreshProfile, signOut }}>
+    <Ctx.Provider value={{ user, session, profile, isAdmin, isRoomManager, loading, refreshProfile, signOut }}>
       {children}
     </Ctx.Provider>
   );
