@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
-import { Mountain, LayoutDashboard, Calendar, BookOpen, Mountain as Trail, Megaphone, MessageCircle, Settings, LogOut } from "lucide-react";
+import { Mountain, LayoutDashboard, Calendar, BookOpen, Mountain as Trail, Megaphone, MessageCircle, Settings, LogOut, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/app")({
@@ -11,7 +11,7 @@ export const Route = createFileRoute("/app")({
 });
 
 function AppLayout() {
-  const { user, profile, loading, isAdmin, signOut } = useAuth();
+  const { user, profile, loading, isAdmin, isRoomManager, signOut } = useAuth();
   const { t } = useI18n();
   const navigate = useNavigate();
   const loc = useLocation();
@@ -60,6 +60,18 @@ function AppLayout() {
               </Link>
             );
           })}
+          {(isAdmin || isRoomManager) && (
+            <Link
+              to="/app/rooms"
+              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${
+                loc.pathname.startsWith("/app/rooms")
+                  ? "bg-primary text-primary-foreground"
+                  : "text-foreground hover:bg-secondary"
+              }`}
+            >
+              <Home className="h-4 w-4" /> Rooms
+            </Link>
+          )}
           {isAdmin && (
             <Link
               to="/app/admin"
