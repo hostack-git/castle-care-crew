@@ -130,6 +130,37 @@ function Dashboard() {
         )}
       </section>
 
+      {/* Rooms status */}
+      {rooms.length > 0 && (
+        <section>
+          <div className="flex items-baseline justify-between mb-4">
+            <h2 className="font-display text-xl font-semibold flex items-center gap-2">
+              <Home className="h-4 w-4 text-accent" /> Rooms & Cottages
+            </h2>
+            <Link to="/app/rooms" className="text-sm text-accent hover:underline">Open board →</Link>
+          </div>
+          <div className="rounded-2xl border bg-card/60 p-4 mb-3">
+            <RoomLegend rooms={rooms} />
+          </div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <RoomSeatGrid
+              title="B&B Rooms"
+              rooms={rooms.filter((r) => r.kind === "room")}
+              canEdit={canEditRooms}
+              userId={user?.id}
+              size="sm"
+            />
+            <RoomSeatGrid
+              title="Cottages"
+              rooms={rooms.filter((r) => r.kind === "cottage")}
+              canEdit={canEditRooms}
+              userId={user?.id}
+              size="sm"
+            />
+          </div>
+        </section>
+      )}
+
       {/* Announcements */}
       <section>
         <div className="flex items-baseline justify-between mb-4">
