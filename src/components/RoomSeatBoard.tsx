@@ -188,7 +188,7 @@ export function RoomSeatGrid({
         <span className="text-xs text-muted-foreground">{rooms.length}</span>
       </div>
       <div className="rounded-xl bg-secondary/40 p-5">
-        <div className="flex flex-wrap gap-3 justify-center">
+        <div className="flex flex-wrap gap-5 justify-center">
           {rooms.map((r) => (
             <RoomSeat key={r.id} room={r} canEdit={canEdit} userId={userId} size={size} />
           ))}
