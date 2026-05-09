@@ -194,24 +194,38 @@ export function RoomSeat({
           Updated {new Date(room.updated_at).toLocaleString()}
         </p>
         {canEdit && (
-          <div className="mt-3 grid grid-cols-2 gap-1.5">
-            {STATUS_ORDER.map((s) => {
-              const sm = STATUS_META[s];
-              const active = s === room.status;
-              return (
-                <button
-                  key={s}
-                  onClick={() => update(s)}
-                  className={`flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-[11px] transition ${
-                    active ? "border-foreground/40 bg-secondary" : "hover:bg-secondary/60"
-                  }`}
-                >
-                  <span className={`h-2.5 w-2.5 rounded-full ${sm.dot}`} />
-                  <span className="truncate">{sm.label}</span>
-                </button>
-              );
-            })}
-          </div>
+          <>
+            <div className="mt-3 space-y-1.5">
+              <label className="text-[10px] uppercase tracking-wide text-muted-foreground">Guest name</label>
+              <div className="flex gap-1.5">
+                <Input
+                  value={guest}
+                  onChange={(e) => setGuest(e.target.value)}
+                  placeholder="Empty"
+                  className="h-8 text-xs"
+                />
+                <Button size="sm" className="h-8 px-2 text-xs" onClick={saveGuest}>Save</Button>
+              </div>
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-1.5">
+              {STATUS_ORDER.map((s) => {
+                const sm = STATUS_META[s];
+                const active = s === room.status;
+                return (
+                  <button
+                    key={s}
+                    onClick={() => update(s)}
+                    className={`flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-[11px] transition ${
+                      active ? "border-foreground/40 bg-secondary" : "hover:bg-secondary/60"
+                    }`}
+                  >
+                    <span className={`h-2.5 w-2.5 rounded-full ${sm.dot}`} />
+                    <span className="truncate">{sm.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </>
         )}
       </PopoverContent>
     </Popover>
