@@ -104,7 +104,7 @@ export function RoomSeat({
 }) {
   const m = STATUS_META[room.status];
   const [open, setOpen] = useState(false);
-  const dim = size === "sm" ? "h-9 w-9" : "h-12 w-12";
+  const dim = size === "sm" ? "h-16 w-16" : "h-20 w-20";
 
   const update = async (status: RoomStatus) => {
     const { error } = await supabase
@@ -115,14 +115,16 @@ export function RoomSeat({
     else setOpen(false);
   };
 
+  const isCottage = room.kind === "cottage";
+
   const seat = (
     <button
       type="button"
-      className={`group relative ${dim} rounded-full ${m.dot} ring-4 ${m.ring} transition hover:scale-110 focus:outline-none focus:ring-offset-2`}
+      className={`group relative ${dim} flex flex-col items-center justify-end transition hover:-translate-y-1 focus:outline-none`}
       aria-label={`${room.name} — ${m.label}`}
     >
-      <span className="sr-only">{room.name}</span>
-      <span className="pointer-events-none absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-foreground/90 px-1.5 py-0.5 text-[10px] text-background opacity-0 transition group-hover:opacity-100">
+      <HouseShape status={room.status} variant={isCottage ? "cottage" : "room"} />
+      <span className="mt-1 max-w-full truncate text-[10px] font-medium text-foreground/80">
         {room.name}
       </span>
     </button>
