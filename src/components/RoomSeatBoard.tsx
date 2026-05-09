@@ -91,6 +91,42 @@ export function RoomLegend({ rooms }: { rooms: Room[] }) {
   );
 }
 
+const STATUS_FILL: Record<RoomStatus, string> = {
+  ready: "text-emerald-500",
+  booked: "text-blue-500",
+  checked_in: "text-violet-600",
+  needs_cleaning: "text-amber-400",
+  cleaning: "text-orange-500",
+  maintenance: "text-rose-500",
+};
+
+function HouseShape({ status, variant }: { status: RoomStatus; variant: "room" | "cottage" }) {
+  const color = STATUS_FILL[status];
+  const stroke = "stroke-foreground/70";
+  const door = "fill-foreground/80";
+  const window = "fill-background";
+  if (variant === "cottage") {
+    // wider cottage with two windows + chimney
+    return (
+      <svg viewBox="0 0 64 56" className={`h-12 w-14 drop-shadow-sm ${color}`}>
+        <path d="M6 28 L32 8 L58 28 L58 50 L6 50 Z" fill="currentColor" className={`${stroke}`} strokeWidth="1.5" strokeLinejoin="round" />
+        <rect x="46" y="12" width="6" height="10" fill="currentColor" className={stroke} strokeWidth="1.2" />
+        <rect x="28" y="34" width="8" height="14" className={`${door} stroke-foreground/70`} strokeWidth="1" rx="1" />
+        <rect x="14" y="32" width="8" height="8" className={`${window} stroke-foreground/70`} strokeWidth="1" />
+        <rect x="42" y="32" width="8" height="8" className={`${window} stroke-foreground/70`} strokeWidth="1" />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 48 52" className={`h-12 w-11 drop-shadow-sm ${color}`}>
+      <path d="M4 24 L24 6 L44 24 L44 46 L4 46 Z" fill="currentColor" className={stroke} strokeWidth="1.5" strokeLinejoin="round" />
+      <rect x="20" y="30" width="8" height="16" className={`${door} stroke-foreground/70`} strokeWidth="1" rx="1" />
+      <rect x="9" y="28" width="7" height="7" className={`${window} stroke-foreground/70`} strokeWidth="1" />
+      <rect x="32" y="28" width="7" height="7" className={`${window} stroke-foreground/70`} strokeWidth="1" />
+    </svg>
+  );
+}
+
 export function RoomSeat({
   room,
   canEdit,
