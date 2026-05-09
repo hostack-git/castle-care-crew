@@ -240,6 +240,8 @@ export type Database = {
       }
       rooms: {
         Row: {
+          check_in_date: string | null
+          check_out_date: string | null
           created_at: string
           guest_name: string | null
           id: string
@@ -251,6 +253,8 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          check_in_date?: string | null
+          check_out_date?: string | null
           created_at?: string
           guest_name?: string | null
           id?: string
@@ -262,6 +266,8 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          check_in_date?: string | null
+          check_out_date?: string | null
           created_at?: string
           guest_name?: string | null
           id?: string
