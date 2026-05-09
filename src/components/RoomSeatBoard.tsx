@@ -22,6 +22,8 @@ export type Room = {
   guest_name: string | null;
   notes: string | null;
   updated_at: string;
+  check_in_date: string | null;
+  check_out_date: string | null;
 };
 
 export const STATUS_META: Record<
@@ -143,9 +145,15 @@ export function RoomSeat({
   const m = STATUS_META[room.status];
   const [open, setOpen] = useState(false);
   const [guest, setGuest] = useState(room.guest_name ?? "");
+  const [checkIn, setCheckIn] = useState(room.check_in_date ?? "");
+  const [checkOut, setCheckOut] = useState(room.check_out_date ?? "");
   const dim = size === "sm" ? "h-16 w-16" : "h-20 w-20";
 
-  useEffect(() => { setGuest(room.guest_name ?? ""); }, [room.guest_name]);
+  useEffect(() => {
+    setGuest(room.guest_name ?? "");
+    setCheckIn(room.check_in_date ?? "");
+    setCheckOut(room.check_out_date ?? "");
+  }, [room.guest_name, room.check_in_date, room.check_out_date]);
 
   const update = async (status: RoomStatus) => {
     const { error } = await supabase
@@ -157,14 +165,29 @@ export function RoomSeat({
   };
 
   const saveGuest = async () => {
-    const value = guest.trim() ? guest.trim() : null;
     const { error } = await supabase
       .from("rooms")
-      .update({ guest_name: value, updated_by: userId })
+      .update({
+        guest_name: guest.trim() ? guest.trim() : null,
+        check_in_date: checkIn || null,
+        check_out_date: checkOut || null,
+        updated_by: userId,
+      })
       .eq("id", room.id);
     if (error) toast.error(error.message);
-    else toast.success("Guest updated");
+    else toast.success("Guest details saved");
   };
+
+  const nights =
+    checkIn && checkOut
+      ? Math.max(
+          0,
+          Math.round(
+            (new Date(checkOut).getTime() - new Date(checkIn).getTime()) /
+              (1000 * 60 * 60 * 24),
+          ),
+        )
+      : null;
 
   const isCottage = room.kind === "cottage";
 
@@ -184,10 +207,16 @@ export function RoomSeat({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>{seat}</PopoverTrigger>
-      <PopoverContent className="w-60 p-3" align="center">
+      <PopoverContent className="w-72 p-3" align="center">
         <p className="font-medium text-sm">{room.name}</p>
         {room.guest_name && (
           <p className="text-xs text-muted-foreground mt-0.5">Guest: {room.guest_name}</p>
+        )}
+        {(room.check_in_date || room.check_out_date) && (
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            {room.check_in_date ?? "—"} → {room.check_out_date ?? "—"}
+            {nights !== null && nights > 0 && ` · ${nights} night${nights === 1 ? "" : "s"}`}
+          </p>
         )}
         <p className={`text-xs mt-1 font-medium ${m.text}`}>● {m.label}</p>
         <p className="text-[10px] text-muted-foreground mt-1">
@@ -197,15 +226,23 @@ export function RoomSeat({
           <>
             <div className="mt-3 space-y-1.5">
               <label className="text-[10px] uppercase tracking-wide text-muted-foreground">Guest name</label>
-              <div className="flex gap-1.5">
-                <Input
-                  value={guest}
-                  onChange={(e) => setGuest(e.target.value)}
-                  placeholder="Empty"
-                  className="h-8 text-xs"
-                />
-                <Button size="sm" className="h-8 px-2 text-xs" onClick={saveGuest}>Save</Button>
+              <Input
+                value={guest}
+                onChange={(e) => setGuest(e.target.value)}
+                placeholder="Empty"
+                className="h-8 text-xs"
+              />
+              <div className="grid grid-cols-2 gap-1.5">
+                <div>
+                  <label className="text-[10px] uppercase tracking-wide text-muted-foreground">Check-in</label>
+                  <Input type="date" value={checkIn} onChange={(e) => setCheckIn(e.target.value)} className="h-8 text-xs" />
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase tracking-wide text-muted-foreground">Check-out</label>
+                  <Input type="date" value={checkOut} onChange={(e) => setCheckOut(e.target.value)} className="h-8 text-xs" />
+                </div>
               </div>
+              <Button size="sm" className="h-8 w-full text-xs" onClick={saveGuest}>Save guest</Button>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-1.5">
               {STATUS_ORDER.map((s) => {
