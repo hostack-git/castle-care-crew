@@ -1,13 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, MapPin, Heart } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
+} from "@/components/ui/dialog";
+import { Plus, MapPin, Heart, ImagePlus, X } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/adventures")({ component: Adventures });
@@ -18,38 +21,59 @@ type Adventure = {
   profiles?: { full_name: string | null; avatar_url: string | null } | null;
 };
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+const publicUrl = (path: string) =>
+  `${SUPABASE_URL}/storage/v1/object/public/adventures/${path}`;
+
 function Adventures() {
   const { user } = useAuth();
   const { t } = useI18n();
   const [items, setItems] = useState<Adventure[]>([]);
-  const [imgs, setImgs] = useState<Record<string, string>>({});
+  const [likes, setLikes] = useState<Record<string, { count: number; mine: boolean }>>({});
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
   const [location, setLocation] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const load = () => {
-    supabase
+  const load = async () => {
+    const { data } = await supabase
       .from("adventures")
       .select("*, profiles(full_name, avatar_url)")
-      .order("created_at", { ascending: false })
-      .then(async ({ data }) => {
-        const list = (data as unknown as Adventure[]) ?? [];
-        setItems(list);
-        // resolve signed URLs
-        const map: Record<string, string> = {};
-        await Promise.all(
-          list.filter((a) => a.image_url).map(async (a) => {
-            const { data: signed } = await supabase.storage.from("adventures").createSignedUrl(a.image_url!, 3600);
-            if (signed?.signedUrl) map[a.id] = signed.signedUrl;
-          })
-        );
-        setImgs(map);
+      .order("created_at", { ascending: false });
+    const list = (data as unknown as Adventure[]) ?? [];
+    setItems(list);
+
+    if (list.length) {
+      const ids = list.map((a) => a.id);
+      const { data: ls } = await supabase
+        .from("adventure_likes")
+        .select("adventure_id, user_id")
+        .in("adventure_id", ids);
+      const map: Record<string, { count: number; mine: boolean }> = {};
+      ids.forEach((id) => (map[id] = { count: 0, mine: false }));
+      (ls ?? []).forEach((l: any) => {
+        map[l.adventure_id].count += 1;
+        if (l.user_id === user?.id) map[l.adventure_id].mine = true;
       });
+      setLikes(map);
+    }
   };
-  useEffect(load, []);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [user?.id]);
+
+  const onPickFile = (f: File | null) => {
+    setFile(f);
+    if (preview) URL.revokeObjectURL(preview);
+    setPreview(f ? URL.createObjectURL(f) : null);
+  };
+
+  const reset = () => {
+    setTitle(""); setDesc(""); setLocation("");
+    if (preview) URL.revokeObjectURL(preview);
+    setFile(null); setPreview(null);
+  };
 
   const submit = async () => {
     if (!user || !title) return;
@@ -59,7 +83,9 @@ function Adventures() {
       if (file) {
         const ext = file.name.split(".").pop() || "jpg";
         path = `${user.id}/${Date.now()}.${ext}`;
-        const { error } = await supabase.storage.from("adventures").upload(path, file);
+        const { error } = await supabase.storage.from("adventures").upload(path, file, {
+          cacheControl: "3600", upsert: false, contentType: file.type,
+        });
         if (error) throw error;
       }
       const { error } = await supabase.from("adventures").insert({
@@ -67,7 +93,7 @@ function Adventures() {
       });
       if (error) throw error;
       toast.success("Shared with the team!");
-      setOpen(false); setTitle(""); setDesc(""); setLocation(""); setFile(null);
+      setOpen(false); reset();
       load();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed");
@@ -76,47 +102,112 @@ function Adventures() {
     }
   };
 
+  const toggleLike = async (id: string) => {
+    if (!user) return;
+    const cur = likes[id] ?? { count: 0, mine: false };
+    setLikes((m) => ({ ...m, [id]: { count: cur.count + (cur.mine ? -1 : 1), mine: !cur.mine } }));
+    if (cur.mine) {
+      await supabase.from("adventure_likes").delete().eq("adventure_id", id).eq("user_id", user.id);
+    } else {
+      await supabase.from("adventure_likes").insert({ adventure_id: id, user_id: user.id });
+    }
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-2xl mx-auto">
       <header className="flex items-end justify-between flex-wrap gap-4">
         <div>
           <h1 className="font-display text-3xl font-semibold">{t("adv.title")}</h1>
           <p className="text-muted-foreground text-sm mt-1">{t("adv.sub")}</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
           <DialogTrigger asChild>
-            <Button className="bg-accent text-accent-foreground hover:bg-accent/90"><Plus className="h-4 w-4 mr-1" /> {t("adv.share")}</Button>
+            <Button className="bg-accent text-accent-foreground hover:bg-accent/90">
+              <Plus className="h-4 w-4 mr-1" /> {t("adv.share")}
+            </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader><DialogTitle>{t("adv.shareTitle")}</DialogTitle></DialogHeader>
             <div className="space-y-3">
-              <Input placeholder={t("ann.titleField")} value={title} onChange={(e) => setTitle(e.target.value)} />
-              <Input placeholder={t("adv.location")} value={location} onChange={(e) => setLocation(e.target.value)} />
-              <Textarea placeholder={t("adv.tellUs")} value={desc} onChange={(e) => setDesc(e.target.value)} rows={4} />
-              <Input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-              <Button onClick={submit} disabled={busy || !title} className="w-full">{busy ? t("adv.sharing") : t("adv.share")}</Button>
+              {preview ? (
+                <div className="relative rounded-xl overflow-hidden border">
+                  <img src={preview} alt="preview" className="w-full max-h-80 object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => onPickFile(null)}
+                    className="absolute top-2 right-2 rounded-full bg-background/80 p-1 hover:bg-background"
+                    aria-label="Remove image"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex flex-col items-center justify-center gap-2 cursor-pointer rounded-xl border border-dashed py-10 text-muted-foreground hover:bg-secondary/40">
+                  <ImagePlus className="h-7 w-7" />
+                  <span className="text-sm">Add a photo</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => onPickFile(e.target.files?.[0] ?? null)}
+                  />
+                </label>
+              )}
+              <Input placeholder={t("ann.titleField")} value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} />
+              <Input placeholder={t("adv.location")} value={location} onChange={(e) => setLocation(e.target.value)} maxLength={120} />
+              <Textarea placeholder={t("adv.tellUs")} value={desc} onChange={(e) => setDesc(e.target.value)} rows={4} maxLength={1000} />
+              <Button onClick={submit} disabled={busy || !title} className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
+                {busy ? t("adv.sharing") : t("adv.share")}
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
       </header>
 
-      <div className="grid md:grid-cols-2 gap-5">
-        {items.map((a) => (
-          <article key={a.id} className="rounded-2xl border bg-card overflow-hidden shadow-soft">
-            {imgs[a.id] && <img src={imgs[a.id]} alt={a.title} className="w-full h-56 object-cover" loading="lazy" />}
-            <div className="p-5">
-              <div className="flex items-center justify-between mb-1">
-                <h3 className="font-display text-lg font-semibold">{a.title}</h3>
-                <Heart className="h-4 w-4 text-muted-foreground" />
+      <div className="space-y-5">
+        {items.map((a) => {
+          const l = likes[a.id] ?? { count: 0, mine: false };
+          const author = a.profiles?.full_name || "Volunteer";
+          const initials = author.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
+          return (
+            <article key={a.id} className="rounded-2xl border bg-card overflow-hidden shadow-soft">
+              <header className="flex items-center gap-3 p-4">
+                <Avatar className="h-9 w-9">
+                  {a.profiles?.avatar_url && <AvatarImage src={a.profiles.avatar_url} />}
+                  <AvatarFallback>{initials}</AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{author}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {new Date(a.created_at).toLocaleString()}
+                    {a.location && <> · <MapPin className="inline h-3 w-3 -mt-0.5" /> {a.location}</>}
+                  </p>
+                </div>
+              </header>
+              {a.image_url && (
+                <img
+                  src={publicUrl(a.image_url)}
+                  alt={a.title}
+                  className="w-full max-h-[600px] object-cover bg-secondary"
+                  loading="lazy"
+                />
+              )}
+              <div className="p-4">
+                <button
+                  onClick={() => toggleLike(a.id)}
+                  className="flex items-center gap-1.5 text-sm text-foreground/80 hover:text-foreground transition mb-2"
+                >
+                  <Heart className={`h-5 w-5 ${l.mine ? "fill-rose-500 text-rose-500" : ""}`} />
+                  <span>{l.count}</span>
+                </button>
+                <h3 className="font-display text-lg font-semibold leading-tight">{a.title}</h3>
+                {a.description && <p className="text-sm mt-2 leading-relaxed whitespace-pre-wrap">{a.description}</p>}
               </div>
-              <p className="text-xs text-muted-foreground">{a.profiles?.full_name || "Volunteer"} · {new Date(a.created_at).toLocaleDateString()}</p>
-              {a.location && <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1"><MapPin className="h-3 w-3" />{a.location}</p>}
-              {a.description && <p className="text-sm mt-3 leading-relaxed">{a.description}</p>}
-            </div>
-          </article>
-        ))}
+            </article>
+          );
+        })}
         {items.length === 0 && (
-          <div className="md:col-span-2 rounded-2xl border border-dashed bg-secondary/30 p-12 text-center text-muted-foreground">
+          <div className="rounded-2xl border border-dashed bg-secondary/30 p-12 text-center text-muted-foreground">
             {t("adv.empty")}
           </div>
         )}
