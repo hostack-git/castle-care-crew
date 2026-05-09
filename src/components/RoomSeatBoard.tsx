@@ -91,6 +91,42 @@ export function RoomLegend({ rooms }: { rooms: Room[] }) {
   );
 }
 
+const STATUS_FILL: Record<RoomStatus, string> = {
+  ready: "text-emerald-500",
+  booked: "text-blue-500",
+  checked_in: "text-violet-600",
+  needs_cleaning: "text-amber-400",
+  cleaning: "text-orange-500",
+  maintenance: "text-rose-500",
+};
+
+function HouseShape({ status, variant }: { status: RoomStatus; variant: "room" | "cottage" }) {
+  const color = STATUS_FILL[status];
+  const stroke = "stroke-foreground/70";
+  const door = "fill-foreground/80";
+  const window = "fill-background";
+  if (variant === "cottage") {
+    // wider cottage with two windows + chimney
+    return (
+      <svg viewBox="0 0 64 56" className={`h-12 w-14 drop-shadow-sm ${color}`}>
+        <path d="M6 28 L32 8 L58 28 L58 50 L6 50 Z" fill="currentColor" className={`${stroke}`} strokeWidth="1.5" strokeLinejoin="round" />
+        <rect x="46" y="12" width="6" height="10" fill="currentColor" className={stroke} strokeWidth="1.2" />
+        <rect x="28" y="34" width="8" height="14" className={`${door} stroke-foreground/70`} strokeWidth="1" rx="1" />
+        <rect x="14" y="32" width="8" height="8" className={`${window} stroke-foreground/70`} strokeWidth="1" />
+        <rect x="42" y="32" width="8" height="8" className={`${window} stroke-foreground/70`} strokeWidth="1" />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 48 52" className={`h-12 w-11 drop-shadow-sm ${color}`}>
+      <path d="M4 24 L24 6 L44 24 L44 46 L4 46 Z" fill="currentColor" className={stroke} strokeWidth="1.5" strokeLinejoin="round" />
+      <rect x="20" y="30" width="8" height="16" className={`${door} stroke-foreground/70`} strokeWidth="1" rx="1" />
+      <rect x="9" y="28" width="7" height="7" className={`${window} stroke-foreground/70`} strokeWidth="1" />
+      <rect x="32" y="28" width="7" height="7" className={`${window} stroke-foreground/70`} strokeWidth="1" />
+    </svg>
+  );
+}
+
 export function RoomSeat({
   room,
   canEdit,
@@ -104,7 +140,7 @@ export function RoomSeat({
 }) {
   const m = STATUS_META[room.status];
   const [open, setOpen] = useState(false);
-  const dim = size === "sm" ? "h-9 w-9" : "h-12 w-12";
+  const dim = size === "sm" ? "h-16 w-16" : "h-20 w-20";
 
   const update = async (status: RoomStatus) => {
     const { error } = await supabase
@@ -115,14 +151,16 @@ export function RoomSeat({
     else setOpen(false);
   };
 
+  const isCottage = room.kind === "cottage";
+
   const seat = (
     <button
       type="button"
-      className={`group relative ${dim} rounded-full ${m.dot} ring-4 ${m.ring} transition hover:scale-110 focus:outline-none focus:ring-offset-2`}
+      className={`group relative ${dim} flex flex-col items-center justify-end transition hover:-translate-y-1 focus:outline-none`}
       aria-label={`${room.name} — ${m.label}`}
     >
-      <span className="sr-only">{room.name}</span>
-      <span className="pointer-events-none absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-foreground/90 px-1.5 py-0.5 text-[10px] text-background opacity-0 transition group-hover:opacity-100">
+      <HouseShape status={room.status} variant={isCottage ? "cottage" : "room"} />
+      <span className="mt-1 max-w-full truncate text-[10px] font-medium text-foreground/80">
         {room.name}
       </span>
     </button>
@@ -186,7 +224,7 @@ export function RoomSeatGrid({
         <span className="text-xs text-muted-foreground">{rooms.length}</span>
       </div>
       <div className="rounded-xl bg-secondary/40 p-5">
-        <div className="flex flex-wrap gap-3 justify-center">
+        <div className="flex flex-wrap gap-5 justify-center">
           {rooms.map((r) => (
             <RoomSeat key={r.id} room={r} canEdit={canEdit} userId={userId} size={size} />
           ))}
