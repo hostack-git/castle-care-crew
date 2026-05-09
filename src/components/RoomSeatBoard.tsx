@@ -22,6 +22,8 @@ export type Room = {
   guest_name: string | null;
   notes: string | null;
   updated_at: string;
+  check_in_date: string | null;
+  check_out_date: string | null;
 };
 
 export const STATUS_META: Record<
