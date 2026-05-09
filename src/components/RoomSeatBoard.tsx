@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 export type RoomKind = "room" | "cottage";
@@ -140,7 +142,10 @@ export function RoomSeat({
 }) {
   const m = STATUS_META[room.status];
   const [open, setOpen] = useState(false);
+  const [guest, setGuest] = useState(room.guest_name ?? "");
   const dim = size === "sm" ? "h-16 w-16" : "h-20 w-20";
+
+  useEffect(() => { setGuest(room.guest_name ?? ""); }, [room.guest_name]);
 
   const update = async (status: RoomStatus) => {
     const { error } = await supabase
@@ -149,6 +154,16 @@ export function RoomSeat({
       .eq("id", room.id);
     if (error) toast.error(error.message);
     else setOpen(false);
+  };
+
+  const saveGuest = async () => {
+    const value = guest.trim() ? guest.trim() : null;
+    const { error } = await supabase
+      .from("rooms")
+      .update({ guest_name: value, updated_by: userId })
+      .eq("id", room.id);
+    if (error) toast.error(error.message);
+    else toast.success("Guest updated");
   };
 
   const isCottage = room.kind === "cottage";
@@ -179,24 +194,38 @@ export function RoomSeat({
           Updated {new Date(room.updated_at).toLocaleString()}
         </p>
         {canEdit && (
-          <div className="mt-3 grid grid-cols-2 gap-1.5">
-            {STATUS_ORDER.map((s) => {
-              const sm = STATUS_META[s];
-              const active = s === room.status;
-              return (
-                <button
-                  key={s}
-                  onClick={() => update(s)}
-                  className={`flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-[11px] transition ${
-                    active ? "border-foreground/40 bg-secondary" : "hover:bg-secondary/60"
-                  }`}
-                >
-                  <span className={`h-2.5 w-2.5 rounded-full ${sm.dot}`} />
-                  <span className="truncate">{sm.label}</span>
-                </button>
-              );
-            })}
-          </div>
+          <>
+            <div className="mt-3 space-y-1.5">
+              <label className="text-[10px] uppercase tracking-wide text-muted-foreground">Guest name</label>
+              <div className="flex gap-1.5">
+                <Input
+                  value={guest}
+                  onChange={(e) => setGuest(e.target.value)}
+                  placeholder="Empty"
+                  className="h-8 text-xs"
+                />
+                <Button size="sm" className="h-8 px-2 text-xs" onClick={saveGuest}>Save</Button>
+              </div>
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-1.5">
+              {STATUS_ORDER.map((s) => {
+                const sm = STATUS_META[s];
+                const active = s === room.status;
+                return (
+                  <button
+                    key={s}
+                    onClick={() => update(s)}
+                    className={`flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-[11px] transition ${
+                      active ? "border-foreground/40 bg-secondary" : "hover:bg-secondary/60"
+                    }`}
+                  >
+                    <span className={`h-2.5 w-2.5 rounded-full ${sm.dot}`} />
+                    <span className="truncate">{sm.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </>
         )}
       </PopoverContent>
     </Popover>
