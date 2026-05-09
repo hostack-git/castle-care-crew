@@ -142,7 +142,10 @@ export function RoomSeat({
 }) {
   const m = STATUS_META[room.status];
   const [open, setOpen] = useState(false);
+  const [guest, setGuest] = useState(room.guest_name ?? "");
   const dim = size === "sm" ? "h-16 w-16" : "h-20 w-20";
+
+  useEffect(() => { setGuest(room.guest_name ?? ""); }, [room.guest_name]);
 
   const update = async (status: RoomStatus) => {
     const { error } = await supabase
@@ -151,6 +154,16 @@ export function RoomSeat({
       .eq("id", room.id);
     if (error) toast.error(error.message);
     else setOpen(false);
+  };
+
+  const saveGuest = async () => {
+    const value = guest.trim() ? guest.trim() : null;
+    const { error } = await supabase
+      .from("rooms")
+      .update({ guest_name: value, updated_by: userId })
+      .eq("id", room.id);
+    if (error) toast.error(error.message);
+    else toast.success("Guest updated");
   };
 
   const isCottage = room.kind === "cottage";
