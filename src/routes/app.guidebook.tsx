@@ -1,9 +1,20 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, ChevronRight, Coffee, Home, Wrench, Shirt, Utensils, Sparkles } from "lucide-react";
+import { SOPS } from "@/lib/sops";
+
+const SOP_ICONS = {
+  coffee: Coffee,
+  broom: Sparkles,
+  home: Home,
+  utensils: Utensils,
+  wrench: Wrench,
+  shirt: Shirt,
+  sparkles: Sparkles,
+} as const;
 
 export const Route = createFileRoute("/app/guidebook")({ component: GuidebookPage });
 
