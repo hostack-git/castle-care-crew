@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { TASK_TYPES, TASK_TYPE_LABELS, TASK_TYPE_DOT, type TaskType } from "@/lib/constants";
 import { CHECKLIST_PRESETS } from "@/lib/checklist-presets";
 import { toast } from "sonner";
-import { Settings, Plus, BarChart3, X, Home } from "lucide-react";
+import { Settings, Plus, BarChart3, X, Home, Sparkles, Settings2 } from "lucide-react";
 
 export const Route = createFileRoute("/app/admin")({ component: AdminPage });
 
@@ -79,8 +79,14 @@ function AdminPage() {
           <p className="text-muted-foreground text-sm mt-1">{t("admin.sub")}</p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <Link to="/app/admin/rota">
+            <Button className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90"><Sparkles className="h-4 w-4" /> Weekly Rota Builder</Button>
+          </Link>
           <Link to="/app/rooms">
             <Button variant="outline" className="gap-2"><Home className="h-4 w-4" /> Rooms & Cottages</Button>
+          </Link>
+          <Link to="/app/admin/templates">
+            <Button variant="outline" className="gap-2"><Settings2 className="h-4 w-4" /> Checklists</Button>
           </Link>
           <Link to="/app/admin/stats">
             <Button variant="outline" className="gap-2"><BarChart3 className="h-4 w-4" /> Volunteer stats</Button>
