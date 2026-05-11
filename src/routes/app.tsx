@@ -29,6 +29,7 @@ function AppLayout() {
   const nav = [
     { to: "/app/dashboard", label: t("nav.dashboard"), icon: LayoutDashboard },
     { to: "/app/calendar", label: t("nav.calendar"), icon: Calendar },
+    { to: "/app/breakfast", label: "Breakfast", icon: Coffee },
     { to: "/app/guidebook", label: t("nav.guidebook"), icon: BookOpen },
     { to: "/app/adventures", label: t("nav.adventures"), icon: Trail },
     { to: "/app/announcements", label: t("nav.announcements"), icon: Megaphone },
