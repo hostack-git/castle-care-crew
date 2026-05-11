@@ -23,7 +23,9 @@ import { Route as AppAnnouncementsRouteImport } from './routes/app.announcements
 import { Route as AppAdventuresRouteImport } from './routes/app.adventures'
 import { Route as AppAdminRouteImport } from './routes/app.admin'
 import { Route as AppTasksTaskIdRouteImport } from './routes/app.tasks.$taskId'
+import { Route as AppAdminTemplatesRouteImport } from './routes/app.admin.templates'
 import { Route as AppAdminStatsRouteImport } from './routes/app.admin.stats'
+import { Route as AppAdminRotaRouteImport } from './routes/app.admin.rota'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -95,9 +97,19 @@ const AppTasksTaskIdRoute = AppTasksTaskIdRouteImport.update({
   path: '/tasks/$taskId',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminTemplatesRoute = AppAdminTemplatesRouteImport.update({
+  id: '/templates',
+  path: '/templates',
+  getParentRoute: () => AppAdminRoute,
+} as any)
 const AppAdminStatsRoute = AppAdminStatsRouteImport.update({
   id: '/stats',
   path: '/stats',
+  getParentRoute: () => AppAdminRoute,
+} as any)
+const AppAdminRotaRoute = AppAdminRotaRouteImport.update({
+  id: '/rota',
+  path: '/rota',
   getParentRoute: () => AppAdminRoute,
 } as any)
 
@@ -115,7 +127,9 @@ export interface FileRoutesByFullPath {
   '/app/dashboard': typeof AppDashboardRoute
   '/app/guidebook': typeof AppGuidebookRoute
   '/app/rooms': typeof AppRoomsRoute
+  '/app/admin/rota': typeof AppAdminRotaRoute
   '/app/admin/stats': typeof AppAdminStatsRoute
+  '/app/admin/templates': typeof AppAdminTemplatesRoute
   '/app/tasks/$taskId': typeof AppTasksTaskIdRoute
 }
 export interface FileRoutesByTo {
@@ -132,7 +146,9 @@ export interface FileRoutesByTo {
   '/app/dashboard': typeof AppDashboardRoute
   '/app/guidebook': typeof AppGuidebookRoute
   '/app/rooms': typeof AppRoomsRoute
+  '/app/admin/rota': typeof AppAdminRotaRoute
   '/app/admin/stats': typeof AppAdminStatsRoute
+  '/app/admin/templates': typeof AppAdminTemplatesRoute
   '/app/tasks/$taskId': typeof AppTasksTaskIdRoute
 }
 export interface FileRoutesById {
@@ -150,7 +166,9 @@ export interface FileRoutesById {
   '/app/dashboard': typeof AppDashboardRoute
   '/app/guidebook': typeof AppGuidebookRoute
   '/app/rooms': typeof AppRoomsRoute
+  '/app/admin/rota': typeof AppAdminRotaRoute
   '/app/admin/stats': typeof AppAdminStatsRoute
+  '/app/admin/templates': typeof AppAdminTemplatesRoute
   '/app/tasks/$taskId': typeof AppTasksTaskIdRoute
 }
 export interface FileRouteTypes {
@@ -169,7 +187,9 @@ export interface FileRouteTypes {
     | '/app/dashboard'
     | '/app/guidebook'
     | '/app/rooms'
+    | '/app/admin/rota'
     | '/app/admin/stats'
+    | '/app/admin/templates'
     | '/app/tasks/$taskId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -186,7 +206,9 @@ export interface FileRouteTypes {
     | '/app/dashboard'
     | '/app/guidebook'
     | '/app/rooms'
+    | '/app/admin/rota'
     | '/app/admin/stats'
+    | '/app/admin/templates'
     | '/app/tasks/$taskId'
   id:
     | '__root__'
@@ -203,7 +225,9 @@ export interface FileRouteTypes {
     | '/app/dashboard'
     | '/app/guidebook'
     | '/app/rooms'
+    | '/app/admin/rota'
     | '/app/admin/stats'
+    | '/app/admin/templates'
     | '/app/tasks/$taskId'
   fileRoutesById: FileRoutesById
 }
@@ -315,6 +339,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppTasksTaskIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/admin/templates': {
+      id: '/app/admin/templates'
+      path: '/templates'
+      fullPath: '/app/admin/templates'
+      preLoaderRoute: typeof AppAdminTemplatesRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
     '/app/admin/stats': {
       id: '/app/admin/stats'
       path: '/stats'
@@ -322,15 +353,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminStatsRouteImport
       parentRoute: typeof AppAdminRoute
     }
+    '/app/admin/rota': {
+      id: '/app/admin/rota'
+      path: '/rota'
+      fullPath: '/app/admin/rota'
+      preLoaderRoute: typeof AppAdminRotaRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
   }
 }
 
 interface AppAdminRouteChildren {
+  AppAdminRotaRoute: typeof AppAdminRotaRoute
   AppAdminStatsRoute: typeof AppAdminStatsRoute
+  AppAdminTemplatesRoute: typeof AppAdminTemplatesRoute
 }
 
 const AppAdminRouteChildren: AppAdminRouteChildren = {
+  AppAdminRotaRoute: AppAdminRotaRoute,
   AppAdminStatsRoute: AppAdminStatsRoute,
+  AppAdminTemplatesRoute: AppAdminTemplatesRoute,
 }
 
 const AppAdminRouteWithChildren = AppAdminRoute._addFileChildren(
@@ -373,3 +415,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
