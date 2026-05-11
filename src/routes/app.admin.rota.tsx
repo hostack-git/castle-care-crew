@@ -188,9 +188,10 @@ function RotaBuilderPage() {
       const tplMap = new Map<string, string[]>((templates ?? []).map((t: any) => [t.kind, t.items ?? []]));
       const roomById = new Map(rooms.map((r) => [r.id, r]));
 
+      type TaskType = "housekeeping" | "cottages" | "breakfast" | "maintenance" | "special" | "laundry" | "dinner";
       type TaskInsert = {
         rota_id: string; rota_scope_key: string;
-        title: string; type: string; scheduled_date: string;
+        title: string; type: TaskType; scheduled_date: string;
         assigned_to: string | null; location: string | null; notes: string | null;
         created_by: string | null;
       };
