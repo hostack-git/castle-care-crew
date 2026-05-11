@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
-import { Mountain, LayoutDashboard, Calendar, BookOpen, Mountain as Trail, Megaphone, MessageCircle, Settings, LogOut, Home } from "lucide-react";
+import { Mountain, LayoutDashboard, Calendar, BookOpen, Mountain as Trail, Megaphone, MessageCircle, Settings, LogOut, Home, Coffee } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/app")({
