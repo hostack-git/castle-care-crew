@@ -225,7 +225,7 @@ function RotaBuilderPage() {
       for (const [k, assignment] of teamCells.entries()) {
         const [userId, day] = k.split("|");
         if (assignment === "off") continue;
-        const map: Record<TeamAssignment, { type: string; title: string }> = {
+        const map: Record<TeamAssignment, { type: TaskType; title: string }> = {
           housekeeping:  { type: "housekeeping", title: "Housekeeping shift" },
           cottages:      { type: "cottages",     title: "Cottages cleaning" },
           breakfast:     { type: "breakfast",    title: "Breakfast service" },
