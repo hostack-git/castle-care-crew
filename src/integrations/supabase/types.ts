@@ -280,6 +280,118 @@ export type Database = {
         }
         Relationships: []
       }
+      rota_checkins: {
+        Row: {
+          day: string
+          id: string
+          responsible_id: string | null
+          rota_id: string
+          updated_at: string
+        }
+        Insert: {
+          day: string
+          id?: string
+          responsible_id?: string | null
+          rota_id: string
+          updated_at?: string
+        }
+        Update: {
+          day?: string
+          id?: string
+          responsible_id?: string | null
+          rota_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rota_checkins_rota_id_fkey"
+            columns: ["rota_id"]
+            isOneToOne: false
+            referencedRelation: "weekly_rotas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rota_room_cells: {
+        Row: {
+          day: string
+          id: string
+          room_id: string
+          rota_id: string
+          status: Database["public"]["Enums"]["rota_room_status"]
+          updated_at: string
+        }
+        Insert: {
+          day: string
+          id?: string
+          room_id: string
+          rota_id: string
+          status: Database["public"]["Enums"]["rota_room_status"]
+          updated_at?: string
+        }
+        Update: {
+          day?: string
+          id?: string
+          room_id?: string
+          rota_id?: string
+          status?: Database["public"]["Enums"]["rota_room_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rota_room_cells_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rota_room_cells_rota_id_fkey"
+            columns: ["rota_id"]
+            isOneToOne: false
+            referencedRelation: "weekly_rotas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rota_team_cells: {
+        Row: {
+          assignment: Database["public"]["Enums"]["rota_team_assignment"]
+          day: string
+          id: string
+          note: string | null
+          rota_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assignment: Database["public"]["Enums"]["rota_team_assignment"]
+          day: string
+          id?: string
+          note?: string | null
+          rota_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assignment?: Database["public"]["Enums"]["rota_team_assignment"]
+          day?: string
+          id?: string
+          note?: string | null
+          rota_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rota_team_cells_rota_id_fkey"
+            columns: ["rota_id"]
+            isOneToOne: false
+            referencedRelation: "weekly_rotas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_checklist_items: {
         Row: {
           created_at: string
@@ -315,6 +427,27 @@ export type Database = {
           },
         ]
       }
+      task_templates: {
+        Row: {
+          id: string
+          items: string[]
+          kind: Database["public"]["Enums"]["template_kind"]
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          items?: string[]
+          kind: Database["public"]["Enums"]["template_kind"]
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          items?: string[]
+          kind?: Database["public"]["Enums"]["template_kind"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tasks: {
         Row: {
           assigned_to: string | null
@@ -325,6 +458,8 @@ export type Database = {
           id: string
           location: string | null
           notes: string | null
+          rota_id: string | null
+          rota_scope_key: string | null
           scheduled_date: string
           start_time: string | null
           status: Database["public"]["Enums"]["task_status"]
@@ -341,6 +476,8 @@ export type Database = {
           id?: string
           location?: string | null
           notes?: string | null
+          rota_id?: string | null
+          rota_scope_key?: string | null
           scheduled_date: string
           start_time?: string | null
           status?: Database["public"]["Enums"]["task_status"]
@@ -357,6 +494,8 @@ export type Database = {
           id?: string
           location?: string | null
           notes?: string | null
+          rota_id?: string | null
+          rota_scope_key?: string | null
           scheduled_date?: string
           start_time?: string | null
           status?: Database["public"]["Enums"]["task_status"]
@@ -364,7 +503,15 @@ export type Database = {
           type?: Database["public"]["Enums"]["task_type"]
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tasks_rota_id_fkey"
+            columns: ["rota_id"]
+            isOneToOne: false
+            referencedRelation: "weekly_rotas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -384,6 +531,36 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      weekly_rotas: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          published_at: string | null
+          status: Database["public"]["Enums"]["rota_status"]
+          updated_at: string
+          week_start: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          published_at?: string | null
+          status?: Database["public"]["Enums"]["rota_status"]
+          updated_at?: string
+          week_start: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          published_at?: string | null
+          status?: Database["public"]["Enums"]["rota_status"]
+          updated_at?: string
+          week_start?: string
         }
         Relationships: []
       }
@@ -412,6 +589,24 @@ export type Database = {
         | "needs_cleaning"
         | "cleaning"
         | "maintenance"
+      rota_room_status:
+        | "to_clean"
+        | "check_in"
+        | "staying"
+        | "free"
+        | "maintenance"
+      rota_status: "draft" | "published"
+      rota_team_assignment:
+        | "housekeeping"
+        | "cottages"
+        | "breakfast"
+        | "maintenance"
+        | "off"
+        | "special"
+        | "onboarding"
+        | "deep_cleaning"
+        | "departure"
+        | "arrive"
       task_status: "pending" | "in_progress" | "completed" | "skipped"
       task_type:
         | "housekeeping"
@@ -421,6 +616,14 @@ export type Database = {
         | "maintenance"
         | "laundry"
         | "special"
+      template_kind:
+        | "room_clean"
+        | "cottage_clean"
+        | "breakfast"
+        | "checkin"
+        | "maintenance"
+        | "deep_clean"
+        | "onboarding"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -559,6 +762,26 @@ export const Constants = {
         "cleaning",
         "maintenance",
       ],
+      rota_room_status: [
+        "to_clean",
+        "check_in",
+        "staying",
+        "free",
+        "maintenance",
+      ],
+      rota_status: ["draft", "published"],
+      rota_team_assignment: [
+        "housekeeping",
+        "cottages",
+        "breakfast",
+        "maintenance",
+        "off",
+        "special",
+        "onboarding",
+        "deep_cleaning",
+        "departure",
+        "arrive",
+      ],
       task_status: ["pending", "in_progress", "completed", "skipped"],
       task_type: [
         "housekeeping",
@@ -568,6 +791,15 @@ export const Constants = {
         "maintenance",
         "laundry",
         "special",
+      ],
+      template_kind: [
+        "room_clean",
+        "cottage_clean",
+        "breakfast",
+        "checkin",
+        "maintenance",
+        "deep_clean",
+        "onboarding",
       ],
     },
   },
