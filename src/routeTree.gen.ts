@@ -27,6 +27,7 @@ import { Route as AppTasksTaskIdRouteImport } from './routes/app.tasks.$taskId'
 import { Route as AppAdminTemplatesRouteImport } from './routes/app.admin.templates'
 import { Route as AppAdminStatsRouteImport } from './routes/app.admin.stats'
 import { Route as AppAdminRotaRouteImport } from './routes/app.admin.rota'
+import { Route as AppGuidebookSopSopIdRouteImport } from './routes/app.guidebook.sop.$sopId'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -118,6 +119,11 @@ const AppAdminRotaRoute = AppAdminRotaRouteImport.update({
   path: '/rota',
   getParentRoute: () => AppAdminRoute,
 } as any)
+const AppGuidebookSopSopIdRoute = AppGuidebookSopSopIdRouteImport.update({
+  id: '/sop/$sopId',
+  path: '/sop/$sopId',
+  getParentRoute: () => AppGuidebookRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -132,12 +138,13 @@ export interface FileRoutesByFullPath {
   '/app/calendar': typeof AppCalendarRoute
   '/app/chat': typeof AppChatRoute
   '/app/dashboard': typeof AppDashboardRoute
-  '/app/guidebook': typeof AppGuidebookRoute
+  '/app/guidebook': typeof AppGuidebookRouteWithChildren
   '/app/rooms': typeof AppRoomsRoute
   '/app/admin/rota': typeof AppAdminRotaRoute
   '/app/admin/stats': typeof AppAdminStatsRoute
   '/app/admin/templates': typeof AppAdminTemplatesRoute
   '/app/tasks/$taskId': typeof AppTasksTaskIdRoute
+  '/app/guidebook/sop/$sopId': typeof AppGuidebookSopSopIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -152,12 +159,13 @@ export interface FileRoutesByTo {
   '/app/calendar': typeof AppCalendarRoute
   '/app/chat': typeof AppChatRoute
   '/app/dashboard': typeof AppDashboardRoute
-  '/app/guidebook': typeof AppGuidebookRoute
+  '/app/guidebook': typeof AppGuidebookRouteWithChildren
   '/app/rooms': typeof AppRoomsRoute
   '/app/admin/rota': typeof AppAdminRotaRoute
   '/app/admin/stats': typeof AppAdminStatsRoute
   '/app/admin/templates': typeof AppAdminTemplatesRoute
   '/app/tasks/$taskId': typeof AppTasksTaskIdRoute
+  '/app/guidebook/sop/$sopId': typeof AppGuidebookSopSopIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -173,12 +181,13 @@ export interface FileRoutesById {
   '/app/calendar': typeof AppCalendarRoute
   '/app/chat': typeof AppChatRoute
   '/app/dashboard': typeof AppDashboardRoute
-  '/app/guidebook': typeof AppGuidebookRoute
+  '/app/guidebook': typeof AppGuidebookRouteWithChildren
   '/app/rooms': typeof AppRoomsRoute
   '/app/admin/rota': typeof AppAdminRotaRoute
   '/app/admin/stats': typeof AppAdminStatsRoute
   '/app/admin/templates': typeof AppAdminTemplatesRoute
   '/app/tasks/$taskId': typeof AppTasksTaskIdRoute
+  '/app/guidebook/sop/$sopId': typeof AppGuidebookSopSopIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -201,6 +210,7 @@ export interface FileRouteTypes {
     | '/app/admin/stats'
     | '/app/admin/templates'
     | '/app/tasks/$taskId'
+    | '/app/guidebook/sop/$sopId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -221,6 +231,7 @@ export interface FileRouteTypes {
     | '/app/admin/stats'
     | '/app/admin/templates'
     | '/app/tasks/$taskId'
+    | '/app/guidebook/sop/$sopId'
   id:
     | '__root__'
     | '/'
@@ -241,6 +252,7 @@ export interface FileRouteTypes {
     | '/app/admin/stats'
     | '/app/admin/templates'
     | '/app/tasks/$taskId'
+    | '/app/guidebook/sop/$sopId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -379,6 +391,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminRotaRouteImport
       parentRoute: typeof AppAdminRoute
     }
+    '/app/guidebook/sop/$sopId': {
+      id: '/app/guidebook/sop/$sopId'
+      path: '/sop/$sopId'
+      fullPath: '/app/guidebook/sop/$sopId'
+      preLoaderRoute: typeof AppGuidebookSopSopIdRouteImport
+      parentRoute: typeof AppGuidebookRoute
+    }
   }
 }
 
@@ -398,6 +417,18 @@ const AppAdminRouteWithChildren = AppAdminRoute._addFileChildren(
   AppAdminRouteChildren,
 )
 
+interface AppGuidebookRouteChildren {
+  AppGuidebookSopSopIdRoute: typeof AppGuidebookSopSopIdRoute
+}
+
+const AppGuidebookRouteChildren: AppGuidebookRouteChildren = {
+  AppGuidebookSopSopIdRoute: AppGuidebookSopSopIdRoute,
+}
+
+const AppGuidebookRouteWithChildren = AppGuidebookRoute._addFileChildren(
+  AppGuidebookRouteChildren,
+)
+
 interface AppRouteChildren {
   AppAdminRoute: typeof AppAdminRouteWithChildren
   AppAdventuresRoute: typeof AppAdventuresRoute
@@ -406,7 +437,7 @@ interface AppRouteChildren {
   AppCalendarRoute: typeof AppCalendarRoute
   AppChatRoute: typeof AppChatRoute
   AppDashboardRoute: typeof AppDashboardRoute
-  AppGuidebookRoute: typeof AppGuidebookRoute
+  AppGuidebookRoute: typeof AppGuidebookRouteWithChildren
   AppRoomsRoute: typeof AppRoomsRoute
   AppTasksTaskIdRoute: typeof AppTasksTaskIdRoute
 }
@@ -419,7 +450,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppCalendarRoute: AppCalendarRoute,
   AppChatRoute: AppChatRoute,
   AppDashboardRoute: AppDashboardRoute,
-  AppGuidebookRoute: AppGuidebookRoute,
+  AppGuidebookRoute: AppGuidebookRouteWithChildren,
   AppRoomsRoute: AppRoomsRoute,
   AppTasksTaskIdRoute: AppTasksTaskIdRoute,
 }
@@ -436,3 +467,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
