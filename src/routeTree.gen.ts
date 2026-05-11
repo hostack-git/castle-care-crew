@@ -19,6 +19,7 @@ import { Route as AppGuidebookRouteImport } from './routes/app.guidebook'
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
 import { Route as AppChatRouteImport } from './routes/app.chat'
 import { Route as AppCalendarRouteImport } from './routes/app.calendar'
+import { Route as AppBreakfastRouteImport } from './routes/app.breakfast'
 import { Route as AppAnnouncementsRouteImport } from './routes/app.announcements'
 import { Route as AppAdventuresRouteImport } from './routes/app.adventures'
 import { Route as AppAdminRouteImport } from './routes/app.admin'
@@ -77,6 +78,11 @@ const AppCalendarRoute = AppCalendarRouteImport.update({
   path: '/calendar',
   getParentRoute: () => AppRoute,
 } as any)
+const AppBreakfastRoute = AppBreakfastRouteImport.update({
+  id: '/breakfast',
+  path: '/breakfast',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAnnouncementsRoute = AppAnnouncementsRouteImport.update({
   id: '/announcements',
   path: '/announcements',
@@ -122,6 +128,7 @@ export interface FileRoutesByFullPath {
   '/app/admin': typeof AppAdminRouteWithChildren
   '/app/adventures': typeof AppAdventuresRoute
   '/app/announcements': typeof AppAnnouncementsRoute
+  '/app/breakfast': typeof AppBreakfastRoute
   '/app/calendar': typeof AppCalendarRoute
   '/app/chat': typeof AppChatRoute
   '/app/dashboard': typeof AppDashboardRoute
@@ -141,6 +148,7 @@ export interface FileRoutesByTo {
   '/app/admin': typeof AppAdminRouteWithChildren
   '/app/adventures': typeof AppAdventuresRoute
   '/app/announcements': typeof AppAnnouncementsRoute
+  '/app/breakfast': typeof AppBreakfastRoute
   '/app/calendar': typeof AppCalendarRoute
   '/app/chat': typeof AppChatRoute
   '/app/dashboard': typeof AppDashboardRoute
@@ -161,6 +169,7 @@ export interface FileRoutesById {
   '/app/admin': typeof AppAdminRouteWithChildren
   '/app/adventures': typeof AppAdventuresRoute
   '/app/announcements': typeof AppAnnouncementsRoute
+  '/app/breakfast': typeof AppBreakfastRoute
   '/app/calendar': typeof AppCalendarRoute
   '/app/chat': typeof AppChatRoute
   '/app/dashboard': typeof AppDashboardRoute
@@ -182,6 +191,7 @@ export interface FileRouteTypes {
     | '/app/admin'
     | '/app/adventures'
     | '/app/announcements'
+    | '/app/breakfast'
     | '/app/calendar'
     | '/app/chat'
     | '/app/dashboard'
@@ -201,6 +211,7 @@ export interface FileRouteTypes {
     | '/app/admin'
     | '/app/adventures'
     | '/app/announcements'
+    | '/app/breakfast'
     | '/app/calendar'
     | '/app/chat'
     | '/app/dashboard'
@@ -220,6 +231,7 @@ export interface FileRouteTypes {
     | '/app/admin'
     | '/app/adventures'
     | '/app/announcements'
+    | '/app/breakfast'
     | '/app/calendar'
     | '/app/chat'
     | '/app/dashboard'
@@ -311,6 +323,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCalendarRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/breakfast': {
+      id: '/app/breakfast'
+      path: '/breakfast'
+      fullPath: '/app/breakfast'
+      preLoaderRoute: typeof AppBreakfastRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/announcements': {
       id: '/app/announcements'
       path: '/announcements'
@@ -383,6 +402,7 @@ interface AppRouteChildren {
   AppAdminRoute: typeof AppAdminRouteWithChildren
   AppAdventuresRoute: typeof AppAdventuresRoute
   AppAnnouncementsRoute: typeof AppAnnouncementsRoute
+  AppBreakfastRoute: typeof AppBreakfastRoute
   AppCalendarRoute: typeof AppCalendarRoute
   AppChatRoute: typeof AppChatRoute
   AppDashboardRoute: typeof AppDashboardRoute
@@ -395,6 +415,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAdminRoute: AppAdminRouteWithChildren,
   AppAdventuresRoute: AppAdventuresRoute,
   AppAnnouncementsRoute: AppAnnouncementsRoute,
+  AppBreakfastRoute: AppBreakfastRoute,
   AppCalendarRoute: AppCalendarRoute,
   AppChatRoute: AppChatRoute,
   AppDashboardRoute: AppDashboardRoute,
