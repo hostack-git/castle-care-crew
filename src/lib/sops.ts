@@ -35,6 +35,8 @@ export type Sop = {
   subtitle: string;
   icon: "coffee" | "broom" | "home" | "utensils" | "wrench" | "shirt" | "sparkles";
   phases: SopPhase[];
+  /** Optional GitHub Pages (or other) URL with a richer interactive version of the SOP. */
+  embedUrl?: string;
 };
 
 export const SOPS: Sop[] = [
