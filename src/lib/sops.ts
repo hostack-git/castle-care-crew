@@ -45,6 +45,7 @@ export const SOPS: Sop[] = [
     title: "Breakfast SOP",
     subtitle: "Daily breakfast service checklist",
     icon: "coffee",
+    embedUrl: "https://jorgeibanezhostack.github.io/sopbreakfasttorridonia/breakfast-sop-en.html",
     phases: [
       {
         id: 1,
