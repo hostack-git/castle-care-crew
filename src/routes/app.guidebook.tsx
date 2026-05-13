@@ -71,13 +71,14 @@ function GuidebookPage() {
           {SOPS.filter((s) => !q || s.title.toLowerCase().includes(q.toLowerCase()) || s.subtitle.toLowerCase().includes(q.toLowerCase())).map((s) => {
             const Icon = SOP_ICONS[s.icon] ?? Sparkles;
             const total = s.phases.reduce((n, p) => n + p.items.length, 0);
-            return (
-              <Link
-                key={s.id}
-                to="/app/guidebook/sop/$sopId"
-                params={{ sopId: s.id }}
-                className="group flex items-center gap-3 rounded-2xl border bg-card p-4 shadow-soft hover:border-primary/40 hover:bg-secondary/30 transition"
-              >
+            const cardClass = "group flex items-center gap-3 rounded-2xl border bg-card p-4 shadow-soft hover:border-primary/40 hover:bg-secondary/30 transition";
+            const inner = (
+              <></>
+            );
+            const content = (
+              <></>
+            );
+            const cardBody = (
                 <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary grid place-items-center shrink-0">
                   <Icon className="h-5 w-5" />
                 </div>
