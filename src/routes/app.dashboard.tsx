@@ -1,89 +1,112 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
-import { supabase } from "@/integrations/supabase/client";
-import { TASK_TYPE_LABELS, TASK_TYPE_DOT, type TaskType, startOfWeek, addDays, fmtDate } from "@/lib/constants";
-import { Calendar, Clock, MapPin, Megaphone, Home } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { RoomLegend, RoomSeatGrid, type Room } from "@/components/RoomSeatBoard";
+import { hostackSupabase, TORRIDONIA_PROPERTY_ID } from "@/integrations/hostack/client";
+import { Calendar, Clock, CheckCircle2, Circle } from "lucide-react";
+import { toast } from "sonner";
 
-export const Route = createFileRoute("/app/dashboard")({
-  component: Dashboard,
-});
+export const Route = createFileRoute("/app/dashboard")({ component: Dashboard });
 
+type ShiftTemplate = { name: string | null; start_time: string | null; end_time: string | null };
+type Shift = {
+  id: string;
+  shift_date: string;
+  shift_templates: ShiftTemplate | ShiftTemplate[] | null;
+};
 type Task = {
   id: string;
   title: string;
-  type: TaskType;
-  scheduled_date: string;
-  start_time: string | null;
-  end_time: string | null;
-  location: string | null;
   status: string;
+  due_time: string | null;
+  notes: string | null;
 };
 
-type Announcement = {
-  id: string;
-  title: string;
-  content: string;
-  priority: string;
-  created_at: string;
-};
+function pickTemplate(t: Shift["shift_templates"]): ShiftTemplate | null {
+  if (!t) return null;
+  return Array.isArray(t) ? t[0] ?? null : t;
+}
 
 function Dashboard() {
-  const { user, profile, isAdmin, isRoomManager } = useAuth();
+  const { user, profile } = useAuth();
   const { t, lang } = useI18n();
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [anns, setAnns] = useState<Announcement[]>([]);
-  const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
-  const canEditRooms = isAdmin || isRoomManager;
+  const [shift, setShift] = useState<Shift | null>(null);
+  const [tasks, setTasks] = useState<Task[]>([]);
+
+  const localeMap: Record<string, string> = { en: "en-GB", pt: "pt-BR", es: "es-ES", de: "de-DE", gd: "gd-GB" };
+  const locale = localeMap[lang] ?? "en-GB";
 
   useEffect(() => {
     if (!user) return;
-    const today = startOfWeek(new Date());
-    const end = addDays(today, 7);
-    Promise.all([
-      supabase
-        .from("tasks")
-        .select("id, title, type, scheduled_date, start_time, end_time, location, status")
-        .eq("assigned_to", user.id)
-        .gte("scheduled_date", fmtDate(today))
-        .lt("scheduled_date", fmtDate(end))
-        .order("scheduled_date")
-        .order("start_time"),
-      supabase
-        .from("announcements")
-        .select("id, title, content, priority, created_at")
-        .order("created_at", { ascending: false })
-        .limit(3),
-      supabase.from("rooms").select("*").order("kind").order("name"),
-    ]).then(([t, a, r]) => {
-      setTasks((t.data as Task[]) ?? []);
-      setAnns((a.data as Announcement[]) ?? []);
-      setRooms((r.data as Room[]) ?? []);
-      setLoading(false);
-    });
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      // Resolve staff id (prefer profile.id, fallback to live lookup)
+      let staffId = profile?.id ?? null;
+      if (!staffId) {
+        const { data: staffRow } = await hostackSupabase
+          .from("staff")
+          .select("id")
+          .eq("auth_user_id", user.id)
+          .maybeSingle();
+        staffId = (staffRow as { id: string } | null)?.id ?? null;
+      }
+      if (!staffId) {
+        if (!cancelled) {
+          setShift(null);
+          setTasks([]);
+          setLoading(false);
+        }
+        return;
+      }
 
-    const ch = supabase
-      .channel("dash-rooms")
-      .on("postgres_changes", { event: "*", schema: "public", table: "rooms" }, (payload) => {
-        setRooms((cur) => {
-          if (payload.eventType === "INSERT") return [...cur, payload.new as Room];
-          if (payload.eventType === "DELETE") return cur.filter((r) => r.id !== (payload.old as Room).id);
-          return cur.map((r) => (r.id === (payload.new as Room).id ? (payload.new as Room) : r));
-        });
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [user]);
+      const today = new Date().toISOString().split("T")[0];
+      const { data: shiftRow } = await hostackSupabase
+        .from("shifts")
+        .select("id, shift_date, shift_templates(name, start_time, end_time)")
+        .eq("property_id", TORRIDONIA_PROPERTY_ID)
+        .eq("staff_id", staffId)
+        .eq("shift_date", today)
+        .maybeSingle();
 
-  const today = fmtDate(new Date());
-  const todayTasks = tasks.filter((t) => t.scheduled_date === today);
-  const upcoming = tasks.filter((t) => t.scheduled_date > today);
-  const localeMap: Record<string, string> = { en: "en-GB", pt: "pt-BR", es: "es-ES", de: "de-DE", gd: "gd-GB" };
-  const locale = localeMap[lang] ?? "en-GB";
+      if (cancelled) return;
+      const s = (shiftRow as Shift | null) ?? null;
+      setShift(s);
+
+      if (s) {
+        const { data: taskRows } = await hostackSupabase
+          .from("checklist_tasks")
+          .select("id, title, status, due_time, notes")
+          .eq("shift_id", s.id)
+          .order("due_time", { ascending: true });
+        if (!cancelled) setTasks((taskRows as Task[]) ?? []);
+      } else {
+        setTasks([]);
+      }
+      if (!cancelled) setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, profile?.id]);
+
+  const toggleTask = async (task: Task) => {
+    const next = task.status === "completed" ? "pending" : "completed";
+    const prev = tasks;
+    setTasks((cur) => cur.map((x) => (x.id === task.id ? { ...x, status: next } : x)));
+    const { error } = await hostackSupabase
+      .from("checklist_tasks")
+      .update({ status: next })
+      .eq("id", task.id);
+    if (error) {
+      setTasks(prev);
+      toast.error(error.message);
+    }
+  };
+
+  const tpl = pickTemplate(shift?.shift_templates ?? null);
+  const fmtTime = (v: string | null) => (v ? v.slice(0, 5) : "");
 
   return (
     <div className="space-y-10">
@@ -94,142 +117,75 @@ function Dashboard() {
         <h1 className="font-display text-4xl font-semibold mt-1">
           {t("dash.hi")}, {profile?.full_name?.split(" ")[0] || t("dash.friend")} 👋
         </h1>
-        <p className="text-muted-foreground mt-2">{t("dash.weekIntro")}</p>
       </header>
 
-      {/* Today */}
       <section>
         <h2 className="font-display text-xl font-semibold mb-4 flex items-center gap-2">
-          <Clock className="h-4 w-4 text-accent" /> {t("dash.today")}
+          <Clock className="h-4 w-4 text-accent" /> Today's shift
         </h2>
+
         {loading ? (
-          <SkeletonList />
-        ) : todayTasks.length === 0 ? (
-          <EmptyCard icon={<Calendar className="h-5 w-5" />} text={t("dash.noToday")} />
+          <div className="h-24 rounded-2xl bg-secondary/40 animate-pulse" />
+        ) : !shift ? (
+          <div className="rounded-2xl border border-dashed bg-secondary/30 p-8 text-center text-muted-foreground">
+            <Calendar className="h-6 w-6 mx-auto mb-2" />
+            <p className="text-sm">Sin turno asignado hoy</p>
+          </div>
         ) : (
-          <div className="space-y-3">
-            {todayTasks.map((t) => <TaskCard key={t.id} task={t} locale={locale} />)}
+          <div className="rounded-2xl border bg-card p-6 shadow-soft">
+            <div className="flex items-baseline justify-between gap-3 flex-wrap">
+              <div>
+                <h3 className="font-display text-2xl font-semibold">{tpl?.name ?? "Shift"}</h3>
+                {(tpl?.start_time || tpl?.end_time) && (
+                  <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5" />
+                    {fmtTime(tpl?.start_time ?? null)}
+                    {tpl?.end_time ? ` – ${fmtTime(tpl.end_time)}` : ""}
+                  </p>
+                )}
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {tasks.filter((x) => x.status === "completed").length} / {tasks.length} done
+              </span>
+            </div>
+
+            <div className="mt-5 space-y-2">
+              {tasks.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No tasks for this shift.</p>
+              ) : (
+                tasks.map((task) => {
+                  const done = task.status === "completed";
+                  return (
+                    <button
+                      key={task.id}
+                      type="button"
+                      onClick={() => toggleTask(task)}
+                      className={`w-full flex items-start gap-3 rounded-xl border p-3 text-left transition hover:bg-secondary/50 ${
+                        done ? "bg-secondary/30" : "bg-card"
+                      }`}
+                    >
+                      {done ? (
+                        <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+                      ) : (
+                        <Circle className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-medium ${done ? "line-through text-muted-foreground" : ""}`}>
+                          {task.title}
+                        </p>
+                        <div className="mt-0.5 flex items-center gap-3 text-xs text-muted-foreground">
+                          {task.due_time && <span>{fmtTime(task.due_time)}</span>}
+                          {task.notes && <span className="truncate">{task.notes}</span>}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })
+              )}
+            </div>
           </div>
         )}
       </section>
-
-      {/* This week */}
-      <section>
-        <div className="flex items-baseline justify-between mb-4">
-          <h2 className="font-display text-xl font-semibold flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-accent" /> {t("dash.upcoming")}
-          </h2>
-          <Link to="/app/calendar" className="text-sm text-accent hover:underline">{t("dash.fullCal")}</Link>
-        </div>
-        {loading ? (
-          <SkeletonList />
-        ) : upcoming.length === 0 ? (
-          <EmptyCard icon={<Calendar className="h-5 w-5" />} text={t("dash.noUpcoming")} />
-        ) : (
-          <div className="space-y-3">{upcoming.map((t) => <TaskCard key={t.id} task={t} locale={locale} />)}</div>
-        )}
-      </section>
-
-      {/* Rooms status */}
-      {rooms.length > 0 && (
-        <section>
-          <div className="flex items-baseline justify-between mb-4">
-            <h2 className="font-display text-xl font-semibold flex items-center gap-2">
-              <Home className="h-4 w-4 text-accent" /> Rooms & Cottages
-            </h2>
-            <Link to="/app/rooms" className="text-sm text-accent hover:underline">Open board →</Link>
-          </div>
-          <div className="rounded-2xl border bg-card/60 p-4 mb-3">
-            <RoomLegend rooms={rooms} />
-          </div>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <RoomSeatGrid
-              title="B&B Rooms"
-              rooms={rooms.filter((r) => r.kind === "room")}
-              canEdit={canEditRooms}
-              userId={user?.id}
-              size="sm"
-            />
-            <RoomSeatGrid
-              title="Cottages"
-              rooms={rooms.filter((r) => r.kind === "cottage")}
-              canEdit={canEditRooms}
-              userId={user?.id}
-              size="sm"
-            />
-          </div>
-        </section>
-      )}
-
-      {/* Announcements */}
-      <section>
-        <div className="flex items-baseline justify-between mb-4">
-          <h2 className="font-display text-xl font-semibold flex items-center gap-2">
-            <Megaphone className="h-4 w-4 text-accent" /> {t("dash.notices")}
-          </h2>
-          <Link to="/app/announcements" className="text-sm text-accent hover:underline">{t("dash.allNotices")}</Link>
-        </div>
-        {anns.length === 0 ? (
-          <EmptyCard icon={<Megaphone className="h-5 w-5" />} text={t("dash.noNotices")} />
-        ) : (
-          <div className="grid sm:grid-cols-2 gap-4">
-            {anns.map((a) => (
-              <article key={a.id} className="rounded-2xl border bg-card p-5 shadow-soft">
-                <div className="flex items-center gap-2 mb-2">
-                  {a.priority === "high" && <Badge className="bg-accent text-accent-foreground">{t("dash.important")}</Badge>}
-                  <p className="text-xs text-muted-foreground">{new Date(a.created_at).toLocaleDateString(locale)}</p>
-                </div>
-                <h3 className="font-display text-lg font-semibold">{a.title}</h3>
-                <p className="text-sm text-muted-foreground mt-2 line-clamp-3">{a.content}</p>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
-    </div>
-  );
-}
-
-function TaskCard({ task, locale }: { task: Task; locale: string }) {
-  const dot = TASK_TYPE_DOT[task.type];
-  return (
-    <Link
-      to="/app/tasks/$taskId"
-      params={{ taskId: task.id }}
-      className="flex items-center gap-4 rounded-xl border bg-card p-4 shadow-soft hover:shadow-warm transition"
-    >
-      <span className={`h-10 w-1.5 rounded-full ${dot}`} />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <h3 className="font-medium truncate">{task.title}</h3>
-          <Badge variant="secondary" className="text-[10px]">{TASK_TYPE_LABELS[task.type]}</Badge>
-          {task.status === "completed" && <Badge className="text-[10px] bg-accent text-accent-foreground">✓</Badge>}
-        </div>
-        <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
-          {task.start_time && (
-            <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{task.start_time.slice(0, 5)}{task.end_time ? ` – ${task.end_time.slice(0, 5)}` : ""}</span>
-          )}
-          {task.location && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{task.location}</span>}
-          <span>{new Date(task.scheduled_date).toLocaleDateString(locale, { weekday: "short", day: "numeric" })}</span>
-        </div>
-      </div>
-    </Link>
-  );
-}
-
-function EmptyCard({ icon, text }: { icon: React.ReactNode; text: string }) {
-  return (
-    <div className="rounded-2xl border border-dashed bg-secondary/30 p-8 text-center text-muted-foreground">
-      <div className="mx-auto mb-2 inline-flex h-10 w-10 items-center justify-center rounded-full bg-secondary">{icon}</div>
-      <p className="text-sm">{text}</p>
-    </div>
-  );
-}
-
-function SkeletonList() {
-  return (
-    <div className="space-y-3">
-      {[0, 1].map((i) => <div key={i} className="h-16 rounded-xl bg-secondary/40 animate-pulse" />)}
     </div>
   );
 }
