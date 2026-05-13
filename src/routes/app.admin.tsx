@@ -95,6 +95,8 @@ function AdminPage() {
         </div>
       </header>
 
+      <PendingRequests />
+
       <div className="rounded-2xl border bg-card p-6 shadow-soft space-y-4">
         <h2 className="font-display text-xl font-semibold flex items-center gap-2"><Plus className="h-4 w-4" /> {t("admin.assign")}</h2>
         <div className="grid sm:grid-cols-2 gap-3">
