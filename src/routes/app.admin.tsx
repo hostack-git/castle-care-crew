@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
+import { hostackSupabase, TORRIDONIA_PROPERTY_ID } from "@/integrations/hostack/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { TASK_TYPES, TASK_TYPE_LABELS, TASK_TYPE_DOT, type TaskType } from "@/lib/constants";
 import { CHECKLIST_PRESETS } from "@/lib/checklist-presets";
 import { toast } from "sonner";
-import { Settings, Plus, BarChart3, X, Home, Sparkles, Settings2 } from "lucide-react";
+import { Settings, Plus, BarChart3, X, Home, Sparkles, Settings2, UserCheck, UserX, Inbox } from "lucide-react";
 
 export const Route = createFileRoute("/app/admin")({ component: AdminPage });
 
@@ -94,6 +95,8 @@ function AdminPage() {
         </div>
       </header>
 
+      <PendingRequests />
+
       <div className="rounded-2xl border bg-card p-6 shadow-soft space-y-4">
         <h2 className="font-display text-xl font-semibold flex items-center gap-2"><Plus className="h-4 w-4" /> {t("admin.assign")}</h2>
         <div className="grid sm:grid-cols-2 gap-3">
@@ -142,6 +145,130 @@ function AdminPage() {
           {volunteers.map((v) => <li key={v.id}>{v.full_name || "—"} · {v.email}</li>)}
         </ul>
       </div>
+    </div>
+  );
+}
+
+type AccessRequest = {
+  id: string;
+  name: string | null;
+  email: string | null;
+  whatsapp: string | null;
+  auth_user_id: string | null;
+  created_at: string;
+  status: string;
+};
+
+function PendingRequests() {
+  const [requests, setRequests] = useState<AccessRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  useEffect(() => {
+    hostackSupabase
+      .from("staff_access_requests")
+      .select("id, name, email, whatsapp, auth_user_id, created_at, status")
+      .eq("property_id", TORRIDONIA_PROPERTY_ID)
+      .eq("status", "pending")
+      .order("created_at", { ascending: true })
+      .then(({ data }) => {
+        setRequests((data as AccessRequest[]) ?? []);
+        setLoading(false);
+      });
+  }, []);
+
+  const approve = async (req: AccessRequest) => {
+    setBusyId(req.id);
+    const today = new Date().toISOString().split("T")[0];
+    const { error: updErr } = await hostackSupabase
+      .from("staff_access_requests")
+      .update({ status: "approved" })
+      .eq("id", req.id);
+    if (updErr) {
+      setBusyId(null);
+      return toast.error(updErr.message);
+    }
+    const { error: insErr } = await hostackSupabase.from("volunteers").insert({
+      property_id: TORRIDONIA_PROPERTY_ID,
+      name: req.name,
+      email: req.email,
+      whatsapp: req.whatsapp,
+      auth_user_id: req.auth_user_id,
+      role_type: "volunteer",
+      status: "active",
+      start_date: today,
+    });
+    if (insErr) {
+      setBusyId(null);
+      return toast.error(insErr.message);
+    }
+    setRequests((cur) => cur.filter((r) => r.id !== req.id));
+    setBusyId(null);
+    toast.success(`Approved ${req.name ?? req.email}`);
+  };
+
+  const reject = async (req: AccessRequest) => {
+    setBusyId(req.id);
+    const { error } = await hostackSupabase
+      .from("staff_access_requests")
+      .update({ status: "rejected" })
+      .eq("id", req.id);
+    setBusyId(null);
+    if (error) return toast.error(error.message);
+    setRequests((cur) => cur.filter((r) => r.id !== req.id));
+    toast.success("Request rejected");
+  };
+
+  return (
+    <div className="rounded-2xl border bg-card p-6 shadow-soft space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="font-display text-xl font-semibold flex items-center gap-2">
+          <Inbox className="h-4 w-4 text-accent" /> Solicitudes pendientes
+        </h2>
+        <span className="text-xs text-muted-foreground">{requests.length}</span>
+      </div>
+
+      {loading ? (
+        <p className="text-sm text-muted-foreground">Loading…</p>
+      ) : requests.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No hay solicitudes pendientes.</p>
+      ) : (
+        <ul className="divide-y">
+          {requests.map((r) => (
+            <li key={r.id} className="py-3 flex items-center justify-between gap-3 flex-wrap">
+              <div className="min-w-0">
+                <p className="font-medium truncate">{r.name || "—"}</p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {r.email}
+                  {r.whatsapp ? ` · ${r.whatsapp}` : ""}
+                </p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  {new Date(r.created_at).toLocaleString()}
+                </p>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={busyId === r.id}
+                  onClick={() => reject(r)}
+                  className="gap-1.5"
+                >
+                  <UserX className="h-3.5 w-3.5" /> Rechazar
+                </Button>
+                <Button
+                  size="sm"
+                  disabled={busyId === r.id}
+                  onClick={() => approve(r)}
+                  className="gap-1.5 bg-accent text-accent-foreground hover:bg-accent/90"
+                >
+                  <UserCheck className="h-3.5 w-3.5" /> Aprobar
+                </Button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
