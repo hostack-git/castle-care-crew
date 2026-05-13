@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { hostackSupabase } from "@/integrations/hostack/client";
 import { useI18n } from "@/lib/i18n";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,7 @@ function Signup() {
     e.preventDefault();
     setLoading(true);
     const redirectUrl = `${window.location.origin}/app/dashboard`;
-    const { error } = await supabase.auth.signUp({
+    const { error } = await hostackSupabase.auth.signUp({
       email,
       password,
       options: {
