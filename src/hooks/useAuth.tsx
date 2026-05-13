@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+import { hostackSupabase } from "@/integrations/hostack/client";
 
 type Profile = {
   id: string;
@@ -39,13 +39,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loadProfile = async (uid: string) => {
     const [{ data: p }, { data: roles }] = await Promise.all([
-      supabase.from("profiles").select("*").eq("id", uid).maybeSingle(),
-      supabase.from("user_roles").select("role").eq("user_id", uid),
+      hostackSupabase.from("profiles").select("*").eq("id", uid).maybeSingle(),
+      hostackSupabase.from("user_roles").select("role").eq("user_id", uid),
     ]);
     setProfile((p as Profile) ?? null);
-    const admin = !!roles?.some((r) => r.role === "admin");
+    const admin = !!roles?.some((r: { role: string }) => r.role === "admin");
     setIsAdmin(admin);
-    setIsRoomManager(admin || !!roles?.some((r) => r.role === "room_manager"));
+    setIsRoomManager(admin || !!roles?.some((r: { role: string }) => r.role === "room_manager"));
   };
 
   const refreshProfile = async () => {
@@ -54,7 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Auth listener FIRST (sync)
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+    const { data: sub } = hostackSupabase.auth.onAuthStateChange((_e: string, s: Session | null) => {
       setSession(s);
       setUser(s?.user ?? null);
       if (s?.user) {
@@ -67,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
+    hostackSupabase.auth.getSession().then(({ data: { session: s } }: { data: { session: Session | null } }) => {
       setSession(s);
       setUser(s?.user ?? null);
       if (s?.user) loadProfile(s.user.id).finally(() => setLoading(false));
@@ -78,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    await hostackSupabase.auth.signOut();
     window.location.href = "/";
   };
 
