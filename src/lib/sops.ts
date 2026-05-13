@@ -153,6 +153,7 @@ export const SOPS: Sop[] = [
     title: "Housekeeping SOP",
     subtitle: "Turning over guest rooms",
     icon: "broom",
+    embedUrl: "https://jorgeibanezhostack.github.io/sopbreakfasttorridonia/housekeeping-sop-en.html",
     phases: [
       {
         id: 1,
