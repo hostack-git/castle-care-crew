@@ -82,7 +82,14 @@ function GuidebookPage() {
                   <Icon className="h-5 w-5" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{s.title}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium truncate">{s.title}</p>
+                    {s.embedUrl && (
+                      <span className="shrink-0 rounded-full bg-primary/10 text-primary text-[10px] font-medium px-2 py-0.5">
+                        Interactive ✓
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-muted-foreground truncate">
                     {s.phases.length} phases · {total} steps
                   </p>

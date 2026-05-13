@@ -45,6 +45,7 @@ export const SOPS: Sop[] = [
     title: "Breakfast SOP",
     subtitle: "Daily breakfast service checklist",
     icon: "coffee",
+    embedUrl: "https://jorgeibanezhostack.github.io/sopbreakfasttorridonia/breakfast-sop-en.html",
     phases: [
       {
         id: 1,
@@ -152,6 +153,7 @@ export const SOPS: Sop[] = [
     title: "Housekeeping SOP",
     subtitle: "Turning over guest rooms",
     icon: "broom",
+    embedUrl: "https://jorgeibanezhostack.github.io/sopbreakfasttorridonia/housekeeping-sop-en.html",
     phases: [
       {
         id: 1,
@@ -222,6 +224,7 @@ export const SOPS: Sop[] = [
     title: "Cottages SOP",
     subtitle: "Full cottage turnover between guests",
     icon: "home",
+    embedUrl: "https://jorgeibanezhostack.github.io/sopbreakfasttorridonia/cottages-sop-en.html",
     phases: [
       {
         id: 1,
@@ -369,6 +372,7 @@ export const SOPS: Sop[] = [
     title: "Laundry SOP",
     subtitle: "Washing, drying and folding house linen",
     icon: "shirt",
+    embedUrl: "https://jorgeibanezhostack.github.io/sopbreakfasttorridonia/laundry-sop-en.html",
     phases: [
       {
         id: 1,
