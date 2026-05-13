@@ -54,7 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Auth listener FIRST (sync)
-    const { data: sub } = hostackSupabase.auth.onAuthStateChange((_e, s) => {
+    const { data: sub } = hostackSupabase.auth.onAuthStateChange((_e: string, s: Session | null) => {
       setSession(s);
       setUser(s?.user ?? null);
       if (s?.user) {
