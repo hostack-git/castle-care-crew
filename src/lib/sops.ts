@@ -224,6 +224,7 @@ export const SOPS: Sop[] = [
     title: "Cottages SOP",
     subtitle: "Full cottage turnover between guests",
     icon: "home",
+    embedUrl: "https://jorgeibanezhostack.github.io/sopbreakfasttorridonia/cottages-sop-en.html",
     phases: [
       {
         id: 1,
