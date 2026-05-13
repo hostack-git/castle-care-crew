@@ -1,61 +1,69 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { hostackSupabase, TORRIDONIA_PROPERTY_ID } from "@/integrations/hostack/client";
 import { useI18n } from "@/lib/i18n";
 import { Input } from "@/components/ui/input";
-import { Search, ChevronRight, Coffee, Home, Wrench, Shirt, Utensils, Sparkles } from "lucide-react";
-import { SOPS } from "@/lib/sops";
-
-const SOP_ICONS = {
-  coffee: Coffee,
-  broom: Sparkles,
-  home: Home,
-  utensils: Utensils,
-  wrench: Wrench,
-  shirt: Shirt,
-  sparkles: Sparkles,
-} as const;
+import { Search, ChevronRight, Coffee, Home, Wrench, Shirt, Utensils, Sparkles, BookOpen } from "lucide-react";
 
 export const Route = createFileRoute("/app/guidebook")({ component: GuidebookPage });
 
-const urlMap: Record<string, string> = {
+const URL_MAP: Record<string, string> = {
   breakfast: "https://jorgeibanezhostack.github.io/sopbreakfasttorridonia/breakfast-sop-en.html",
   housekeeping: "https://jorgeibanezhostack.github.io/sopbreakfasttorridonia/housekeeping-sop-en.html",
   cottages: "https://jorgeibanezhostack.github.io/sopbreakfasttorridonia/cottages-sop-en.html",
   laundry: "https://jorgeibanezhostack.github.io/sopbreakfasttorridonia/laundry-sop-en.html",
 };
 
-type Section = { id: string; section: string; title: string; content: string; language: string; icon: string | null };
+const ICON_MAP: Record<string, typeof Coffee> = {
+  breakfast: Coffee,
+  housekeeping: Sparkles,
+  cottages: Home,
+  laundry: Shirt,
+  dinner: Utensils,
+  maintenance: Wrench,
+};
+
+type Playbook = {
+  id: string;
+  title: string;
+  category: string | null;
+  description: string | null;
+  content: string | null;
+  role_tags: string[] | null;
+};
 
 function GuidebookPage() {
-  const { t, lang } = useI18n();
-  const [sections, setSections] = useState<Section[]>([]);
+  const { t } = useI18n();
+  const [playbooks, setPlaybooks] = useState<Playbook[]>([]);
+  const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
+  const [openId, setOpenId] = useState<string | null>(null);
 
   useEffect(() => {
-    // Try the active language; if no rows exist, fall back to English so content is never blank.
-    supabase
-      .from("guidebook_sections")
-      .select("*")
-      .eq("language", lang)
+    hostackSupabase
+      .from("playbooks")
+      .select("id, title, category, description, content, role_tags")
+      .eq("property_id", TORRIDONIA_PROPERTY_ID)
+      .eq("is_archived", false)
+      .order("category")
       .order("order_index")
-      .then(async ({ data }) => {
-        if (data && data.length > 0) {
-          setSections(data as Section[]);
-          return;
-        }
-        const { data: fallback } = await supabase
-          .from("guidebook_sections")
-          .select("*")
-          .eq("language", "en")
-          .order("order_index");
-        setSections((fallback as Section[]) ?? []);
+      .then(({ data }) => {
+        setPlaybooks((data as Playbook[]) ?? []);
+        setLoading(false);
       });
-  }, [lang]);
+  }, []);
 
-  const filtered = sections.filter((s) =>
-    !q || s.title.toLowerCase().includes(q.toLowerCase()) || s.content.toLowerCase().includes(q.toLowerCase())
-  );
+  const filtered = playbooks.filter((p) => {
+    if (!q) return true;
+    const needle = q.toLowerCase();
+    return (
+      p.title.toLowerCase().includes(needle) ||
+      (p.description ?? "").toLowerCase().includes(needle) ||
+      (p.category ?? "").toLowerCase().includes(needle)
+    );
+  });
+
+  const opened = openId ? playbooks.find((p) => p.id === openId) ?? null : null;
 
   return (
     <div className="space-y-6">
@@ -69,16 +77,22 @@ function GuidebookPage() {
         <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("guide.search")} className="pl-9" />
       </div>
 
-      <section className="space-y-3">
-        <div>
-          <h2 className="font-display text-xl font-semibold">Standard operating procedures</h2>
-          <p className="text-sm text-muted-foreground">Step-by-step checklists for each shift.</p>
+      {loading ? (
+        <p className="text-muted-foreground text-sm">Loading…</p>
+      ) : filtered.length === 0 ? (
+        <div className="rounded-2xl border bg-card p-12 text-center">
+          <BookOpen className="h-10 w-10 text-muted-foreground/60 mx-auto mb-3" />
+          <p className="font-medium">Sin guías disponibles</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {q ? `No matches for "${q}"` : "No playbooks have been published yet."}
+          </p>
         </div>
+      ) : (
         <div className="grid sm:grid-cols-2 gap-3">
-          {SOPS.filter((s) => !q || s.title.toLowerCase().includes(q.toLowerCase()) || s.subtitle.toLowerCase().includes(q.toLowerCase())).map((s) => {
-            const Icon = SOP_ICONS[s.icon] ?? Sparkles;
-            const total = s.phases.reduce((n, p) => n + p.items.length, 0);
-            const externalUrl = urlMap[s.id];
+          {filtered.map((p) => {
+            const key = (p.category ?? "").toLowerCase();
+            const Icon = ICON_MAP[key] ?? Sparkles;
+            const externalUrl = URL_MAP[key];
             const isExternal = Boolean(externalUrl);
             const cardClasses =
               "group flex items-center gap-3 rounded-2xl border bg-card p-4 shadow-soft hover:border-primary/40 hover:bg-secondary/30 transition text-left w-full";
@@ -89,23 +103,23 @@ function GuidebookPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="font-medium truncate">{s.title}</p>
+                    <p className="font-medium truncate">{p.title}</p>
                     {isExternal && (
                       <span className="shrink-0 rounded-full bg-primary/10 text-primary text-[10px] font-medium px-2 py-0.5">
                         Interactive ✓
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {s.phases.length} phases · {total} steps
-                  </p>
+                  {p.description && (
+                    <p className="text-xs text-muted-foreground truncate">{p.description}</p>
+                  )}
                 </div>
                 <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
               </>
             );
             return isExternal ? (
               <button
-                key={s.id}
+                key={p.id}
                 type="button"
                 onClick={() => window.open(externalUrl, "_blank")}
                 className={cardClasses}
@@ -113,31 +127,38 @@ function GuidebookPage() {
                 {inner}
               </button>
             ) : (
-              <Link
-                key={s.id}
-                to="/app/guidebook/sop/$sopId"
-                params={{ sopId: s.id }}
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setOpenId(p.id)}
                 className={cardClasses}
               >
                 {inner}
-              </Link>
+              </button>
             );
           })}
         </div>
-      </section>
-      <div className="space-y-4">
-        {filtered.map((s) => (
-          <article key={s.id} className="rounded-2xl border bg-card p-6 shadow-soft">
-            <h2 className="font-display text-xl font-semibold">{s.title}</h2>
-            <div className="prose prose-sm mt-3 max-w-none whitespace-pre-line text-foreground/85 leading-relaxed">
-              {s.content}
+      )}
+
+      {opened && (
+        <article className="rounded-2xl border bg-card p-6 shadow-soft">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">{opened.category}</p>
+              <h2 className="font-display text-xl font-semibold mt-1">{opened.title}</h2>
             </div>
-          </article>
-        ))}
-        {filtered.length === 0 && (
-          <p className="text-center text-muted-foreground py-12">{t("guide.empty")} "{q}".</p>
-        )}
-      </div>
+            <button
+              onClick={() => setOpenId(null)}
+              className="text-sm text-muted-foreground hover:text-foreground"
+            >
+              Close
+            </button>
+          </div>
+          <div className="prose prose-sm mt-4 max-w-none whitespace-pre-line text-foreground/85 leading-relaxed">
+            {opened.content || opened.description || "No content yet."}
+          </div>
+        </article>
+      )}
     </div>
   );
 }
