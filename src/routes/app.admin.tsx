@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { TASK_TYPES, TASK_TYPE_LABELS, TASK_TYPE_DOT, type TaskType } from "@/lib/constants";
 import { CHECKLIST_PRESETS } from "@/lib/checklist-presets";
 import { toast } from "sonner";
-import { Settings, Plus, BarChart3, X, Home, Sparkles, Settings2 } from "lucide-react";
+import { Settings, Plus, BarChart3, X, Home, Sparkles, Settings2, UserCheck, UserX, Inbox } from "lucide-react";
 
 export const Route = createFileRoute("/app/admin")({ component: AdminPage });
 
