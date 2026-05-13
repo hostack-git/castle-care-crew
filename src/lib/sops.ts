@@ -372,6 +372,7 @@ export const SOPS: Sop[] = [
     title: "Laundry SOP",
     subtitle: "Washing, drying and folding house linen",
     icon: "shirt",
+    embedUrl: "https://jorgeibanezhostack.github.io/sopbreakfasttorridonia/laundry-sop-en.html",
     phases: [
       {
         id: 1,
