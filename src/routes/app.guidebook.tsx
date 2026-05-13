@@ -71,20 +71,19 @@ function GuidebookPage() {
           {SOPS.filter((s) => !q || s.title.toLowerCase().includes(q.toLowerCase()) || s.subtitle.toLowerCase().includes(q.toLowerCase())).map((s) => {
             const Icon = SOP_ICONS[s.icon] ?? Sparkles;
             const total = s.phases.reduce((n, p) => n + p.items.length, 0);
-            return (
-              <Link
-                key={s.id}
-                to="/app/guidebook/sop/$sopId"
-                params={{ sopId: s.id }}
-                className="group flex items-center gap-3 rounded-2xl border bg-card p-4 shadow-soft hover:border-primary/40 hover:bg-secondary/30 transition"
-              >
+            const externalUrl = urlMap[s.id];
+            const isExternal = Boolean(externalUrl);
+            const cardClasses =
+              "group flex items-center gap-3 rounded-2xl border bg-card p-4 shadow-soft hover:border-primary/40 hover:bg-secondary/30 transition text-left w-full";
+            const inner = (
+              <>
                 <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary grid place-items-center shrink-0">
                   <Icon className="h-5 w-5" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="font-medium truncate">{s.title}</p>
-                    {s.embedUrl && (
+                    {isExternal && (
                       <span className="shrink-0 rounded-full bg-primary/10 text-primary text-[10px] font-medium px-2 py-0.5">
                         Interactive ✓
                       </span>
@@ -95,6 +94,25 @@ function GuidebookPage() {
                   </p>
                 </div>
                 <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
+              </>
+            );
+            return isExternal ? (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => window.open(externalUrl, "_blank")}
+                className={cardClasses}
+              >
+                {inner}
+              </button>
+            ) : (
+              <Link
+                key={s.id}
+                to="/app/guidebook/sop/$sopId"
+                params={{ sopId: s.id }}
+                className={cardClasses}
+              >
+                {inner}
               </Link>
             );
           })}
