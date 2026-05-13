@@ -39,8 +39,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loadProfile = async (uid: string) => {
     const [{ data: p }, { data: roles }] = await Promise.all([
-      supabase.from("profiles").select("*").eq("id", uid).maybeSingle(),
-      supabase.from("user_roles").select("role").eq("user_id", uid),
+      hostackSupabase.from("profiles").select("*").eq("id", uid).maybeSingle(),
+      hostackSupabase.from("user_roles").select("role").eq("user_id", uid),
     ]);
     setProfile((p as Profile) ?? null);
     const admin = !!roles?.some((r) => r.role === "admin");
@@ -54,7 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Auth listener FIRST (sync)
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+    const { data: sub } = hostackSupabase.auth.onAuthStateChange((_e, s) => {
       setSession(s);
       setUser(s?.user ?? null);
       if (s?.user) {
@@ -67,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
+    hostackSupabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
       setUser(s?.user ?? null);
       if (s?.user) loadProfile(s.user.id).finally(() => setLoading(false));
@@ -78,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    await hostackSupabase.auth.signOut();
     window.location.href = "/";
   };
 
