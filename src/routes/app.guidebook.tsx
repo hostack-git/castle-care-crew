@@ -18,6 +18,13 @@ const SOP_ICONS = {
 
 export const Route = createFileRoute("/app/guidebook")({ component: GuidebookPage });
 
+const urlMap: Record<string, string> = {
+  breakfast: "https://jorgeibanezhostack.github.io/sopbreakfasttorridonia/breakfast-sop-en.html",
+  housekeeping: "https://jorgeibanezhostack.github.io/sopbreakfasttorridonia/housekeeping-sop-en.html",
+  cottages: "https://jorgeibanezhostack.github.io/sopbreakfasttorridonia/cottages-sop-en.html",
+  laundry: "https://jorgeibanezhostack.github.io/sopbreakfasttorridonia/laundry-sop-en.html",
+};
+
 type Section = { id: string; section: string; title: string; content: string; language: string; icon: string | null };
 
 function GuidebookPage() {
