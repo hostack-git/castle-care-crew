@@ -71,9 +71,13 @@ function GuidebookPage() {
           {SOPS.filter((s) => !q || s.title.toLowerCase().includes(q.toLowerCase()) || s.subtitle.toLowerCase().includes(q.toLowerCase())).map((s) => {
             const Icon = SOP_ICONS[s.icon] ?? Sparkles;
             const total = s.phases.reduce((n, p) => n + p.items.length, 0);
-            const cardClass = "group flex items-center gap-3 rounded-2xl border bg-card p-4 shadow-soft hover:border-primary/40 hover:bg-secondary/30 transition text-left w-full";
-            const inner = (
-              <>
+            return (
+              <Link
+                key={s.id}
+                to="/app/guidebook/sop/$sopId"
+                params={{ sopId: s.id }}
+                className="group flex items-center gap-3 rounded-2xl border bg-card p-4 shadow-soft hover:border-primary/40 hover:bg-secondary/30 transition"
+              >
                 <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary grid place-items-center shrink-0">
                   <Icon className="h-5 w-5" />
                 </div>
@@ -91,18 +95,6 @@ function GuidebookPage() {
                   </p>
                 </div>
                 <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
-              </>
-            );
-            if (s.embedUrl) {
-              return (
-                <a key={s.id} href={s.embedUrl} target="_blank" rel="noreferrer" className={cardClass}>
-                  {inner}
-                </a>
-              );
-            }
-            return (
-              <Link key={s.id} to="/app/guidebook/sop/$sopId" params={{ sopId: s.id }} className={cardClass}>
-                {inner}
               </Link>
             );
           })}
