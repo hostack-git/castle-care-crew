@@ -67,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    hostackSupabase.auth.getSession().then(({ data: { session: s } }) => {
+    hostackSupabase.auth.getSession().then(({ data: { session: s } }: { data: { session: Session | null } }) => {
       setSession(s);
       setUser(s?.user ?? null);
       if (s?.user) loadProfile(s.user.id).finally(() => setLoading(false));
