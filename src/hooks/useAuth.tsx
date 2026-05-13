@@ -43,9 +43,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       hostackSupabase.from("user_roles").select("role").eq("user_id", uid),
     ]);
     setProfile((p as Profile) ?? null);
-    const admin = !!roles?.some((r) => r.role === "admin");
+    const admin = !!roles?.some((r: { role: string }) => r.role === "admin");
     setIsAdmin(admin);
-    setIsRoomManager(admin || !!roles?.some((r) => r.role === "room_manager"));
+    setIsRoomManager(admin || !!roles?.some((r: { role: string }) => r.role === "room_manager"));
   };
 
   const refreshProfile = async () => {
