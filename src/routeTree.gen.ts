@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VolunteerAccessRouteImport } from './routes/volunteer-access'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
@@ -32,6 +33,11 @@ import { Route as AppAdminStatsRouteImport } from './routes/app.admin.stats'
 import { Route as AppAdminRotaRouteImport } from './routes/app.admin.rota'
 import { Route as AppGuidebookSopSopIdRouteImport } from './routes/app.guidebook.sop.$sopId'
 
+const VolunteerAccessRoute = VolunteerAccessRouteImport.update({
+  id: '/volunteer-access',
+  path: '/volunteer-access',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
@@ -151,6 +157,7 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof OnboardingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/volunteer-access': typeof VolunteerAccessRoute
   '/app/admin': typeof AppAdminRouteWithChildren
   '/app/adventures': typeof AppAdventuresRoute
   '/app/announcements': typeof AppAnnouncementsRoute
@@ -175,6 +182,7 @@ export interface FileRoutesByTo {
   '/onboarding': typeof OnboardingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/volunteer-access': typeof VolunteerAccessRoute
   '/app/admin': typeof AppAdminRouteWithChildren
   '/app/adventures': typeof AppAdventuresRoute
   '/app/announcements': typeof AppAnnouncementsRoute
@@ -200,6 +208,7 @@ export interface FileRoutesById {
   '/onboarding': typeof OnboardingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/volunteer-access': typeof VolunteerAccessRoute
   '/app/admin': typeof AppAdminRouteWithChildren
   '/app/adventures': typeof AppAdventuresRoute
   '/app/announcements': typeof AppAnnouncementsRoute
@@ -226,6 +235,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/reset-password'
     | '/signup'
+    | '/volunteer-access'
     | '/app/admin'
     | '/app/adventures'
     | '/app/announcements'
@@ -250,6 +260,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/reset-password'
     | '/signup'
+    | '/volunteer-access'
     | '/app/admin'
     | '/app/adventures'
     | '/app/announcements'
@@ -274,6 +285,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/reset-password'
     | '/signup'
+    | '/volunteer-access'
     | '/app/admin'
     | '/app/adventures'
     | '/app/announcements'
@@ -299,11 +311,19 @@ export interface RootRouteChildren {
   OnboardingRoute: typeof OnboardingRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
+  VolunteerAccessRoute: typeof VolunteerAccessRoute
   InviteTokenRoute: typeof InviteTokenRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/volunteer-access': {
+      id: '/volunteer-access'
+      path: '/volunteer-access'
+      fullPath: '/volunteer-access'
+      preLoaderRoute: typeof VolunteerAccessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/signup': {
       id: '/signup'
       path: '/signup'
@@ -525,17 +545,9 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingRoute: OnboardingRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
+  VolunteerAccessRoute: VolunteerAccessRoute,
   InviteTokenRoute: InviteTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
