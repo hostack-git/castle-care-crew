@@ -10,7 +10,6 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VolunteerAccessRouteImport } from './routes/volunteer-access'
-import { Route as VolunteerAccessRouteImport } from './routes/volunteer-access'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
@@ -34,11 +33,6 @@ import { Route as AppAdminStatsRouteImport } from './routes/app.admin.stats'
 import { Route as AppAdminRotaRouteImport } from './routes/app.admin.rota'
 import { Route as AppGuidebookSopSopIdRouteImport } from './routes/app.guidebook.sop.$sopId'
 
-const VolunteerAccessRoute = VolunteerAccessRouteImport.update({
-  id: '/volunteer-access',
-  path: '/volunteer-access',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const VolunteerAccessRoute = VolunteerAccessRouteImport.update({
   id: '/volunteer-access',
   path: '/volunteer-access',
@@ -164,7 +158,6 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/volunteer-access': typeof VolunteerAccessRoute
-  '/volunteer-access': typeof VolunteerAccessRoute
   '/app/admin': typeof AppAdminRouteWithChildren
   '/app/adventures': typeof AppAdventuresRoute
   '/app/announcements': typeof AppAnnouncementsRoute
@@ -189,7 +182,6 @@ export interface FileRoutesByTo {
   '/onboarding': typeof OnboardingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
-  '/volunteer-access': typeof VolunteerAccessRoute
   '/volunteer-access': typeof VolunteerAccessRoute
   '/app/admin': typeof AppAdminRouteWithChildren
   '/app/adventures': typeof AppAdventuresRoute
@@ -216,7 +208,6 @@ export interface FileRoutesById {
   '/onboarding': typeof OnboardingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
-  '/volunteer-access': typeof VolunteerAccessRoute
   '/volunteer-access': typeof VolunteerAccessRoute
   '/app/admin': typeof AppAdminRouteWithChildren
   '/app/adventures': typeof AppAdventuresRoute
@@ -245,7 +236,6 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/volunteer-access'
-    | '/volunteer-access'
     | '/app/admin'
     | '/app/adventures'
     | '/app/announcements'
@@ -270,7 +260,6 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/reset-password'
     | '/signup'
-    | '/volunteer-access'
     | '/volunteer-access'
     | '/app/admin'
     | '/app/adventures'
@@ -297,7 +286,6 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/volunteer-access'
-    | '/volunteer-access'
     | '/app/admin'
     | '/app/adventures'
     | '/app/announcements'
@@ -323,7 +311,6 @@ export interface RootRouteChildren {
   OnboardingRoute: typeof OnboardingRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
-  VolunteerAccessRoute: typeof VolunteerAccessRoute
   VolunteerAccessRoute: typeof VolunteerAccessRoute
   InviteTokenRoute: typeof InviteTokenRoute
 }
@@ -558,7 +545,6 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingRoute: OnboardingRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
-  VolunteerAccessRoute: VolunteerAccessRoute,
   VolunteerAccessRoute: VolunteerAccessRoute,
   InviteTokenRoute: InviteTokenRoute,
 }
