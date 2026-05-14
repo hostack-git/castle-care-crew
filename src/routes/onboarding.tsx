@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { hostackSupabase } from "@/integrations/hostack/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +10,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { LANGUAGES } from "@/lib/constants";
 import { toast } from "sonner";
 import { Upload, CheckCircle2, Mountain } from "lucide-react";
+
+const APP_LANGUAGES = [
+  { code: "en", label: "English", flag: "🇬🇧" },
+  { code: "es", label: "Español", flag: "🇪🇸" },
+  { code: "pt", label: "Português", flag: "🇵🇹" },
+] as const;
+type AppLang = (typeof APP_LANGUAGES)[number]["code"];
 
 export const Route = createFileRoute("/onboarding")({
   component: Onboarding,
