@@ -67,20 +67,6 @@ function Login() {
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? t("auth.signingIn") : t("auth.signIn")}
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full"
-            onClick={async () => {
-              const { error } = await hostackSupabase.auth.signInWithOAuth({
-                provider: "google",
-                options: { redirectTo: window.location.origin + "/app/dashboard" },
-              });
-              if (error) toast.error(error.message);
-            }}
-          >
-            Continuar con Google
-          </Button>
           <p className="text-center text-sm">
             <Link to="/forgot-password" className="text-accent hover:underline">
               ¿Olvidaste tu contraseña?
