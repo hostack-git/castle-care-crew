@@ -154,6 +154,7 @@ function AdminPage() {
         <TabsContent value="volunteers" className="space-y-6">
           <VolunteersSection currentAuthUserId={user?.id ?? null} />
           <PendingRequests />
+          <WelcomeQR />
         </TabsContent>
       </Tabs>
     </div>
