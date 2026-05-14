@@ -22,6 +22,7 @@ type AuthCtx = {
   profile: Profile | null;
   isAdmin: boolean;
   isRoomManager: boolean;
+  isVolunteer: boolean;
   loading: boolean;
   refreshProfile: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -82,8 +83,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.location.href = "/";
   };
 
+  const isVolunteer = !!user && !user.email;
+
   return (
-    <Ctx.Provider value={{ user, session, profile, isAdmin, isRoomManager, loading, refreshProfile, signOut }}>
+    <Ctx.Provider value={{ user, session, profile, isAdmin, isRoomManager, isVolunteer, loading, refreshProfile, signOut }}>
       {children}
     </Ctx.Provider>
   );

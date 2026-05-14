@@ -11,7 +11,7 @@ export const Route = createFileRoute("/app")({
 });
 
 function AppLayout() {
-  const { user, profile, loading, isAdmin, isRoomManager, signOut } = useAuth();
+  const { user, profile, loading, isAdmin, isRoomManager, isVolunteer, signOut } = useAuth();
   const { t } = useI18n();
   const navigate = useNavigate();
   const loc = useLocation();
@@ -19,14 +19,18 @@ function AppLayout() {
   useEffect(() => {
     if (loading) return;
     if (!user) navigate({ to: "/login" });
-    else if (profile && !profile.onboarded) navigate({ to: "/onboarding" });
-  }, [loading, user, profile, navigate]);
+    else if (!isVolunteer && profile && !profile.onboarded) navigate({ to: "/onboarding" });
+    // Block admin route for volunteers
+    if (!loading && isVolunteer && loc.pathname.startsWith("/app/admin")) {
+      navigate({ to: "/app/dashboard" });
+    }
+  }, [loading, user, profile, isVolunteer, loc.pathname, navigate]);
 
   if (loading || !user) {
     return <div className="min-h-screen grid place-items-center text-muted-foreground">{t("common.loading")}</div>;
   }
 
-  const nav = [
+  const fullNav = [
     { to: "/app/dashboard", label: t("nav.dashboard"), icon: LayoutDashboard },
     { to: "/app/calendar", label: t("nav.calendar"), icon: Calendar },
     { to: "/app/guidebook", label: t("nav.guidebook"), icon: BookOpen },
@@ -34,6 +38,12 @@ function AppLayout() {
     { to: "/app/announcements", label: t("nav.announcements"), icon: Megaphone },
     { to: "/app/chat", label: t("nav.chat"), icon: MessageCircle },
   ];
+  const volunteerNav = [
+    { to: "/app/dashboard", label: t("nav.dashboard"), icon: LayoutDashboard },
+    { to: "/app/calendar", label: t("nav.calendar"), icon: Calendar },
+    { to: "/app/guidebook", label: t("nav.guidebook"), icon: BookOpen },
+  ];
+  const nav = isVolunteer ? volunteerNav : fullNav;
 
   return (
     <div className="min-h-screen bg-cream-paper">
@@ -60,7 +70,7 @@ function AppLayout() {
               </Link>
             );
           })}
-          {(isAdmin || isRoomManager) && (
+          {(isAdmin || isRoomManager) && !isVolunteer && (
             <Link
               to="/app/rooms"
               className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${
@@ -72,7 +82,7 @@ function AppLayout() {
               <Home className="h-4 w-4" /> Rooms
             </Link>
           )}
-          {isAdmin && (
+          {isAdmin && !isVolunteer && (
             <Link
               to="/app/admin"
               className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${
