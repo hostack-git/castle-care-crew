@@ -27,7 +27,7 @@ function Onboarding() {
   const navigate = useNavigate();
   const [fullName, setFullName] = useState("");
   const [nationality, setNationality] = useState("");
-  const [language, setLanguage] = useState<"en" | "pt" | "es" | "de" | "gd">("en");
+  const [language, setLanguage] = useState<AppLang>("en");
   const [phone, setPhone] = useState("");
   const [passportNumber, setPassportNumber] = useState("");
   const [passportFile, setPassportFile] = useState<File | null>(null);
@@ -38,7 +38,8 @@ function Onboarding() {
     if (profile) {
       setFullName(profile.full_name ?? "");
       setNationality(profile.nationality ?? "");
-      setLanguage(profile.language ?? "en");
+      const pref = (profile as unknown as { preferred_language?: AppLang }).preferred_language;
+      setLanguage(pref ?? (["en", "es", "pt"].includes(profile.language) ? (profile.language as AppLang) : "en"));
       setPhone(profile.phone ?? "");
       setPassportNumber(profile.passport_number ?? "");
     }
