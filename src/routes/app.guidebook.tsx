@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { hostackSupabase, TORRIDONIA_PROPERTY_ID } from "@/integrations/hostack/client";
+import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
 import { Input } from "@/components/ui/input";
-import { Search, ChevronRight, Coffee, Home, Wrench, Shirt, Utensils, Sparkles, BookOpen } from "lucide-react";
+import { Search, ChevronRight, Coffee, Home, Wrench, Shirt, Utensils, Sparkles, BookOpen, ExternalLink } from "lucide-react";
 
 export const Route = createFileRoute("/app/guidebook")({ component: GuidebookPage });
 
@@ -14,6 +15,8 @@ const URL_MAP: Record<string, string> = {
   laundry: "https://jorgeibanezhostack.github.io/sopbreakfasttorridonia/laundry-sop-en.html",
 };
 
+const ALLOWED_CATEGORIES = ["housekeeping", "breakfast", "cottages", "laundry", "general"];
+
 const ICON_MAP: Record<string, typeof Coffee> = {
   breakfast: Coffee,
   housekeeping: Sparkles,
@@ -21,6 +24,7 @@ const ICON_MAP: Record<string, typeof Coffee> = {
   laundry: Shirt,
   dinner: Utensils,
   maintenance: Wrench,
+  general: BookOpen,
 };
 
 type Playbook = {
@@ -28,21 +32,22 @@ type Playbook = {
   title: string;
   category: string | null;
   description: string | null;
-  content: string | null;
+  external_url: string | null;
   role_tags: string[] | null;
 };
 
 function GuidebookPage() {
   const { t } = useI18n();
+  const { profile } = useAuth();
+  const lang = (profile as unknown as { preferred_language?: string })?.preferred_language || profile?.language || "en";
   const [playbooks, setPlaybooks] = useState<Playbook[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
-  const [openId, setOpenId] = useState<string | null>(null);
 
   useEffect(() => {
     hostackSupabase
       .from("playbooks")
-      .select("id, title, category, description, content, role_tags")
+      .select("id, title, category, description, external_url, role_tags")
       .eq("property_id", TORRIDONIA_PROPERTY_ID)
       .eq("is_archived", false)
       .order("category")
@@ -53,7 +58,18 @@ function GuidebookPage() {
       });
   }, []);
 
+  const resolveUrl = (p: Playbook): string | null => {
+    if (p.external_url) return p.external_url;
+    const key = (p.category ?? "").toLowerCase();
+    return URL_MAP[key] ?? null;
+  };
+
   const filtered = playbooks.filter((p) => {
+    const key = (p.category ?? "").toLowerCase();
+    const url = resolveUrl(p);
+    // Solo SOPs externos: con external_url o categoría permitida que tenga URL_MAP
+    if (!url && !ALLOWED_CATEGORIES.includes(key)) return false;
+    if (!url) return false;
     if (!q) return true;
     const needle = q.toLowerCase();
     return (
@@ -62,8 +78,6 @@ function GuidebookPage() {
       (p.category ?? "").toLowerCase().includes(needle)
     );
   });
-
-  const opened = openId ? playbooks.find((p) => p.id === openId) ?? null : null;
 
   return (
     <div className="space-y-6">
@@ -84,7 +98,7 @@ function GuidebookPage() {
           <BookOpen className="h-10 w-10 text-muted-foreground/60 mx-auto mb-3" />
           <p className="font-medium">Sin guías disponibles</p>
           <p className="text-sm text-muted-foreground mt-1">
-            {q ? `No matches for "${q}"` : "No playbooks have been published yet."}
+            {q ? `No matches for "${q}"` : "No SOPs published yet."}
           </p>
         </div>
       ) : (
@@ -92,72 +106,31 @@ function GuidebookPage() {
           {filtered.map((p) => {
             const key = (p.category ?? "").toLowerCase();
             const Icon = ICON_MAP[key] ?? Sparkles;
-            const externalUrl = URL_MAP[key];
-            const isExternal = Boolean(externalUrl);
-            const cardClasses =
-              "group flex items-center gap-3 rounded-2xl border bg-card p-4 shadow-soft hover:border-primary/40 hover:bg-secondary/30 transition text-left w-full";
-            const inner = (
-              <>
+            const url = resolveUrl(p)!;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => window.open(`${url}?lang=${lang}`, "_blank")}
+                className="group flex items-center gap-3 rounded-2xl border bg-card p-4 shadow-soft hover:border-primary/40 hover:bg-secondary/30 transition text-left w-full"
+              >
                 <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary grid place-items-center shrink-0">
                   <Icon className="h-5 w-5" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="font-medium truncate">{p.title}</p>
-                    {isExternal && (
-                      <span className="shrink-0 rounded-full bg-primary/10 text-primary text-[10px] font-medium px-2 py-0.5">
-                        Interactive ✓
-                      </span>
-                    )}
+                    <ExternalLink className="h-3 w-3 text-muted-foreground shrink-0" />
                   </div>
                   {p.description && (
                     <p className="text-xs text-muted-foreground truncate">{p.description}</p>
                   )}
                 </div>
                 <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
-              </>
-            );
-            return isExternal ? (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => window.open(externalUrl, "_blank")}
-                className={cardClasses}
-              >
-                {inner}
-              </button>
-            ) : (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => setOpenId(p.id)}
-                className={cardClasses}
-              >
-                {inner}
               </button>
             );
           })}
         </div>
-      )}
-
-      {opened && (
-        <article className="rounded-2xl border bg-card p-6 shadow-soft">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">{opened.category}</p>
-              <h2 className="font-display text-xl font-semibold mt-1">{opened.title}</h2>
-            </div>
-            <button
-              onClick={() => setOpenId(null)}
-              className="text-sm text-muted-foreground hover:text-foreground"
-            >
-              Close
-            </button>
-          </div>
-          <div className="prose prose-sm mt-4 max-w-none whitespace-pre-line text-foreground/85 leading-relaxed">
-            {opened.content || opened.description || "No content yet."}
-          </div>
-        </article>
       )}
     </div>
   );
