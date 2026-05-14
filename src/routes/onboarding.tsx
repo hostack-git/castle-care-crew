@@ -73,6 +73,11 @@ function Onboarding() {
         })
         .eq("id", user.id);
       if (error) throw error;
+      // Persistir idioma preferido en Hostack staff
+      await hostackSupabase
+        .from("staff")
+        .update({ preferred_language: language })
+        .eq("auth_user_id", user.id);
       await refreshProfile();
       toast.success("Profile complete — welcome to the team!");
       navigate({ to: "/app/dashboard" });
@@ -114,10 +119,23 @@ function Onboarding() {
               </div>
               <div className="space-y-2">
                 <Label>Preferred language</Label>
-                <Select value={language} onValueChange={(v) => setLanguage(v as "en" | "pt" | "es" | "de" | "gd")}>
+                <Select
+                  value={language}
+                  onValueChange={async (v) => {
+                    const next = v as AppLang;
+                    setLanguage(next);
+                    if (user) {
+                      await hostackSupabase
+                        .from("staff")
+                        .update({ preferred_language: next })
+                        .eq("auth_user_id", user.id);
+                      await refreshProfile();
+                    }
+                  }}
+                >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {LANGUAGES.map((l) => (
+                    {APP_LANGUAGES.map((l) => (
                       <SelectItem key={l.code} value={l.code}>
                         {l.flag} {l.label}
                       </SelectItem>
