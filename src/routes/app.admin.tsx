@@ -501,3 +501,93 @@ function PendingRequests() {
     </div>
   );
 }
+
+// =================== Welcome QR ===================
+
+const WELCOME_QR_URL = "https://id-preview--4a1e4c77-89b3-4432-955d-de2ed62005cc.lovable.app/signup?source=qr";
+
+// Inline SVG mountain logo as data URL for centering inside the QR
+const MOUNTAIN_LOGO =
+  "data:image/svg+xml;utf8," +
+  encodeURIComponent(
+    `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='hsl(20 80% 40%)' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><rect width='24' height='24' rx='4' fill='white'/><path d='m8 3 4 8 5-5 5 15H2L8 3z' transform='translate(0 -1)'/></svg>`,
+  );
+
+function WelcomeQR() {
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+
+  const download = () => {
+    const svg = wrapperRef.current?.querySelector("svg");
+    if (!svg) return;
+    const xml = new XMLSerializer().serializeToString(svg);
+    const svgBlob = new Blob([xml], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(svgBlob);
+    const img = new Image();
+    img.onload = () => {
+      const size = 1000;
+      const canvas = document.createElement("canvas");
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, size, size);
+      ctx.drawImage(img, 0, 0, size, size);
+      URL.revokeObjectURL(url);
+      const a = document.createElement("a");
+      a.download = "torridonia-welcome-qr.png";
+      a.href = canvas.toDataURL("image/png");
+      a.click();
+    };
+    img.src = url;
+  };
+
+  const print = () => window.print();
+
+  return (
+    <>
+      <style>{`
+        @media print {
+          body * { visibility: hidden !important; }
+          .print-qr, .print-qr * { visibility: visible !important; }
+          .print-qr {
+            position: fixed; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+            background: white;
+          }
+        }
+      `}</style>
+      <div className="rounded-2xl border bg-card p-6 shadow-soft space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-xl font-semibold flex items-center gap-2">
+            <QrCode className="h-4 w-4 text-accent" /> QR de bienvenida
+          </h2>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Los voluntarios escanean este QR al llegar para solicitar acceso al equipo.
+        </p>
+
+        <div className="print-qr flex flex-col items-center gap-4 py-4">
+          <div ref={wrapperRef} className="bg-white p-4 rounded-xl border">
+            <QRCodeSVG
+              value={WELCOME_QR_URL}
+              size={250}
+              level="H"
+              imageSettings={{ src: MOUNTAIN_LOGO, height: 48, width: 48, excavate: true }}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground font-mono break-all max-w-md text-center">{WELCOME_QR_URL}</p>
+        </div>
+
+        <div className="flex gap-2 flex-wrap">
+          <Button onClick={download} variant="outline" className="gap-2">
+            <Download className="h-4 w-4" /> Descargar QR
+          </Button>
+          <Button onClick={print} variant="outline" className="gap-2">
+            <Printer className="h-4 w-4" /> Imprimir
+          </Button>
+        </div>
+      </div>
+    </>
+  );
+}
