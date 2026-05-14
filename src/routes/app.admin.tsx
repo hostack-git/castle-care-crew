@@ -8,15 +8,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { TASK_TYPES, TASK_TYPE_LABELS, TASK_TYPE_DOT, type TaskType } from "@/lib/constants";
 import { CHECKLIST_PRESETS } from "@/lib/checklist-presets";
 import { toast } from "sonner";
-import { Settings, Plus, BarChart3, X, Home, Sparkles, Settings2, UserCheck, UserX, Inbox } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
+import { Settings, Plus, BarChart3, X, Home, Sparkles, Settings2, UserCheck, UserX, Inbox, Users, Send, Copy, MessageCircle } from "lucide-react";
 
 export const Route = createFileRoute("/app/admin")({ component: AdminPage });
 
+const VOLUNTEER_ROLES = ["Housekeeping", "Maintenance", "Special Task", "Family", "Team Leader"] as const;
+
 function AdminPage() {
-  const { isAdmin, loading } = useAuth();
+  const { isAdmin, loading, user } = useAuth();
   const { t } = useI18n();
   const navigate = useNavigate();
   const [volunteers, setVolunteers] = useState<{ id: string; full_name: string | null; email: string | null }[]>([]);
@@ -95,59 +101,292 @@ function AdminPage() {
         </div>
       </header>
 
-      <PendingRequests />
+      <Tabs defaultValue="tasks" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="tasks" className="gap-1.5"><Plus className="h-3.5 w-3.5" /> Tareas</TabsTrigger>
+          <TabsTrigger value="volunteers" className="gap-1.5"><Users className="h-3.5 w-3.5" /> Voluntarios</TabsTrigger>
+        </TabsList>
 
-      <div className="rounded-2xl border bg-card p-6 shadow-soft space-y-4">
-        <h2 className="font-display text-xl font-semibold flex items-center gap-2"><Plus className="h-4 w-4" /> {t("admin.assign")}</h2>
-        <div className="grid sm:grid-cols-2 gap-3">
-          <Input placeholder={t("admin.titlePh")} value={title} onChange={(e) => setTitle(e.target.value)} />
-          <Select value={type} onValueChange={(v) => setType(v as TaskType)}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>{TASK_TYPES.map((tt) => <SelectItem key={tt} value={tt}>{TASK_TYPE_LABELS[tt]}</SelectItem>)}</SelectContent>
-          </Select>
-          <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-          <Input type="time" value={start} onChange={(e) => setStart(e.target.value)} />
-          <Select value={assignee} onValueChange={setAssignee}>
-            <SelectTrigger><SelectValue placeholder={t("admin.assignTo")} /></SelectTrigger>
-            <SelectContent>{volunteers.map((v) => <SelectItem key={v.id} value={v.id}>{v.full_name || v.email}</SelectItem>)}</SelectContent>
-          </Select>
-          <Input placeholder={t("admin.locationPh")} value={location} onChange={(e) => setLocation(e.target.value)} />
-        </div>
-        <Textarea placeholder={t("admin.notesPh")} value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
+        <TabsContent value="tasks" className="space-y-6">
+          <div className="rounded-2xl border bg-card p-6 shadow-soft space-y-4">
+            <h2 className="font-display text-xl font-semibold flex items-center gap-2"><Plus className="h-4 w-4" /> {t("admin.assign")}</h2>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <Input placeholder={t("admin.titlePh")} value={title} onChange={(e) => setTitle(e.target.value)} />
+              <Select value={type} onValueChange={(v) => setType(v as TaskType)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{TASK_TYPES.map((tt) => <SelectItem key={tt} value={tt}>{TASK_TYPE_LABELS[tt]}</SelectItem>)}</SelectContent>
+              </Select>
+              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              <Input type="time" value={start} onChange={(e) => setStart(e.target.value)} />
+              <Select value={assignee} onValueChange={setAssignee}>
+                <SelectTrigger><SelectValue placeholder={t("admin.assignTo")} /></SelectTrigger>
+                <SelectContent>{volunteers.map((v) => <SelectItem key={v.id} value={v.id}>{v.full_name || v.email}</SelectItem>)}</SelectContent>
+              </Select>
+              <Input placeholder={t("admin.locationPh")} value={location} onChange={(e) => setLocation(e.target.value)} />
+            </div>
+            <Textarea placeholder={t("admin.notesPh")} value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
 
-        <div className="rounded-xl border bg-secondary/30 p-4 space-y-2">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium flex items-center gap-2">
-              <span className={`h-2 w-2 rounded-full ${TASK_TYPE_DOT[type]}`} />
-              Checklist for {TASK_TYPE_LABELS[type]}
-            </p>
-            <Button type="button" variant="ghost" size="sm" onClick={addItem}><Plus className="h-3 w-3 mr-1" /> Add step</Button>
-          </div>
-          <div className="space-y-2">
-            {checklist.map((item, i) => (
-              <div key={i} className="flex gap-2">
-                <Input value={item} onChange={(e) => updateItem(i, e.target.value)} placeholder="Step description" />
-                <Button type="button" variant="ghost" size="icon" onClick={() => removeItem(i)}><X className="h-4 w-4" /></Button>
+            <div className="rounded-xl border bg-secondary/30 p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium flex items-center gap-2">
+                  <span className={`h-2 w-2 rounded-full ${TASK_TYPE_DOT[type]}`} />
+                  Checklist for {TASK_TYPE_LABELS[type]}
+                </p>
+                <Button type="button" variant="ghost" size="sm" onClick={addItem}><Plus className="h-3 w-3 mr-1" /> Add step</Button>
               </div>
-            ))}
-            {checklist.length === 0 && <p className="text-xs text-muted-foreground">No steps — the volunteer will only see the task title.</p>}
+              <div className="space-y-2">
+                {checklist.map((item, i) => (
+                  <div key={i} className="flex gap-2">
+                    <Input value={item} onChange={(e) => updateItem(i, e.target.value)} placeholder="Step description" />
+                    <Button type="button" variant="ghost" size="icon" onClick={() => removeItem(i)}><X className="h-4 w-4" /></Button>
+                  </div>
+                ))}
+                {checklist.length === 0 && <p className="text-xs text-muted-foreground">No steps — the volunteer will only see the task title.</p>}
+              </div>
+            </div>
+
+            <Button onClick={create} disabled={!title || !date || submitting} className="bg-accent text-accent-foreground hover:bg-accent/90">
+              {submitting ? "Creating…" : t("admin.create")}
+            </Button>
           </div>
-        </div>
+        </TabsContent>
 
-        <Button onClick={create} disabled={!title || !date || submitting} className="bg-accent text-accent-foreground hover:bg-accent/90">
-          {submitting ? "Creating…" : t("admin.create")}
-        </Button>
-      </div>
-
-      <div className="rounded-2xl border border-dashed bg-secondary/30 p-6 text-sm text-muted-foreground">
-        <p className="font-medium text-foreground mb-1">{t("admin.volunteers")} ({volunteers.length})</p>
-        <ul className="space-y-1">
-          {volunteers.map((v) => <li key={v.id}>{v.full_name || "—"} · {v.email}</li>)}
-        </ul>
-      </div>
+        <TabsContent value="volunteers" className="space-y-6">
+          <VolunteersSection currentAuthUserId={user?.id ?? null} />
+          <PendingRequests />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
+
+// =================== Volunteers section ===================
+
+type Volunteer = {
+  id: string;
+  name: string | null;
+  role_type: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  status: string | null;
+  whatsapp: string | null;
+  email: string | null;
+  auth_user_id: string | null;
+};
+
+function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | null }) {
+  const [list, setList] = useState<Volunteer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [name, setName] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [role, setRole] = useState<typeof VOLUNTEER_ROLES[number]>("Housekeeping");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [invite, setInvite] = useState<{ url: string; name: string; whatsapp: string } | null>(null);
+
+  const reload = async () => {
+    const { data } = await hostackSupabase
+      .from("volunteers")
+      .select("id, name, role_type, start_date, end_date, status, whatsapp, email, auth_user_id")
+      .eq("property_id", TORRIDONIA_PROPERTY_ID)
+      .order("start_date", { ascending: false });
+    setList((data as Volunteer[]) ?? []);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    reload();
+  }, []);
+
+  const getCurrentStaffId = async (): Promise<string | null> => {
+    if (!currentAuthUserId) return null;
+    const { data } = await hostackSupabase.from("staff").select("id").eq("auth_user_id", currentAuthUserId).maybeSingle();
+    return (data as { id: string } | null)?.id ?? null;
+  };
+
+  const buildInviteUrl = (token: string) =>
+    `https://id-preview--4a1e4c77-89b3-4432-955d-de2ed62005cc.lovable.app/invite/${token}`;
+
+  const createInvitation = async (volunteerName: string, roleType: string, vWhatsapp: string) => {
+    const staffId = await getCurrentStaffId();
+    const { data, error } = await hostackSupabase
+      .from("staff_invitations")
+      .insert({
+        property_id: TORRIDONIA_PROPERTY_ID,
+        name: volunteerName,
+        role: roleType,
+        email: null,
+        invited_by: staffId,
+      })
+      .select("token")
+      .single();
+    if (error || !data) {
+      toast.error(error?.message ?? "Error creando invitación");
+      return null;
+    }
+    const url = buildInviteUrl((data as { token: string }).token);
+    setInvite({ url, name: volunteerName, whatsapp: vWhatsapp });
+    return url;
+  };
+
+  const submit = async () => {
+    if (!name || !startDate || !endDate) return;
+    setSubmitting(true);
+    const { error } = await hostackSupabase.from("volunteers").insert({
+      property_id: TORRIDONIA_PROPERTY_ID,
+      name,
+      role_type: role,
+      start_date: startDate,
+      end_date: endDate,
+      whatsapp: whatsapp || null,
+      status: "active",
+    });
+    if (error) {
+      setSubmitting(false);
+      return toast.error(error.message);
+    }
+    await createInvitation(name, role, whatsapp);
+    toast.success("Voluntario añadido");
+    setName(""); setStartDate(""); setEndDate(""); setWhatsapp(""); setRole("Housekeeping");
+    await reload();
+    setSubmitting(false);
+  };
+
+  const sendInvite = async (v: Volunteer) => {
+    if (!v.name) return;
+    await createInvitation(v.name, v.role_type ?? "volunteer", v.whatsapp ?? "");
+  };
+
+  return (
+    <>
+      <div className="rounded-2xl border bg-card p-6 shadow-soft space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-xl font-semibold flex items-center gap-2">
+            <Users className="h-4 w-4 text-accent" /> Voluntarios
+          </h2>
+          <span className="text-xs text-muted-foreground">{list.length}</span>
+        </div>
+
+        {loading ? (
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        ) : list.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No hay voluntarios todavía.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-left text-xs text-muted-foreground border-b">
+                <tr>
+                  <th className="py-2 pr-3">Nombre</th>
+                  <th className="py-2 pr-3">Rol</th>
+                  <th className="py-2 pr-3">Inicio</th>
+                  <th className="py-2 pr-3">Fin</th>
+                  <th className="py-2 pr-3">Estado</th>
+                  <th className="py-2"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {list.map((v) => (
+                  <tr key={v.id}>
+                    <td className="py-2 pr-3 font-medium">{v.name || "—"}</td>
+                    <td className="py-2 pr-3">{v.role_type || "—"}</td>
+                    <td className="py-2 pr-3">{v.start_date || "—"}</td>
+                    <td className="py-2 pr-3">{v.end_date || "—"}</td>
+                    <td className="py-2 pr-3">
+                      {v.auth_user_id ? (
+                        <Badge className="bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/20">Activo</Badge>
+                      ) : (
+                        <Badge variant="secondary">Pendiente</Badge>
+                      )}
+                    </td>
+                    <td className="py-2 text-right">
+                      {!v.auth_user_id && (
+                        <Button size="sm" variant="outline" className="gap-1.5" onClick={() => sendInvite(v)}>
+                          <Send className="h-3.5 w-3.5" /> Enviar invitación
+                        </Button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-2xl border bg-card p-6 shadow-soft space-y-4">
+        <h2 className="font-display text-xl font-semibold flex items-center gap-2">
+          <Plus className="h-4 w-4 text-accent" /> Añadir voluntario
+        </h2>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <Input placeholder="Nombre" value={name} onChange={(e) => setName(e.target.value)} />
+          <Select value={role} onValueChange={(v) => setRole(v as typeof VOLUNTEER_ROLES[number])}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {VOLUNTEER_ROLES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <div>
+            <label className="text-xs text-muted-foreground">Fecha inicio</label>
+            <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground">Fecha salida</label>
+            <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+          </div>
+          <Input placeholder="WhatsApp (opcional)" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} />
+        </div>
+        <Button onClick={submit} disabled={!name || !startDate || !endDate || submitting} className="bg-accent text-accent-foreground hover:bg-accent/90">
+          {submitting ? "Creando…" : "Crear voluntario"}
+        </Button>
+      </div>
+
+      <InviteDialog invite={invite} onClose={() => setInvite(null)} />
+    </>
+  );
+}
+
+function InviteDialog({ invite, onClose }: { invite: { url: string; name: string; whatsapp: string } | null; onClose: () => void }) {
+  const copy = () => {
+    if (!invite) return;
+    navigator.clipboard.writeText(invite.url);
+    toast.success("Link copiado");
+  };
+  const openWhatsapp = () => {
+    if (!invite) return;
+    const phone = invite.whatsapp.replace(/[^\d]/g, "");
+    const text = encodeURIComponent(`Hola ${invite.name}! Únete a la app de Torridonia: ${invite.url}`);
+    window.open(`https://wa.me/${phone}?text=${text}`, "_blank");
+  };
+  return (
+    <Dialog open={!!invite} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Invitación creada</DialogTitle>
+          <DialogDescription>Comparte este link con {invite?.name}</DialogDescription>
+        </DialogHeader>
+        {invite && (
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              <Input readOnly value={invite.url} className="font-mono text-xs" />
+              <Button type="button" variant="outline" size="icon" onClick={copy}><Copy className="h-4 w-4" /></Button>
+            </div>
+            <div className="flex justify-center bg-white p-4 rounded-xl border">
+              <QRCodeSVG value={invite.url} size={180} />
+            </div>
+            {invite.whatsapp && (
+              <Button onClick={openWhatsapp} className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700 text-white">
+                <MessageCircle className="h-4 w-4" /> Enviar por WhatsApp
+              </Button>
+            )}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// =================== Pending access requests ===================
 
 type AccessRequest = {
   id: string;
@@ -247,21 +486,10 @@ function PendingRequests() {
                 </p>
               </div>
               <div className="flex gap-2 shrink-0">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={busyId === r.id}
-                  onClick={() => reject(r)}
-                  className="gap-1.5"
-                >
+                <Button size="sm" variant="outline" disabled={busyId === r.id} onClick={() => reject(r)} className="gap-1.5">
                   <UserX className="h-3.5 w-3.5" /> Rechazar
                 </Button>
-                <Button
-                  size="sm"
-                  disabled={busyId === r.id}
-                  onClick={() => approve(r)}
-                  className="gap-1.5 bg-accent text-accent-foreground hover:bg-accent/90"
-                >
+                <Button size="sm" disabled={busyId === r.id} onClick={() => approve(r)} className="gap-1.5 bg-accent text-accent-foreground hover:bg-accent/90">
                   <UserCheck className="h-3.5 w-3.5" /> Aprobar
                 </Button>
               </div>
