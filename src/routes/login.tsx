@@ -6,7 +6,7 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mountain } from "lucide-react";
+import { Mountain, QrCode } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/login")({
@@ -67,17 +67,40 @@ function Login() {
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? t("auth.signingIn") : t("auth.signIn")}
           </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={async () => {
+              const { error } = await hostackSupabase.auth.signInWithOAuth({
+                provider: "google",
+                options: { redirectTo: window.location.origin + "/app/dashboard" },
+              });
+              if (error) toast.error(error.message);
+            }}
+          >
+            Continuar con Google
+          </Button>
           <p className="text-center text-sm">
             <Link to="/forgot-password" className="text-accent hover:underline">
               ¿Olvidaste tu contraseña?
             </Link>
           </p>
-          <p className="text-center text-sm text-muted-foreground">
-            {t("auth.newHere")}{" "}
-            <Link to="/signup" className="text-accent font-medium hover:underline">
-              {t("auth.createAcc")}
-            </Link>
-          </p>
+
+          <div className="relative py-2">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t" /></div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-cream-paper px-2 text-muted-foreground">o</span>
+            </div>
+          </div>
+
+          <Link
+            to="/volunteer-access"
+            className="flex items-center justify-center gap-2 w-full rounded-md border-2 border-accent bg-accent/5 hover:bg-accent/10 text-accent font-medium py-3 transition"
+          >
+            <QrCode className="h-5 w-5" />
+            Soy voluntario → Acceder con link o QR
+          </Link>
         </form>
       </div>
     </div>
