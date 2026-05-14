@@ -67,6 +67,11 @@ function Login() {
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? t("auth.signingIn") : t("auth.signIn")}
           </Button>
+          <p className="text-center text-sm">
+            <Link to="/forgot-password" className="text-accent hover:underline">
+              ¿Olvidaste tu contraseña?
+            </Link>
+          </p>
           <p className="text-center text-sm text-muted-foreground">
             {t("auth.newHere")}{" "}
             <Link to="/signup" className="text-accent font-medium hover:underline">
