@@ -21,6 +21,8 @@ function Signup() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const fromQr =
+    typeof window !== "undefined" && new URLSearchParams(window.location.search).get("source") === "qr";
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
