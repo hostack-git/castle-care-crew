@@ -100,7 +100,11 @@ function Signup() {
           <form onSubmit={onSubmit} className="w-full max-w-sm space-y-6">
             <div>
               <h1 className="font-display text-3xl font-semibold">{t("auth.createTitle")}</h1>
-              <p className="mt-1 text-sm text-muted-foreground">{t("auth.createSub")}</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {fromQr
+                  ? "Escanéaste el QR de Torridonia — completa tu registro para acceder a la app del equipo 🏡"
+                  : t("auth.createSub")}
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="name">{t("auth.fullName")}</Label>
