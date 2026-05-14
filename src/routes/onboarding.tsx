@@ -1,185 +1,134 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState, type FormEvent } from "react";
-import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
-import { hostackSupabase } from "@/integrations/hostack/client";
+import { useEffect, useState } from "react";
+import { hostackSupabase, TORRIDONIA_PROPERTY_ID } from "@/integrations/hostack/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar, BookOpen, Megaphone, ArrowRight, Sparkles } from "lucide-react";
 
-import { toast } from "sonner";
-import { Upload, CheckCircle2, Mountain } from "lucide-react";
+export const Route = createFileRoute("/onboarding")({ component: Onboarding });
 
-const APP_LANGUAGES = [
-  { code: "en", label: "English", flag: "🇬🇧" },
-  { code: "es", label: "Español", flag: "🇪🇸" },
-  { code: "pt", label: "Português", flag: "🇵🇹" },
-] as const;
-type AppLang = (typeof APP_LANGUAGES)[number]["code"];
-
-export const Route = createFileRoute("/onboarding")({
-  component: Onboarding,
-});
+type Playbook = {
+  id: string;
+  title: string | null;
+  description: string | null;
+  category: string | null;
+  icon: string | null;
+};
 
 function Onboarding() {
-  const { user, profile, refreshProfile, loading } = useAuth();
   const navigate = useNavigate();
-  const [fullName, setFullName] = useState("");
-  const [nationality, setNationality] = useState("");
-  const [language, setLanguage] = useState<AppLang>("en");
-  const [phone, setPhone] = useState("");
-  const [passportNumber, setPassportNumber] = useState("");
-  const [passportFile, setPassportFile] = useState<File | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [step, setStep] = useState(1);
+  const [playbooks, setPlaybooks] = useState<Playbook[]>([]);
 
   useEffect(() => {
-    if (!loading && !user) navigate({ to: "/login" });
-    if (profile) {
-      setFullName(profile.full_name ?? "");
-      setNationality(profile.nationality ?? "");
-      const pref = (profile as unknown as { preferred_language?: AppLang }).preferred_language;
-      setLanguage(pref ?? (["en", "es", "pt"].includes(profile.language) ? (profile.language as AppLang) : "en"));
-      setPhone(profile.phone ?? "");
-      setPassportNumber(profile.passport_number ?? "");
-    }
-  }, [loading, user, profile, navigate]);
-
-  const onSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-    setSubmitting(true);
-    try {
-      let passportUrl = profile?.passport_url ?? null;
-      if (passportFile) {
-        const ext = passportFile.name.split(".").pop() || "jpg";
-        const path = `${user.id}/passport-${Date.now()}.${ext}`;
-        const { error: upErr } = await supabase.storage
-          .from("passports")
-          .upload(path, passportFile, { upsert: true });
-        if (upErr) throw upErr;
-        passportUrl = path;
-      }
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          full_name: fullName,
-          nationality,
-          language,
-          phone,
-          passport_number: passportNumber,
-          passport_url: passportUrl,
-          onboarded: true,
-        })
-        .eq("id", user.id);
-      if (error) throw error;
-      // Persistir idioma preferido en Hostack staff
-      await hostackSupabase
-        .from("staff")
-        .update({ preferred_language: language })
-        .eq("auth_user_id", user.id);
-      await refreshProfile();
-      toast.success("Profile complete — welcome to the team!");
+    if (typeof window !== "undefined" && localStorage.getItem("onboarding_done") === "true") {
       navigate({ to: "/app/dashboard" });
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Something went wrong";
-      toast.error(msg);
-    } finally {
-      setSubmitting(false);
     }
+  }, [navigate]);
+
+  useEffect(() => {
+    hostackSupabase
+      .from("playbooks")
+      .select("id, title, description, category, icon")
+      .eq("property_id", TORRIDONIA_PROPERTY_ID)
+      .limit(5)
+      .then(({ data }) => setPlaybooks((data as Playbook[]) ?? []));
+  }, []);
+
+  const finish = () => {
+    localStorage.setItem("onboarding_done", "true");
+    navigate({ to: "/app/dashboard" });
   };
 
+  const progress = (step / 3) * 100;
+
   return (
-    <div className="min-h-screen bg-cream-paper py-12 px-4">
-      <div className="mx-auto max-w-2xl">
-        <div className="mb-8 flex items-center gap-2 text-primary">
-          <Mountain className="h-6 w-6" />
-          <span className="font-display text-xl font-semibold">Torridon</span>
+    <div className="min-h-screen bg-background flex items-center justify-center p-6">
+      <div className="w-full max-w-2xl space-y-6">
+        <div>
+          <div className="flex justify-between text-xs text-muted-foreground mb-2">
+            <span>Paso {step} de 3</span>
+            <span>{Math.round(progress)}%</span>
+          </div>
+          <div className="h-2 bg-secondary rounded-full overflow-hidden">
+            <div className="h-full bg-accent transition-all duration-300" style={{ width: `${progress}%` }} />
+          </div>
         </div>
 
-        <div className="rounded-2xl bg-card p-8 shadow-soft border">
-          <h1 className="font-display text-3xl font-semibold">A few details</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Felix needs your passport on file and your contact info for emergencies.
-          </p>
-
-          <form onSubmit={onSubmit} className="mt-8 space-y-6">
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Full name</Label>
-                <Input id="fullName" required value={fullName} onChange={(e) => setFullName(e.target.value)} />
+        <div className="rounded-2xl border bg-card p-8 shadow-soft space-y-6">
+          {step === 1 && (
+            <div className="space-y-5">
+              <div>
+                <h1 className="font-display text-3xl font-semibold">¡Bienvenido/a a Torridonia! 🏡</h1>
+                <p className="text-muted-foreground mt-2">Estas son las primeras guías para conocer el lugar.</p>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="nationality">Nationality</Label>
-                <Input id="nationality" required value={nationality} onChange={(e) => setNationality(e.target.value)} placeholder="Brazilian, German…" />
+              <div className="grid sm:grid-cols-2 gap-3">
+                {playbooks.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No hay guías disponibles aún.</p>
+                ) : (
+                  playbooks.map((p) => (
+                    <div key={p.id} className="rounded-xl border bg-secondary/30 p-4">
+                      <div className="text-2xl mb-2">{p.icon ?? "📘"}</div>
+                      <p className="font-medium text-sm">{p.title ?? "—"}</p>
+                      {p.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{p.description}</p>}
+                    </div>
+                  ))
+                )}
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone (with country code)</Label>
-                <Input id="phone" required value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+44 …" />
-              </div>
-              <div className="space-y-2">
-                <Label>Preferred language</Label>
-                <Select
-                  value={language}
-                  onValueChange={async (v) => {
-                    const next = v as AppLang;
-                    setLanguage(next);
-                    if (user) {
-                      await hostackSupabase
-                        .from("staff")
-                        .update({ preferred_language: next })
-                        .eq("auth_user_id", user.id);
-                      await refreshProfile();
-                    }
-                  }}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {APP_LANGUAGES.map((l) => (
-                      <SelectItem key={l.code} value={l.code}>
-                        {l.flag} {l.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="passport">Passport number</Label>
-                <Input id="passport" required value={passportNumber} onChange={(e) => setPassportNumber(e.target.value)} />
+              <div className="flex justify-end">
+                <Button onClick={() => setStep(2)} className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90">
+                  Siguiente <ArrowRight className="h-4 w-4" />
+                </Button>
               </div>
             </div>
+          )}
 
-            <div className="space-y-2">
-              <Label>Passport photo</Label>
-              <label className="flex items-center justify-between gap-4 rounded-xl border border-dashed bg-secondary/40 px-4 py-6 cursor-pointer hover:bg-secondary transition">
-                <div className="flex items-center gap-3">
-                  {passportFile || profile?.passport_url ? (
-                    <CheckCircle2 className="h-5 w-5 text-primary" />
-                  ) : (
-                    <Upload className="h-5 w-5 text-muted-foreground" />
-                  )}
-                  <div>
-                    <p className="text-sm font-medium">
-                      {passportFile?.name ?? (profile?.passport_url ? "Passport on file" : "Upload a clear photo")}
-                    </p>
-                    <p className="text-xs text-muted-foreground">JPG or PNG · only Felix &amp; admins can see it</p>
-                  </div>
-                </div>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => setPassportFile(e.target.files?.[0] ?? null)}
-                />
-                <span className="text-sm font-medium text-accent">Choose file</span>
-              </label>
+          {step === 2 && (
+            <div className="space-y-5">
+              <div>
+                <h2 className="font-display text-2xl font-semibold">Cómo usar la app</h2>
+                <p className="text-muted-foreground mt-2">Tres lugares clave en tu día a día.</p>
+              </div>
+              <div className="grid gap-3">
+                <InfoCard icon={<Calendar className="h-5 w-5" />} emoji="📅" title="Turnos" text="Consulta tu turno del día en el Dashboard" />
+                <InfoCard icon={<BookOpen className="h-5 w-5" />} emoji="📖" title="Guías" text="Accede a los SOPs de cada área en Guidebook" />
+                <InfoCard icon={<Megaphone className="h-5 w-5" />} emoji="📣" title="Eventos" text="Ve el calendario del equipo en Calendar" />
+              </div>
+              <div className="flex justify-between">
+                <Button variant="ghost" onClick={() => setStep(1)}>Atrás</Button>
+                <Button onClick={() => setStep(3)} className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90">
+                  Siguiente <ArrowRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
+          )}
 
-            <Button type="submit" disabled={submitting} className="w-full bg-accent text-accent-foreground hover:bg-accent/90 shadow-warm">
-              {submitting ? "Saving…" : "Save and continue"}
-            </Button>
-          </form>
+          {step === 3 && (
+            <div className="space-y-6 text-center py-6">
+              <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-accent/15 text-accent mx-auto">
+                <Sparkles className="h-8 w-8" />
+              </div>
+              <div>
+                <h2 className="font-display text-3xl font-semibold">Ya estás dentro 🎉</h2>
+                <p className="text-muted-foreground mt-2">Bienvenido/a al equipo de Torridonia.</p>
+              </div>
+              <Button onClick={finish} size="lg" className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90">
+                Ver mi turno de hoy <ArrowRight className="h-5 w-5" />
+              </Button>
+            </div>
+          )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function InfoCard({ icon, emoji, title, text }: { icon: React.ReactNode; emoji: string; title: string; text: string }) {
+  return (
+    <div className="rounded-xl border bg-secondary/30 p-4 flex items-start gap-3">
+      <div className="text-2xl">{emoji}</div>
+      <div className="flex-1">
+        <p className="font-medium flex items-center gap-2">{icon} {title}</p>
+        <p className="text-sm text-muted-foreground mt-0.5">{text}</p>
       </div>
     </div>
   );

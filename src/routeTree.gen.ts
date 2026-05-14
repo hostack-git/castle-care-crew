@@ -16,6 +16,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as AppRoomsRouteImport } from './routes/app.rooms'
 import { Route as AppGuidebookRouteImport } from './routes/app.guidebook'
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
@@ -64,6 +65,11 @@ const AppRoute = AppRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InviteTokenRoute = InviteTokenRouteImport.update({
+  id: '/invite/$token',
+  path: '/invite/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppRoomsRoute = AppRoomsRouteImport.update({
@@ -154,6 +160,7 @@ export interface FileRoutesByFullPath {
   '/app/dashboard': typeof AppDashboardRoute
   '/app/guidebook': typeof AppGuidebookRouteWithChildren
   '/app/rooms': typeof AppRoomsRoute
+  '/invite/$token': typeof InviteTokenRoute
   '/app/admin/rota': typeof AppAdminRotaRoute
   '/app/admin/stats': typeof AppAdminStatsRoute
   '/app/admin/templates': typeof AppAdminTemplatesRoute
@@ -177,6 +184,7 @@ export interface FileRoutesByTo {
   '/app/dashboard': typeof AppDashboardRoute
   '/app/guidebook': typeof AppGuidebookRouteWithChildren
   '/app/rooms': typeof AppRoomsRoute
+  '/invite/$token': typeof InviteTokenRoute
   '/app/admin/rota': typeof AppAdminRotaRoute
   '/app/admin/stats': typeof AppAdminStatsRoute
   '/app/admin/templates': typeof AppAdminTemplatesRoute
@@ -201,6 +209,7 @@ export interface FileRoutesById {
   '/app/dashboard': typeof AppDashboardRoute
   '/app/guidebook': typeof AppGuidebookRouteWithChildren
   '/app/rooms': typeof AppRoomsRoute
+  '/invite/$token': typeof InviteTokenRoute
   '/app/admin/rota': typeof AppAdminRotaRoute
   '/app/admin/stats': typeof AppAdminStatsRoute
   '/app/admin/templates': typeof AppAdminTemplatesRoute
@@ -226,6 +235,7 @@ export interface FileRouteTypes {
     | '/app/dashboard'
     | '/app/guidebook'
     | '/app/rooms'
+    | '/invite/$token'
     | '/app/admin/rota'
     | '/app/admin/stats'
     | '/app/admin/templates'
@@ -249,6 +259,7 @@ export interface FileRouteTypes {
     | '/app/dashboard'
     | '/app/guidebook'
     | '/app/rooms'
+    | '/invite/$token'
     | '/app/admin/rota'
     | '/app/admin/stats'
     | '/app/admin/templates'
@@ -272,6 +283,7 @@ export interface FileRouteTypes {
     | '/app/dashboard'
     | '/app/guidebook'
     | '/app/rooms'
+    | '/invite/$token'
     | '/app/admin/rota'
     | '/app/admin/stats'
     | '/app/admin/templates'
@@ -287,6 +299,7 @@ export interface RootRouteChildren {
   OnboardingRoute: typeof OnboardingRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
+  InviteTokenRoute: typeof InviteTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -338,6 +351,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invite/$token': {
+      id: '/invite/$token'
+      path: '/invite/$token'
+      fullPath: '/invite/$token'
+      preLoaderRoute: typeof InviteTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app/rooms': {
@@ -505,6 +525,7 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingRoute: OnboardingRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
+  InviteTokenRoute: InviteTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
