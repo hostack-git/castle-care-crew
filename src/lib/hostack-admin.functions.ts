@@ -87,7 +87,7 @@ export const getUserAccess = createServerFn({ method: "POST" })
     return { profile, isAdmin, isRoomManager, error: null };
   });
 
-export type HostackPlaybook = {
+type HostackPlaybook = {
   id: string;
   title: string;
   category: string | null;
