@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { hostackSupabase, TORRIDONIA_PROPERTY_ID } from "@/integrations/hostack/client";
+import { getPublishedPlaybooks } from "@/lib/hostack-admin.functions";
 import { Button } from "@/components/ui/button";
 import { Calendar, BookOpen, Megaphone, ArrowRight, Sparkles } from "lucide-react";
 
@@ -11,11 +12,11 @@ type Playbook = {
   title: string | null;
   description: string | null;
   category: string | null;
-  icon: string | null;
 };
 
 function Onboarding() {
   const navigate = useNavigate();
+  const loadPlaybooks = useServerFn(getPublishedPlaybooks);
   const [step, setStep] = useState(1);
   const [playbooks, setPlaybooks] = useState<Playbook[]>([]);
 
@@ -26,13 +27,19 @@ function Onboarding() {
   }, [navigate]);
 
   useEffect(() => {
-    hostackSupabase
-      .from("playbooks")
-      .select("id, title, description, category, icon")
-      .eq("property_id", TORRIDONIA_PROPERTY_ID)
-      .limit(5)
-      .then(({ data }) => setPlaybooks((data as Playbook[]) ?? []));
-  }, []);
+    let mounted = true;
+    loadPlaybooks()
+      .then(({ playbooks }) => {
+        if (mounted) setPlaybooks(((playbooks as Playbook[]) ?? []).slice(0, 5));
+      })
+      .catch((error) => {
+        console.error("Failed to load onboarding SOPs", error);
+        if (mounted) setPlaybooks([]);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [loadPlaybooks]);
 
   const finish = () => {
     localStorage.setItem("onboarding_done", "true");
@@ -67,7 +74,7 @@ function Onboarding() {
                 ) : (
                   playbooks.map((p) => (
                     <div key={p.id} className="rounded-xl border bg-secondary/30 p-4">
-                      <div className="text-2xl mb-2">{p.icon ?? "📘"}</div>
+                      <div className="text-2xl mb-2">{categoryIcon(p.category)}</div>
                       <p className="font-medium text-sm">{p.title ?? "—"}</p>
                       {p.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{p.description}</p>}
                     </div>
