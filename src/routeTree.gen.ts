@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VolunteerAccessRouteImport } from './routes/volunteer-access'
+import { Route as SopsRouteImport } from './routes/sops'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
@@ -17,6 +18,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SopsSopSlugRouteImport } from './routes/sops.$sopSlug'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as AppRoomsRouteImport } from './routes/app.rooms'
 import { Route as AppGuidebookRouteImport } from './routes/app.guidebook'
@@ -36,6 +38,11 @@ import { Route as AppGuidebookSopSopIdRouteImport } from './routes/app.guidebook
 const VolunteerAccessRoute = VolunteerAccessRouteImport.update({
   id: '/volunteer-access',
   path: '/volunteer-access',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SopsRoute = SopsRouteImport.update({
+  id: '/sops',
+  path: '/sops',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SignupRoute = SignupRouteImport.update({
@@ -72,6 +79,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const SopsSopSlugRoute = SopsSopSlugRouteImport.update({
+  id: '/$sopSlug',
+  path: '/$sopSlug',
+  getParentRoute: () => SopsRoute,
 } as any)
 const InviteTokenRoute = InviteTokenRouteImport.update({
   id: '/invite/$token',
@@ -157,6 +169,7 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof OnboardingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/sops': typeof SopsRouteWithChildren
   '/volunteer-access': typeof VolunteerAccessRoute
   '/app/admin': typeof AppAdminRouteWithChildren
   '/app/adventures': typeof AppAdventuresRoute
@@ -168,6 +181,7 @@ export interface FileRoutesByFullPath {
   '/app/guidebook': typeof AppGuidebookRouteWithChildren
   '/app/rooms': typeof AppRoomsRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/sops/$sopSlug': typeof SopsSopSlugRoute
   '/app/admin/rota': typeof AppAdminRotaRoute
   '/app/admin/stats': typeof AppAdminStatsRoute
   '/app/admin/templates': typeof AppAdminTemplatesRoute
@@ -182,6 +196,7 @@ export interface FileRoutesByTo {
   '/onboarding': typeof OnboardingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/sops': typeof SopsRouteWithChildren
   '/volunteer-access': typeof VolunteerAccessRoute
   '/app/admin': typeof AppAdminRouteWithChildren
   '/app/adventures': typeof AppAdventuresRoute
@@ -193,6 +208,7 @@ export interface FileRoutesByTo {
   '/app/guidebook': typeof AppGuidebookRouteWithChildren
   '/app/rooms': typeof AppRoomsRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/sops/$sopSlug': typeof SopsSopSlugRoute
   '/app/admin/rota': typeof AppAdminRotaRoute
   '/app/admin/stats': typeof AppAdminStatsRoute
   '/app/admin/templates': typeof AppAdminTemplatesRoute
@@ -208,6 +224,7 @@ export interface FileRoutesById {
   '/onboarding': typeof OnboardingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/sops': typeof SopsRouteWithChildren
   '/volunteer-access': typeof VolunteerAccessRoute
   '/app/admin': typeof AppAdminRouteWithChildren
   '/app/adventures': typeof AppAdventuresRoute
@@ -219,6 +236,7 @@ export interface FileRoutesById {
   '/app/guidebook': typeof AppGuidebookRouteWithChildren
   '/app/rooms': typeof AppRoomsRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/sops/$sopSlug': typeof SopsSopSlugRoute
   '/app/admin/rota': typeof AppAdminRotaRoute
   '/app/admin/stats': typeof AppAdminStatsRoute
   '/app/admin/templates': typeof AppAdminTemplatesRoute
@@ -235,6 +253,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/reset-password'
     | '/signup'
+    | '/sops'
     | '/volunteer-access'
     | '/app/admin'
     | '/app/adventures'
@@ -246,6 +265,7 @@ export interface FileRouteTypes {
     | '/app/guidebook'
     | '/app/rooms'
     | '/invite/$token'
+    | '/sops/$sopSlug'
     | '/app/admin/rota'
     | '/app/admin/stats'
     | '/app/admin/templates'
@@ -260,6 +280,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/reset-password'
     | '/signup'
+    | '/sops'
     | '/volunteer-access'
     | '/app/admin'
     | '/app/adventures'
@@ -271,6 +292,7 @@ export interface FileRouteTypes {
     | '/app/guidebook'
     | '/app/rooms'
     | '/invite/$token'
+    | '/sops/$sopSlug'
     | '/app/admin/rota'
     | '/app/admin/stats'
     | '/app/admin/templates'
@@ -285,6 +307,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/reset-password'
     | '/signup'
+    | '/sops'
     | '/volunteer-access'
     | '/app/admin'
     | '/app/adventures'
@@ -296,6 +319,7 @@ export interface FileRouteTypes {
     | '/app/guidebook'
     | '/app/rooms'
     | '/invite/$token'
+    | '/sops/$sopSlug'
     | '/app/admin/rota'
     | '/app/admin/stats'
     | '/app/admin/templates'
@@ -311,6 +335,7 @@ export interface RootRouteChildren {
   OnboardingRoute: typeof OnboardingRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
+  SopsRoute: typeof SopsRouteWithChildren
   VolunteerAccessRoute: typeof VolunteerAccessRoute
   InviteTokenRoute: typeof InviteTokenRoute
 }
@@ -322,6 +347,13 @@ declare module '@tanstack/react-router' {
       path: '/volunteer-access'
       fullPath: '/volunteer-access'
       preLoaderRoute: typeof VolunteerAccessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sops': {
+      id: '/sops'
+      path: '/sops'
+      fullPath: '/sops'
+      preLoaderRoute: typeof SopsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/signup': {
@@ -372,6 +404,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/sops/$sopSlug': {
+      id: '/sops/$sopSlug'
+      path: '/$sopSlug'
+      fullPath: '/sops/$sopSlug'
+      preLoaderRoute: typeof SopsSopSlugRouteImport
+      parentRoute: typeof SopsRoute
     }
     '/invite/$token': {
       id: '/invite/$token'
@@ -537,6 +576,16 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface SopsRouteChildren {
+  SopsSopSlugRoute: typeof SopsSopSlugRoute
+}
+
+const SopsRouteChildren: SopsRouteChildren = {
+  SopsSopSlugRoute: SopsSopSlugRoute,
+}
+
+const SopsRouteWithChildren = SopsRoute._addFileChildren(SopsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
@@ -545,6 +594,7 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingRoute: OnboardingRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
+  SopsRoute: SopsRouteWithChildren,
   VolunteerAccessRoute: VolunteerAccessRoute,
   InviteTokenRoute: InviteTokenRoute,
 }
