@@ -1,20 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import ReactMarkdown from "react-markdown";
 import { hostackSupabase, TORRIDONIA_PROPERTY_ID } from "@/integrations/hostack/client";
 import { useI18n } from "@/lib/i18n";
 import { Input } from "@/components/ui/input";
-import { Search, Coffee, Home, Wrench, Shirt, Utensils, Sparkles, BookOpen, ExternalLink } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Search, BookOpen, ExternalLink } from "lucide-react";
 
 export const Route = createFileRoute("/app/guidebook")({ component: GuidebookPage });
 
-const ICON_MAP: Record<string, typeof Coffee> = {
-  breakfast: Coffee,
-  housekeeping: Sparkles,
-  cottages: Home,
-  laundry: Shirt,
-  dinner: Utensils,
-  maintenance: Wrench,
-  general: BookOpen,
+const CATEGORY_ICON: Record<string, string> = {
+  housekeeping: "🧹",
+  "kitchen operations": "🍳",
+  "safety & maintenance": "⚠️",
+  maintenance: "🔧",
+  general: "📋",
+  laundry: "👕",
+  cottages: "🏡",
 };
 
 type Playbook = {
@@ -22,7 +24,10 @@ type Playbook = {
   title: string;
   category: string | null;
   description: string | null;
-  external_url: string | null;
+  content_type: string | null;
+  content_text: string | null;
+  file_url: string | null;
+  order_index: number | null;
 };
 
 function GuidebookPage() {
@@ -30,15 +35,15 @@ function GuidebookPage() {
   const [playbooks, setPlaybooks] = useState<Playbook[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
+  const [active, setActive] = useState<Playbook | null>(null);
 
   useEffect(() => {
     hostackSupabase
       .from("playbooks")
-      .select("id, title, category, description, external_url")
+      .select("id, title, category, description, content_type, content_text, file_url, order_index")
       .eq("property_id", TORRIDONIA_PROPERTY_ID)
       .eq("is_archived", false)
-      .order("category")
-      .order("order_index")
+      .order("order_index", { ascending: true })
       .then(({ data }) => {
         setPlaybooks((data as Playbook[]) ?? []);
         setLoading(false);
@@ -54,6 +59,14 @@ function GuidebookPage() {
       (p.category ?? "").toLowerCase().includes(needle)
     );
   });
+
+  const handleClick = (p: Playbook) => {
+    if (p.file_url) {
+      window.open(p.file_url, "_blank");
+    } else if (p.content_text) {
+      setActive(p);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -81,27 +94,27 @@ function GuidebookPage() {
         <div className="grid sm:grid-cols-2 gap-3">
           {filtered.map((p) => {
             const key = (p.category ?? "").toLowerCase();
-            const Icon = ICON_MAP[key] ?? Sparkles;
-            const hasUrl = Boolean(p.external_url);
+            const icon = CATEGORY_ICON[key] ?? "📋";
             return (
               <button
                 key={p.id}
                 type="button"
-                onClick={() => {
-                  if (p.external_url) window.open(p.external_url, "_blank");
-                }}
+                onClick={() => handleClick(p)}
                 className="group flex items-start gap-3 rounded-2xl border bg-card p-4 shadow-soft hover:border-primary/40 hover:bg-secondary/30 transition text-left w-full"
               >
-                <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary grid place-items-center shrink-0">
-                  <Icon className="h-5 w-5" />
+                <div className="h-10 w-10 rounded-xl bg-primary/10 grid place-items-center shrink-0 text-xl">
+                  {icon}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="font-medium truncate">{p.title}</p>
-                    {hasUrl && <ExternalLink className="h-3 w-3 text-muted-foreground shrink-0" />}
+                    {p.file_url && <ExternalLink className="h-3 w-3 text-muted-foreground shrink-0" />}
                   </div>
+                  {p.category && (
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground mt-0.5">{p.category}</p>
+                  )}
                   {p.description && (
-                    <p className="text-xs text-muted-foreground mt-1 line-clamp-3">{p.description}</p>
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{p.description}</p>
                   )}
                 </div>
               </button>
@@ -109,6 +122,27 @@ function GuidebookPage() {
           })}
         </div>
       )}
+
+      <Sheet open={!!active} onOpenChange={(o) => !o && setActive(null)}>
+        <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
+          {active && (
+            <>
+              <SheetHeader>
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">{CATEGORY_ICON[(active.category ?? "").toLowerCase()] ?? "📋"}</span>
+                  <SheetTitle>{active.title}</SheetTitle>
+                </div>
+                {active.category && (
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">{active.category}</p>
+                )}
+              </SheetHeader>
+              <div className="prose prose-sm dark:prose-invert max-w-none mt-6">
+                <ReactMarkdown>{active.content_text ?? ""}</ReactMarkdown>
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
