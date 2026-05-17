@@ -46,7 +46,10 @@ function VolunteerDashboard() {
 
   const localeMap: Record<string, string> = { en: "en-GB", pt: "pt-BR", es: "es-ES", de: "de-DE", gd: "gd-GB" };
   const locale = localeMap[lang] ?? "en-GB";
-  const name = (user?.user_metadata as { full_name?: string } | undefined)?.full_name || "Voluntario";
+  const name =
+    (user?.user_metadata as { full_name?: string } | undefined)?.full_name ||
+    user?.email?.split("@")[0] ||
+    "Voluntario";
 
   useEffect(() => {
     let cancelled = false;
@@ -214,7 +217,7 @@ function Dashboard() {
           {new Date().toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long" })}
         </p>
         <h1 className="font-display text-4xl font-semibold mt-1">
-          {t("dash.hi")}, {profile?.full_name?.split(" ")[0] || t("dash.friend")} 👋
+          {t("dash.hi")}, {profile?.full_name?.split(" ")[0] || user?.email?.split("@")[0] || t("dash.friend")} 👋
         </h1>
       </header>
 
