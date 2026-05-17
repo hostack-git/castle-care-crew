@@ -3,8 +3,7 @@ import { ChevronLeft } from "lucide-react";
 
 export const Route = createFileRoute("/sops/$sopSlug")({ component: SopFrame });
 
-const COMMIT = "d569416bf9305e5a496644ce194e324c03545185";
-const BASE = `https://raw.githack.com/jorgeibanezhostack/guidebookstorridon/${COMMIT}`;
+const BASE = "https://raw.githubusercontent.com/jorgeibanezhostack/guidebookstorridon/main";
 
 const SOP_FILES: Record<string, string> = {
   breakfast: "breakfast-sop-multilang.html",
