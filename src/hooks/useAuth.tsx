@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { hostackSupabase } from "@/integrations/hostack/client";
+import { getUserAccess } from "@/lib/hostack-admin.functions";
 
 type Profile = {
   id: string;
@@ -55,15 +56,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     setIsVolunteer(false);
-    const uid = currentUser.id;
-    const [{ data: p }, { data: roles }] = await Promise.all([
-      hostackSupabase.from("staff").select("*").eq("auth_user_id", uid).maybeSingle(),
-      hostackSupabase.from("user_roles").select("role").eq("user_id", uid),
-    ]);
-    setProfile((p as Profile) ?? null);
-    const admin = !!roles?.some((r: { role: string }) => r.role === "admin");
-    setIsAdmin(admin);
-    setIsRoomManager(admin || !!roles?.some((r: { role: string }) => r.role === "room_manager"));
+    try {
+      const res = await getUserAccess({ data: { userId: currentUser.id } });
+      setProfile((res.profile as Profile | null) ?? null);
+      setIsAdmin(res.isAdmin);
+      setIsRoomManager(res.isRoomManager);
+    } catch (e) {
+      console.error("getUserAccess failed", e);
+      setProfile(null);
+      setIsAdmin(false);
+      setIsRoomManager(false);
+    }
   };
 
   const refreshProfile = async () => {
