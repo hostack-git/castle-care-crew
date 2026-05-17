@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, type FormEvent } from "react";
 import { hostackSupabase } from "@/integrations/hostack/client";
 import { Button } from "@/components/ui/button";
@@ -17,19 +17,46 @@ function ResetPassword() {
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(false);
+  const [verifyError, setVerifyError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Supabase auto-detecta el token del hash y dispara PASSWORD_RECOVERY
+    let mounted = true;
+
+    const verifyRecoveryLink = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get("code");
+
+      if (code) {
+        const { error } = await hostackSupabase.auth.exchangeCodeForSession(code);
+        if (!mounted) return;
+        if (error) {
+          setVerifyError("El enlace expiró o ya fue usado. Solicita uno nuevo.");
+          return;
+        }
+        window.history.replaceState({}, document.title, window.location.pathname);
+        setReady(true);
+        return;
+      }
+
+      const { data } = await hostackSupabase.auth.getSession();
+      if (!mounted) return;
+      if (data.session) setReady(true);
+      else setVerifyError("Abre esta página desde el enlace de recuperación que recibiste por email.");
+    };
+
     const { data: sub } = hostackSupabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
         setReady(true);
+        setVerifyError(null);
       }
     });
-    // Por si ya hay sesión cargada
-    hostackSupabase.auth.getSession().then(({ data }) => {
-      if (data.session) setReady(true);
-    });
-    return () => sub.subscription.unsubscribe();
+
+    verifyRecoveryLink();
+
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   const onSubmit = async (e: FormEvent) => {
@@ -72,6 +99,16 @@ function ResetPassword() {
               Elige una contraseña segura (mínimo 8 caracteres).
             </p>
           </div>
+          {verifyError && (
+            <div className="rounded-md border bg-muted/40 p-4 text-sm text-muted-foreground space-y-3">
+              {verifyError}
+              <div>
+                <Link to="/forgot-password" className="text-accent font-medium hover:underline">
+                  Pedir otro enlace
+                </Link>
+              </div>
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="password">Nueva contraseña</Label>
             <Input
@@ -95,7 +132,7 @@ function ResetPassword() {
             />
           </div>
           <Button type="submit" className="w-full" disabled={loading || !ready}>
-            {loading ? "Actualizando..." : ready ? "Actualizar contraseña" : "Verificando enlace..."}
+            {loading ? "Actualizando..." : ready ? "Actualizar contraseña" : verifyError ? "Enlace no válido" : "Verificando enlace..."}
           </Button>
         </form>
       </div>
