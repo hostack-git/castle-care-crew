@@ -217,8 +217,10 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
         property_id: TORRIDONIA_PROPERTY_ID,
         name: volunteerName,
         role: roleType,
-        email: null,
+        email: `${volunteerName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}@invite.local`,
+        token: crypto.randomUUID(),
         invited_by: staffId,
+        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       })
       .select("token")
       .single();
@@ -297,13 +299,13 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
                       {v.auth_user_id ? (
                         <Badge className="bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/20">Activo</Badge>
                       ) : (
-                        <Badge variant="secondary">Pendiente</Badge>
+                        <Badge variant="secondary">Sin registrar</Badge>
                       )}
                     </td>
                     <td className="py-2 text-right">
                       {!v.auth_user_id && (
                         <Button size="sm" variant="outline" className="gap-1.5" onClick={() => sendInvite(v)}>
-                          <Send className="h-3.5 w-3.5" /> Enviar invitación
+                          <Send className="h-3.5 w-3.5" /> Invitar
                         </Button>
                       )}
                     </td>
