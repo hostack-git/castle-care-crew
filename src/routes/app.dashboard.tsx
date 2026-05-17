@@ -27,6 +27,105 @@ function pickTemplate(t: Shift["shift_templates"]): ShiftTemplate | null {
   return Array.isArray(t) ? t[0] ?? null : t;
 }
 
+function DashboardRoute() {
+  const { isVolunteer } = useAuth();
+  return isVolunteer ? <VolunteerDashboard /> : <Dashboard />;
+}
+
+type VolShift = {
+  id: string;
+  shift_date: string;
+  shift_templates: ShiftTemplate | ShiftTemplate[] | null;
+};
+
+function VolunteerDashboard() {
+  const { user } = useAuth();
+  const { lang } = useI18n();
+  const [loading, setLoading] = useState(true);
+  const [shifts, setShifts] = useState<VolShift[]>([]);
+
+  const localeMap: Record<string, string> = { en: "en-GB", pt: "pt-BR", es: "es-ES", de: "de-DE", gd: "gd-GB" };
+  const locale = localeMap[lang] ?? "en-GB";
+  const name = (user?.user_metadata as { full_name?: string } | undefined)?.full_name || "Voluntario";
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const now = new Date();
+      const dow = (now.getDay() + 6) % 7; // Mon=0
+      const start = new Date(now); start.setDate(now.getDate() - dow);
+      const end = new Date(start); end.setDate(start.getDate() + 6);
+      const iso = (d: Date) => d.toISOString().split("T")[0];
+      const { data } = await hostackSupabase
+        .from("shifts")
+        .select("id, shift_date, shift_templates(name, start_time, end_time)")
+        .eq("property_id", TORRIDONIA_PROPERTY_ID)
+        .gte("shift_date", iso(start))
+        .lte("shift_date", iso(end))
+        .order("shift_date", { ascending: true });
+      if (!cancelled) {
+        setShifts((data as VolShift[]) ?? []);
+        setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const fmtTime = (v: string | null) => (v ? v.slice(0, 5) : "");
+
+  return (
+    <div className="space-y-8">
+      <header>
+        <p className="text-sm text-muted-foreground">
+          {new Date().toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long" })}
+        </p>
+        <h1 className="font-display text-4xl font-semibold mt-1">Hola, {name}! 👋</h1>
+      </header>
+
+      <section>
+        <h2 className="font-display text-xl font-semibold mb-4 flex items-center gap-2">
+          <Calendar className="h-4 w-4 text-accent" /> Turnos de esta semana
+        </h2>
+        {loading ? (
+          <div className="h-24 rounded-2xl bg-secondary/40 animate-pulse" />
+        ) : shifts.length === 0 ? (
+          <div className="rounded-2xl border border-dashed bg-secondary/30 p-8 text-center text-muted-foreground text-sm">
+            Aún no tienes turnos asignados esta semana. Consulta con tu manager.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {shifts.map((s) => {
+              const tpl = pickTemplate(s.shift_templates);
+              const d = new Date(s.shift_date);
+              return (
+                <div key={s.id} className="rounded-2xl border bg-card p-4 shadow-soft flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">{d.toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "short" })}</p>
+                    <p className="text-sm text-muted-foreground">{tpl?.name ?? "Shift"}</p>
+                  </div>
+                  {(tpl?.start_time || tpl?.end_time) && (
+                    <span className="text-sm text-muted-foreground flex items-center gap-1.5">
+                      <Clock className="h-3.5 w-3.5" />
+                      {fmtTime(tpl?.start_time ?? null)}{tpl?.end_time ? ` – ${fmtTime(tpl.end_time)}` : ""}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      <Link
+        to="/app/guidebook"
+        className="flex items-center justify-center gap-2 rounded-2xl bg-primary text-primary-foreground py-4 font-medium shadow-soft hover:opacity-90 transition"
+      >
+        <BookOpen className="h-5 w-5" /> Ver guías de trabajo
+      </Link>
+    </div>
+  );
+}
+
 function Dashboard() {
   const { user, profile } = useAuth();
   const { t, lang } = useI18n();
