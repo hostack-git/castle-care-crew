@@ -20,8 +20,8 @@ function AppLayout() {
     if (loading) return;
     if (!user) navigate({ to: "/login" });
     else if (!isVolunteer && profile && !profile.onboarded) navigate({ to: "/onboarding" });
-    // Block admin route for volunteers
-    if (!loading && isVolunteer && loc.pathname.startsWith("/app/admin")) {
+    // Block admin/rooms routes for volunteers
+    if (!loading && isVolunteer && (loc.pathname.startsWith("/app/admin") || loc.pathname.startsWith("/app/rooms"))) {
       navigate({ to: "/app/dashboard" });
     }
   }, [loading, user, profile, isVolunteer, loc.pathname, navigate]);
