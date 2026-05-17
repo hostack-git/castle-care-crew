@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, type FormEvent } from "react";
 import { hostackSupabase } from "@/integrations/hostack/client";
 import { Button } from "@/components/ui/button";
@@ -100,8 +100,13 @@ function ResetPassword() {
             </p>
           </div>
           {verifyError && (
-            <div className="rounded-md border bg-muted/40 p-4 text-sm text-muted-foreground">
+            <div className="rounded-md border bg-muted/40 p-4 text-sm text-muted-foreground space-y-3">
               {verifyError}
+              <div>
+                <Link to="/forgot-password" className="text-accent font-medium hover:underline">
+                  Pedir otro enlace
+                </Link>
+              </div>
             </div>
           )}
           <div className="space-y-2">
@@ -127,7 +132,7 @@ function ResetPassword() {
             />
           </div>
           <Button type="submit" className="w-full" disabled={loading || !ready}>
-            {loading ? "Actualizando..." : ready ? "Actualizar contraseña" : "Verificando enlace..."}
+            {loading ? "Actualizando..." : ready ? "Actualizar contraseña" : verifyError ? "Enlace no válido" : "Verificando enlace..."}
           </Button>
         </form>
       </div>
