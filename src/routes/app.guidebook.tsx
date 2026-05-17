@@ -48,18 +48,7 @@ function GuidebookPage() {
       });
   }, []);
 
-  const resolveUrl = (p: Playbook): string | null => {
-    if (p.external_url) return p.external_url;
-    const key = (p.category ?? "").toLowerCase();
-    return URL_MAP[key] ?? null;
-  };
-
   const filtered = playbooks.filter((p) => {
-    const key = (p.category ?? "").toLowerCase();
-    const url = resolveUrl(p);
-    // Solo SOPs externos: con external_url o categoría permitida que tenga URL_MAP
-    if (!url && !ALLOWED_CATEGORIES.includes(key)) return false;
-    if (!url) return false;
     if (!q) return true;
     const needle = q.toLowerCase();
     return (
@@ -96,13 +85,15 @@ function GuidebookPage() {
           {filtered.map((p) => {
             const key = (p.category ?? "").toLowerCase();
             const Icon = ICON_MAP[key] ?? Sparkles;
-            const url = resolveUrl(p)!;
+            const hasUrl = Boolean(p.external_url);
             return (
               <button
                 key={p.id}
                 type="button"
-                onClick={() => window.open(`${url}?lang=${lang}`, "_blank")}
-                className="group flex items-center gap-3 rounded-2xl border bg-card p-4 shadow-soft hover:border-primary/40 hover:bg-secondary/30 transition text-left w-full"
+                onClick={() => {
+                  if (p.external_url) window.open(p.external_url, "_blank");
+                }}
+                className="group flex items-start gap-3 rounded-2xl border bg-card p-4 shadow-soft hover:border-primary/40 hover:bg-secondary/30 transition text-left w-full"
               >
                 <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary grid place-items-center shrink-0">
                   <Icon className="h-5 w-5" />
@@ -110,13 +101,12 @@ function GuidebookPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="font-medium truncate">{p.title}</p>
-                    <ExternalLink className="h-3 w-3 text-muted-foreground shrink-0" />
+                    {hasUrl && <ExternalLink className="h-3 w-3 text-muted-foreground shrink-0" />}
                   </div>
                   {p.description && (
-                    <p className="text-xs text-muted-foreground truncate">{p.description}</p>
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-3">{p.description}</p>
                   )}
                 </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
               </button>
             );
           })}
