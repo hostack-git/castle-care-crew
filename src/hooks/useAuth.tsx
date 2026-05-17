@@ -59,8 +59,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(s);
       setUser(s?.user ?? null);
       if (s?.user) {
-        // defer profile load to avoid deadlocks
-        setTimeout(() => loadProfile(s.user.id), 0);
+        // Anonymous volunteer: skip staff/role queries (RLS blocks them)
+        if (!s.user.email) {
+          setProfile(null);
+          setIsAdmin(false);
+          setIsRoomManager(false);
+        } else {
+          // defer profile load to avoid deadlocks
+          setTimeout(() => loadProfile(s.user.id), 0);
+        }
       } else {
         setProfile(null);
         setIsAdmin(false);
@@ -71,8 +78,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     hostackSupabase.auth.getSession().then(({ data: { session: s } }: { data: { session: Session | null } }) => {
       setSession(s);
       setUser(s?.user ?? null);
-      if (s?.user) loadProfile(s.user.id).finally(() => setLoading(false));
-      else setLoading(false);
+      if (s?.user) {
+        if (!s.user.email) {
+          setProfile(null);
+          setIsAdmin(false);
+          setIsRoomManager(false);
+          setLoading(false);
+        } else {
+          loadProfile(s.user.id).finally(() => setLoading(false));
+        }
+      } else setLoading(false);
     });
 
     return () => sub.subscription.unsubscribe();
