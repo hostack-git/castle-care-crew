@@ -1,12 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
 import { hostackSupabase, TORRIDONIA_PROPERTY_ID } from "@/integrations/hostack/client";
-import { Calendar, Clock, CheckCircle2, Circle } from "lucide-react";
+import { Calendar, Clock, CheckCircle2, Circle, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/app/dashboard")({ component: Dashboard });
+export const Route = createFileRoute("/app/dashboard")({ component: DashboardRoute });
 
 type ShiftTemplate = { name: string | null; start_time: string | null; end_time: string | null };
 type Shift = {
