@@ -86,3 +86,26 @@ export const getUserAccess = createServerFn({ method: "POST" })
 
     return { profile, isAdmin, isRoomManager, error: null };
   });
+
+export type HostackPlaybook = {
+  id: string;
+  title: string;
+  category: string | null;
+  description: string | null;
+  content_type: string | null;
+  content_text: string | null;
+  file_url: string | null;
+  order_index: number | null;
+};
+
+export const getPublishedPlaybooks = createServerFn({ method: "GET" }).handler(async () => {
+  const { data, error } = await getAdminClient()
+    .from("playbooks")
+    .select("id, title, category, description, content_type, content_text, file_url, order_index")
+    .eq("property_id", TORRIDONIA_PROPERTY_ID)
+    .eq("is_archived", false)
+    .order("order_index", { ascending: true });
+
+  if (error) return { playbooks: [] as HostackPlaybook[], error: error.message };
+  return { playbooks: (data as HostackPlaybook[]) ?? [], error: null };
+});
