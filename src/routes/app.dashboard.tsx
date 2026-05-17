@@ -90,7 +90,7 @@ function VolunteerDashboard() {
           <div className="h-24 rounded-2xl bg-secondary/40 animate-pulse" />
         ) : shifts.length === 0 ? (
           <div className="rounded-2xl border border-dashed bg-secondary/30 p-8 text-center text-muted-foreground text-sm">
-            Aún no tienes turnos asignados esta semana. Consulta con tu manager.
+            Aún no tienes turnos asignados. Consulta con tu manager.
           </div>
         ) : (
           <div className="space-y-2">
