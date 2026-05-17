@@ -217,8 +217,10 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
         property_id: TORRIDONIA_PROPERTY_ID,
         name: volunteerName,
         role: roleType,
-        email: null,
+        email: `${volunteerName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}@invite.local`,
+        token: crypto.randomUUID(),
         invited_by: staffId,
+        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       })
       .select("token")
       .single();
