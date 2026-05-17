@@ -36,19 +36,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isRoomManager, setIsRoomManager] = useState(false);
+  const [isVolunteer, setIsVolunteer] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const loadProfile = async (uid: string) => {
-    const { data: { user: currentUser } } = await hostackSupabase.auth.getUser();
-    if (currentUser?.email === null) {
-      setUser(currentUser);
-      setProfile(null);
-      setIsAdmin(false);
-      setIsRoomManager(false);
-      setLoading(false);
+  const applyAnonymousVolunteer = (currentUser: User) => {
+    setUser(currentUser);
+    setIsVolunteer(true);
+    setProfile(null);
+    setIsAdmin(false);
+    setIsRoomManager(false);
+    setLoading(false);
+  };
+
+  const loadProfile = async (currentUser: User) => {
+    if (currentUser.email === null || !currentUser.email) {
+      applyAnonymousVolunteer(currentUser);
       return;
     }
 
+    setIsVolunteer(false);
+    const uid = currentUser.id;
     const [{ data: p }, { data: roles }] = await Promise.all([
       hostackSupabase.from("staff").select("*").eq("auth_user_id", uid).maybeSingle(),
       hostackSupabase.from("user_roles").select("role").eq("user_id", uid),
@@ -60,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const refreshProfile = async () => {
-    if (user) await loadProfile(user.id);
+    if (user) await loadProfile(user);
   };
 
   useEffect(() => {
@@ -70,21 +77,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(s?.user ?? null);
       if (s?.user) {
         // Anonymous volunteer: skip staff/role queries (RLS blocks them)
-        if (s.user.email === null) {
-          setUser(s.user);
-          setProfile(null);
-          setIsAdmin(false);
-          setIsRoomManager(false);
-          setLoading(false);
+        if (s.user.email === null || !s.user.email) {
+          applyAnonymousVolunteer(s.user);
           return;
         } else {
+          setIsVolunteer(false);
           // defer profile load to avoid deadlocks
-          setTimeout(() => loadProfile(s.user.id), 0);
+          setTimeout(() => loadProfile(s.user), 0);
         }
       } else {
         setProfile(null);
         setIsAdmin(false);
         setIsRoomManager(false);
+        setIsVolunteer(false);
       }
     });
 
@@ -92,17 +97,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(s);
       setUser(s?.user ?? null);
       if (s?.user) {
-        if (s.user.email === null) {
-          setUser(s.user);
-          setProfile(null);
-          setIsAdmin(false);
-          setIsRoomManager(false);
-          setLoading(false);
+        if (s.user.email === null || !s.user.email) {
+          applyAnonymousVolunteer(s.user);
           return;
         } else {
-          loadProfile(s.user.id).finally(() => setLoading(false));
+          setIsVolunteer(false);
+          loadProfile(s.user).finally(() => setLoading(false));
         }
-      } else setLoading(false);
+      } else {
+        setIsVolunteer(false);
+        setLoading(false);
+      }
     });
 
     return () => sub.subscription.unsubscribe();
@@ -112,8 +117,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await hostackSupabase.auth.signOut();
     window.location.href = "/";
   };
-
-  const isVolunteer = !!user && !user.email;
 
   return (
     <Ctx.Provider value={{ user, session, profile, isAdmin, isRoomManager, isVolunteer, loading, refreshProfile, signOut }}>
