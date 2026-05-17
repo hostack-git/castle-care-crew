@@ -89,13 +89,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           setIsVolunteer(false);
           // defer profile load to avoid deadlocks
-          setTimeout(() => loadProfile(s.user), 0);
+          setTimeout(() => loadProfile(s.user).finally(() => setLoading(false)), 0);
         }
       } else {
         setProfile(null);
         setIsAdmin(false);
         setIsRoomManager(false);
         setIsVolunteer(false);
+        setLoading(false);
       }
     });
 
