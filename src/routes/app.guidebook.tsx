@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { hostackSupabase, TORRIDONIA_PROPERTY_ID } from "@/integrations/hostack/client";
-import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
 import { Input } from "@/components/ui/input";
 import { Search, Coffee, Home, Wrench, Shirt, Utensils, Sparkles, BookOpen, ExternalLink } from "lucide-react";
@@ -28,8 +27,6 @@ type Playbook = {
 
 function GuidebookPage() {
   const { t } = useI18n();
-  const { profile } = useAuth();
-  const lang = (profile as unknown as { preferred_language?: string })?.preferred_language || profile?.language || "en";
   const [playbooks, setPlaybooks] = useState<Playbook[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
