@@ -214,7 +214,7 @@ function Dashboard() {
           {new Date().toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long" })}
         </p>
         <h1 className="font-display text-4xl font-semibold mt-1">
-          {t("dash.hi")}, {profile?.full_name?.split(" ")[0] || t("dash.friend")} 👋
+          {t("dash.hi")}, {profile?.full_name?.split(" ")[0] || user?.email?.split("@")[0] || t("dash.friend")} 👋
         </h1>
       </header>
 
