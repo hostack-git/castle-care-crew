@@ -7,6 +7,17 @@ import { Calendar, BookOpen, Megaphone, ArrowRight, Sparkles } from "lucide-reac
 
 export const Route = createFileRoute("/onboarding")({ component: Onboarding });
 
+const categoryIcon = (category: string | null) => {
+  const key = (category ?? "").toLowerCase();
+  if (key === "housekeeping") return "🧹";
+  if (key === "kitchen operations") return "🍳";
+  if (key === "safety & maintenance") return "⚠️";
+  if (key === "maintenance") return "🔧";
+  if (key === "laundry") return "👕";
+  if (key === "cottages") return "🏡";
+  return "📘";
+};
+
 type Playbook = {
   id: string;
   title: string | null;
