@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { hostackSupabase } from "@/integrations/hostack/client";
+import { getUserAccess } from "@/lib/hostack-admin.functions";
 
 type Profile = {
   id: string;
