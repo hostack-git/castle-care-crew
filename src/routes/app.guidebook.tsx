@@ -1,7 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { hostackSupabase, TORRIDONIA_PROPERTY_ID } from "@/integrations/hostack/client";
+import { getPublishedPlaybooks } from "@/lib/hostack-admin.functions";
+import { SOPS } from "@/lib/sops";
 import { useI18n } from "@/lib/i18n";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -28,27 +30,47 @@ type Playbook = {
   content_text: string | null;
   file_url: string | null;
   order_index: number | null;
+  local_sop_id?: string;
 };
+
+const LOCAL_PLAYBOOKS: Playbook[] = SOPS.map((sop, index) => ({
+  id: `local-${sop.id}`,
+  title: sop.title,
+  category: sop.icon === "coffee" ? "Kitchen Operations" : sop.icon === "wrench" ? "Maintenance" : sop.title.replace(" SOP", ""),
+  description: sop.subtitle,
+  content_type: "local",
+  content_text: null,
+  file_url: null,
+  order_index: index,
+  local_sop_id: sop.id,
+}));
 
 function GuidebookPage() {
   const { t } = useI18n();
+  const navigate = useNavigate();
+  const loadPlaybooks = useServerFn(getPublishedPlaybooks);
   const [playbooks, setPlaybooks] = useState<Playbook[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [active, setActive] = useState<Playbook | null>(null);
 
   useEffect(() => {
-    hostackSupabase
-      .from("playbooks")
-      .select("id, title, category, description, content_type, content_text, file_url, order_index")
-      .eq("property_id", TORRIDONIA_PROPERTY_ID)
-      .eq("is_archived", false)
-      .order("order_index", { ascending: true })
-      .then(({ data }) => {
-        setPlaybooks((data as Playbook[]) ?? []);
-        setLoading(false);
+    let mounted = true;
+    loadPlaybooks()
+      .then(({ playbooks }) => {
+        if (mounted) setPlaybooks(playbooks.length > 0 ? (playbooks as Playbook[]) : LOCAL_PLAYBOOKS);
+      })
+      .catch((error) => {
+        console.error("Failed to load SOPs", error);
+        if (mounted) setPlaybooks(LOCAL_PLAYBOOKS);
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
       });
-  }, []);
+    return () => {
+      mounted = false;
+    };
+  }, [loadPlaybooks]);
 
   const filtered = playbooks.filter((p) => {
     if (!q) return true;
@@ -61,6 +83,10 @@ function GuidebookPage() {
   });
 
   const handleClick = (p: Playbook) => {
+    if (p.local_sop_id) {
+      navigate({ to: "/app/guidebook/sop/$sopId", params: { sopId: p.local_sop_id } });
+      return;
+    }
     if (p.file_url) {
       window.open(p.file_url, "_blank");
     } else if (p.content_text) {

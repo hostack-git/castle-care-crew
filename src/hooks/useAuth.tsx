@@ -57,7 +57,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setIsVolunteer(false);
     try {
-      const res = await getUserAccess({ data: { userId: currentUser.id } });
+      const { data } = await hostackSupabase.auth.getSession();
+      const accessToken = data.session?.access_token;
+      if (!accessToken) throw new Error("Missing session token");
+      const res = await getUserAccess({ data: { accessToken } });
       setProfile((res.profile as Profile | null) ?? null);
       setIsAdmin(res.isAdmin);
       setIsRoomManager(res.isRoomManager);
@@ -86,13 +89,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           setIsVolunteer(false);
           // defer profile load to avoid deadlocks
-          setTimeout(() => loadProfile(s.user), 0);
+          setTimeout(() => loadProfile(s.user).finally(() => setLoading(false)), 0);
         }
       } else {
         setProfile(null);
         setIsAdmin(false);
         setIsRoomManager(false);
         setIsVolunteer(false);
+        setLoading(false);
       }
     });
 

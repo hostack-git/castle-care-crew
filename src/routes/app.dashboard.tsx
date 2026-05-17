@@ -144,16 +144,7 @@ function Dashboard() {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      // Resolve staff id (prefer profile.id, fallback to live lookup)
-      let staffId = profile?.id ?? null;
-      if (!staffId) {
-        const { data: staffRow } = await hostackSupabase
-          .from("staff")
-          .select("id")
-          .eq("auth_user_id", user.id)
-          .maybeSingle();
-        staffId = (staffRow as { id: string } | null)?.id ?? null;
-      }
+      const staffId = profile?.id ?? null;
       if (!staffId) {
         if (!cancelled) {
           setShift(null);
