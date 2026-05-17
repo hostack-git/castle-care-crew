@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { getPublishedPlaybooks } from "@/lib/hostack-admin.functions";
+import { SOPS } from "@/lib/sops";
 import { Button } from "@/components/ui/button";
 import { Calendar, BookOpen, Megaphone, ArrowRight, Sparkles } from "lucide-react";
 
@@ -25,6 +26,13 @@ type Playbook = {
   category: string | null;
 };
 
+const LOCAL_PLAYBOOKS: Playbook[] = SOPS.slice(0, 5).map((sop) => ({
+  id: `local-${sop.id}`,
+  title: sop.title,
+  description: sop.subtitle,
+  category: sop.icon === "coffee" ? "Kitchen Operations" : sop.icon === "wrench" ? "Maintenance" : sop.title.replace(" SOP", ""),
+}));
+
 function Onboarding() {
   const navigate = useNavigate();
   const loadPlaybooks = useServerFn(getPublishedPlaybooks);
@@ -41,11 +49,11 @@ function Onboarding() {
     let mounted = true;
     loadPlaybooks()
       .then(({ playbooks }) => {
-        if (mounted) setPlaybooks(((playbooks as Playbook[]) ?? []).slice(0, 5));
+        if (mounted) setPlaybooks(playbooks.length > 0 ? ((playbooks as Playbook[]) ?? []).slice(0, 5) : LOCAL_PLAYBOOKS);
       })
       .catch((error) => {
         console.error("Failed to load onboarding SOPs", error);
-        if (mounted) setPlaybooks([]);
+        if (mounted) setPlaybooks(LOCAL_PLAYBOOKS);
       });
     return () => {
       mounted = false;
