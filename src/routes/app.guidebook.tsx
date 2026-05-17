@@ -4,18 +4,9 @@ import { hostackSupabase, TORRIDONIA_PROPERTY_ID } from "@/integrations/hostack/
 import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
 import { Input } from "@/components/ui/input";
-import { Search, ChevronRight, Coffee, Home, Wrench, Shirt, Utensils, Sparkles, BookOpen, ExternalLink } from "lucide-react";
+import { Search, Coffee, Home, Wrench, Shirt, Utensils, Sparkles, BookOpen, ExternalLink } from "lucide-react";
 
 export const Route = createFileRoute("/app/guidebook")({ component: GuidebookPage });
-
-const URL_MAP: Record<string, string> = {
-  breakfast: "https://jorgeibanezhostack.github.io/sopbreakfasttorridonia/breakfast-sop-en.html",
-  housekeeping: "https://jorgeibanezhostack.github.io/sopbreakfasttorridonia/housekeeping-sop-en.html",
-  cottages: "https://jorgeibanezhostack.github.io/sopbreakfasttorridonia/cottages-sop-en.html",
-  laundry: "https://jorgeibanezhostack.github.io/sopbreakfasttorridonia/laundry-sop-en.html",
-};
-
-const ALLOWED_CATEGORIES = ["housekeeping", "breakfast", "cottages", "laundry", "general"];
 
 const ICON_MAP: Record<string, typeof Coffee> = {
   breakfast: Coffee,
@@ -33,7 +24,6 @@ type Playbook = {
   category: string | null;
   description: string | null;
   external_url: string | null;
-  role_tags: string[] | null;
 };
 
 function GuidebookPage() {
@@ -47,7 +37,7 @@ function GuidebookPage() {
   useEffect(() => {
     hostackSupabase
       .from("playbooks")
-      .select("id, title, category, description, external_url, role_tags")
+      .select("id, title, category, description, external_url")
       .eq("property_id", TORRIDONIA_PROPERTY_ID)
       .eq("is_archived", false)
       .order("category")
