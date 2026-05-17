@@ -46,7 +46,10 @@ function VolunteerDashboard() {
 
   const localeMap: Record<string, string> = { en: "en-GB", pt: "pt-BR", es: "es-ES", de: "de-DE", gd: "gd-GB" };
   const locale = localeMap[lang] ?? "en-GB";
-  const name = (user?.user_metadata as { full_name?: string } | undefined)?.full_name || "Voluntario";
+  const name =
+    (user?.user_metadata as { full_name?: string } | undefined)?.full_name ||
+    user?.email?.split("@")[0] ||
+    "Voluntario";
 
   useEffect(() => {
     let cancelled = false;
