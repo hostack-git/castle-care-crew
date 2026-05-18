@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Housekeeping SOP - Torridonia</title>
+<style>
+:root{--c-bg1:#fff;--c-bg2:#f8f7f4;--c-bg3:#f1efe8;--c-info-bg:#e6f1fb;--c-success-bg:#eaf3de;--c-warn-bg:#faeeda;--c-text1:#1a1a19;--c-text2:#5f5e5a;--c-text3:#888780;--c-info:#185fa5;--c-success:#3b6d11;--c-warn:#854f0b;--c-border3:rgba(61,61,58,.15);--c-border2:rgba(61,61,58,.3);--c-info-border:#85b7eb;--c-success-border:#97c459;--c-warn-border:#ef9f27;--radius-md:8px;--radius-lg:12px}
+@media (prefers-color-scheme:dark){:root{--c-bg1:#1a1a19;--c-bg2:#2c2c2a;--c-bg3:#3d3d3a;--c-info-bg:#0c447c;--c-success-bg:#27500a;--c-warn-bg:#633806;--c-text1:#f8f7f4;--c-text2:#b4b2a9;--c-text3:#888780;--c-info:#b5d4f4;--c-success:#c0dd97;--c-warn:#fac775;--c-border3:rgba(248,247,244,.15);--c-border2:rgba(248,247,244,.3);--c-info-border:#378add;--c-success-border:#639922;--c-warn-border:#ba7517}}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;background:var(--c-bg3);color:var(--c-text1);line-height:1.5}
+.container{max-width:640px;margin:0 auto}
+.header{position:sticky;top:4px;background:var(--c-bg1);padding:1rem;z-index:9;border-bottom:.5px solid var(--c-border3)}
+.title-section{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.main-title{font-size:18px;font-weight:500}
+.header-actions{display:flex;gap:8px;align-items:center}
+.lang-selector{padding:6px 10px;font-size:12px;color:var(--c-text1);background:var(--c-bg2);border:.5px solid var(--c-border2);border-radius:var(--radius-md);cursor:pointer;transition:.15s}
+.lang-selector:hover{background:var(--c-bg3)}
+.reset-btn{padding:6px 12px;font-size:12px;color:var(--c-text2);background:0 0;border:.5px solid var(--c-border2);border-radius:var(--radius-md);cursor:pointer;transition:.15s}
+.reset-btn:hover{background:var(--c-bg2);color:var(--c-text1)}
+.stats{display:flex;gap:8px;font-size:12px;color:var(--c-text2)}
+.stat{display:flex;align-items:center;gap:4px}
+.progress-bar{position:sticky;top:0;height:4px;background:var(--c-bg2);border-radius:2px;overflow:hidden;z-index:10}
+.progress-fill{height:100%;background:var(--c-success-bg);transition:width .3s}
+.timeline{display:flex;flex-direction:column;gap:1rem;padding:1rem}
+.phase{background:var(--c-bg1);border:.5px solid var(--c-border3);border-radius:var(--radius-lg);overflow:hidden}
+.phase-header{padding:1rem 1.25rem;cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none;transition:background .15s}
+.phase-header:hover{background:var(--c-bg2)}
+.phase-time{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:500;padding:4px 10px;border-radius:var(--radius-md);background:var(--c-info-bg);color:var(--c-info)}
+.phase-title{font-size:16px;font-weight:500;margin-top:4px}
+.phase-icon{font-size:20px;color:var(--c-text2);transition:transform .2s}
+.phase.expanded .phase-icon{transform:rotate(180deg)}
+.phase-content{max-height:0;overflow:hidden;transition:max-height .3s;border-top:.5px solid var(--c-border3)}
+.phase.expanded .phase-content{max-height:4500px}
+.content-inner{padding:1rem 1.25rem}
+.checklist{display:flex;flex-direction:column;gap:12px}
+.checklist-item{display:flex;gap:12px;align-items:flex-start;padding:10px;border-radius:var(--radius-md);background:var(--c-bg2);cursor:pointer;transition:background .15s}
+.checklist-item:active{background:var(--c-border3)}
+.checkbox{width:20px;height:20px;min-width:20px;border:1.5px solid var(--c-border2);border-radius:4px;display:flex;align-items:center;justify-content:center;margin-top:1px;transition:all .2s}
+.checklist-item.done .checkbox{background:var(--c-success-bg);border-color:var(--c-success-border)}
+.checkbox::after{content:"✓";font-size:14px;color:var(--c-success);opacity:0;transition:opacity .2s}
+.checklist-item.done .checkbox::after{opacity:1}
+.item-text{flex:1;font-size:14px;line-height:1.5}
+.checklist-item.done .item-text{color:var(--c-text2);text-decoration:line-through}
+.alert{margin-top:1rem;padding:12px;border-radius:var(--radius-md);background:var(--c-warn-bg);border-left:3px solid var(--c-warn-border);font-size:13px;color:var(--c-warn);line-height:1.5}
+.capacity-note{margin-top:1rem;padding:10px 12px;border-radius:var(--radius-md);background:var(--c-info-bg);font-size:12px;color:var(--c-info);line-height:1.5}
+.recipe-section{margin-top:1rem;padding:12px;border-radius:var(--radius-md);border:.5px solid var(--c-border3);background:var(--c-bg2)}
+.recipe-title{font-size:13px;font-weight:500;margin-bottom:8px}
+.recipe-list{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--c-text2);line-height:1.5}
+.recipe-list li{list-style:none;padding-left:18px;position:relative}
+.recipe-list li::before{content:"•";position:absolute;left:4px;color:var(--c-text3)}
+.color-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;padding:2px 8px;border-radius:4px;margin-right:6px}
+.green-cloth{background:#dcfce7;color:#166534}
+.blue-cloth{background:#dbeafe;color:#1e40af}
+.pink-cloth{background:#fce7f3;color:#9f1239}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header">
+<div class="title-section">
+<h1 class="main-title" data-i18n="title">Housekeeping SOP (B&B Rooms)</h1>
+<div class="header-actions">
+<select class="lang-selector" onchange="changeLang(this.value)">
+<option value="en">🇬🇧 English</option>
+<option value="pt-br">🇧🇷 Português</option>
+<option value="es">🇪🇸 Español</option>
+<option value="fr">🇫🇷 Français</option>
+<option value="it">🇮🇹 Italiano</option>
+</select>
+<button class="reset-btn" onclick="resetProgress()" data-i18n="reset">Reset</button>
+</div>
+</div>
+<div class="stats">
+<span class="stat">✓ <span id="completed">0</span>/<span data-i18n="total-tasks">22</span> <span data-i18n="tasks">tasks</span></span>
+<span class="stat">⏰ <span data-i18n="deadline">Ready by 3 PM</span></span>
+</div>
+</div>
+<div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+
+<div class="timeline">
+
+<div class="alert"><strong data-i18n="deadline-note">⏰ Deadline:</strong> <span data-i18n="deadline-desc">All rooms must be ready by 3:00 PM. Guests check out by 10:00 AM. Leave key in the lock when finished.</span></div>
+
+<div class="phase" data-phase="1">
+<div class="phase-header" onclick="togglePhase(1)">
+<div>
+<div class="phase-time" data-i18n="phase1-time">🛏️ Step 1</div>
+<div class="phase-title" data-i18n="phase1-title">Beds & linens</div>
+</div>
+<span class="phase-icon">▼</span>
+</div>
+<div class="phase-content">
+<div class="content-inner">
+<div class="checklist">
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task1-1">Remove used sheets and pillowcases from bed</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task1-2">Put dirty linens in the laundry basket</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task1-3">Get fresh linen from cupboard (up brown stairs, first door right)</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task1-4">Make bed with fresh sheets and pillowcases</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task1-5">Place one big towel + one small towel per person on top of cover</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task1-6">Ensure extra blankets are neatly folded at foot of bed</div></div>
+</div>
+<div class="capacity-note">🗄️ <strong data-i18n="linen-loc">Linen Location:</strong> <span data-i18n="linen-desc">Up brown stairs, first door to the right. Big towels (wardrobe right), small towels (wardrobe left), bath mats & tablecloths (lower left). Always refill cupboards after taking items.</span></div>
+</div>
+</div>
+</div>
+
+<div class="phase" data-phase="2">
+<div class="phase-header" onclick="togglePhase(2)">
+<div>
+<div class="phase-time" data-i18n="phase2-time">🧹 Step 2</div>
+<div class="phase-title" data-i18n="phase2-title">Room cleaning</div>
+</div>
+<span class="phase-icon">▼</span>
+</div>
+<div class="phase-content">
+<div class="content-inner">
+<div class="recipe-section">
+<div class="recipe-title" data-i18n="color-title">Colour-coded cleaning system</div>
+<ul class="recipe-list">
+<li><span class="color-badge green-cloth">●</span><strong data-i18n="green">Green:</strong> <span data-i18n="green-desc">General surfaces (furniture, windowsills, tables)</span></li>
+<li><span class="color-badge blue-cloth">●</span><strong data-i18n="blue">Blue:</strong> <span data-i18n="blue-desc">Glass, mirrors, windows</span></li>
+<li><span class="color-badge pink-cloth">●</span><strong data-i18n="pink">Pink:</strong> <span data-i18n="pink-desc">Toilets only</span></li>
+</ul>
+</div>
+<div class="checklist">
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task2-1">Hoover entire bedroom floor thoroughly</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task2-2">Dust all surfaces with green cloth (furniture, windowsills, shelves)</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task2-3">Clear table of dishes → take to breakfast kitchen and clean</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task2-4">Set up table for new guests: cups, saucers, teaspoons, glasses, serviettes</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task2-5">Empty bin if full, replace with new bin bag</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task2-6">Open window briefly to air out the room</div></div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="phase" data-phase="3">
+<div class="phase-header" onclick="togglePhase(3)">
+<div>
+<div class="phase-time" data-i18n="phase3-time">🚿 Step 3</div>
+<div class="phase-title" data-i18n="phase3-title">Bathroom deep clean</div>
+</div>
+<span class="phase-icon">▼</span>
+</div>
+<div class="phase-content">
+<div class="content-inner">
+<div class="checklist">
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task3-1">Clean all surfaces with green cloth (sink, counters, shelves)</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task3-2">Clean mirrors and windows with blue cloth</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task3-3">Clean toilet thoroughly with pink cloth and toilet cleaner</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task3-4">Check floor for hair/dust, wipe down if needed</div></div>
+</div>
+<div class="alert"><strong data-i18n="cross-warn">⚠️ Never cross-contaminate:</strong> <span data-i18n="cross-desc">Pink cloth is ONLY for toilets. Green for general surfaces. Blue for glass/mirrors. Store them separately after cleaning.</span></div>
+</div>
+</div>
+</div>
+
+<div class="phase" data-phase="4">
+<div class="phase-header" onclick="togglePhase(4)">
+<div>
+<div class="phase-time" data-i18n="phase4-time">🧴 Step 4</div>
+<div class="phase-title" data-i18n="phase4-title">Amenities & final checks</div>
+</div>
+<span class="phase-icon">▼</span>
+</div>
+<div class="phase-content">
+<div class="content-inner">
+<div class="checklist">
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task4-1">Refill hand soap if half empty (refillers in cleaning cupboard/storage)</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task4-2">Check body wash/conditioner levels, refill if needed</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task4-3">Replace toilet roll if halfway used (put used one in staff bathrooms)</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task4-4">Place fresh bath mat on floor</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task4-5">Restock tissues if box is low</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task4-6">Double-check: bed made, towels placed, bathroom floor clean</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task4-7">Leave room key in the lock</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task4-8">Return all cleaning tools to cupboard</div></div>
+</div>
+<div class="capacity-note">✅ <strong data-i18n="final-check">Quick final checklist:</strong> <span data-i18n="final-desc">Bed? Towels? Table set? Bathroom? Bin? Key in lock? If yes to all, room is ready!</span></div>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+
+<script>
+const translations={en:{title:"Housekeeping SOP (B&B Rooms)",reset:"Reset",tasks:"tasks","total-tasks":"22",deadline:"Ready by 3 PM","deadline-note":"⏰ Deadline:","deadline-desc":"All rooms must be ready by 3:00 PM. Guests check out by 10:00 AM. Leave key in the lock when finished.","phase1-time":"🛏️ Step 1","phase1-title":"Beds & linens","task1-1":"Remove used sheets and pillowcases from bed","task1-2":"Put dirty linens in the laundry basket","task1-3":"Get fresh linen from cupboard (up brown stairs, first door right)","task1-4":"Make bed with fresh sheets and pillowcases","task1-5":"Place one big towel + one small towel per person on top of cover","task1-6":"Ensure extra blankets are neatly folded at foot of bed","linen-loc":"Linen Location:","linen-desc":"Up brown stairs, first door to the right. Big towels (wardrobe right), small towels (wardrobe left), bath mats & tablecloths (lower left). Always refill cupboards after taking items.","phase2-time":"🧹 Step 2","phase2-title":"Room cleaning","color-title":"Colour-coded cleaning system",green:"Green:","green-desc":"General surfaces (furniture, windowsills, tables)",blue:"Blue:","blue-desc":"Glass, mirrors, windows",pink:"Pink:","pink-desc":"Toilets only","task2-1":"Hoover entire bedroom floor thoroughly","task2-2":"Dust all surfaces with green cloth (furniture, windowsills, shelves)","task2-3":"Clear table of dishes → take to breakfast kitchen and clean","task2-4":"Set up table for new guests: cups, saucers, teaspoons, glasses, serviettes","task2-5":"Empty bin if full, replace with new bin bag","task2-6":"Open window briefly to air out the room","phase3-time":"🚿 Step 3","phase3-title":"Bathroom deep clean","task3-1":"Clean all surfaces with green cloth (sink, counters, shelves)","task3-2":"Clean mirrors and windows with blue cloth","task3-3":"Clean toilet thoroughly with pink cloth and toilet cleaner","task3-4":"Check floor for hair/dust, wipe down if needed","cross-warn":"⚠️ Never cross-contaminate:","cross-desc":"Pink cloth is ONLY for toilets. Green for general surfaces. Blue for glass/mirrors. Store them separately after cleaning.","phase4-time":"🧴 Step 4","phase4-title":"Amenities & final checks","task4-1":"Refill hand soap if half empty (refillers in cleaning cupboard/storage)","task4-2":"Check body wash/conditioner levels, refill if needed","task4-3":"Replace toilet roll if halfway used (put used one in staff bathrooms)","task4-4":"Place fresh bath mat on floor","task4-5":"Restock tissues if box is low","task4-6":"Double-check: bed made, towels placed, bathroom floor clean","task4-7":"Leave room key in the lock","task4-8":"Return all cleaning tools to cupboard","final-check":"Quick final checklist:","final-desc":"Bed? Towels? Table set? Bathroom? Bin? Key in lock? If yes to all, room is ready!"},"pt-br":{title:"SOP Limpeza (Quartos B&B)",reset:"Resetar",tasks:"tarefas","total-tasks":"22",deadline:"Pronto às 15h","deadline-note":"⏰ Prazo:","deadline-desc":"Todos os quartos devem estar prontos às 15h. Check-out dos hóspedes às 10h. Deixar chave na fechadura ao terminar.","phase1-time":"🛏️ Etapa 1","phase1-title":"Camas e roupas de cama","task1-1":"Remover lençóis e fronhas usados da cama","task1-2":"Colocar roupas sujas no cesto de roupa suja","task1-3":"Pegar roupas limpas do armário (escada marrom, primeira porta à direita)","task1-4":"Arrumar cama com lençóis e fronhas limpos","task1-5":"Colocar uma toalha grande + uma toalha pequena por pessoa em cima da coberta","task1-6":"Garantir que cobertores extras estejam dobrados aos pés da cama","linen-loc":"Localização das roupas:","linen-desc":"Escada marrom, primeira porta à direita. Toalhas grandes (guarda-roupa direita), toalhas pequenas (guarda-roupa esquerda), tapetes de banho e toalhas de mesa (inferior esquerda). Sempre reabastecer os armários após pegar itens.","phase2-time":"🧹 Etapa 2","phase2-title":"Limpeza do quarto","color-title":"Sistema de cores de limpeza",green:"Verde:","green-desc":"Superfícies gerais (móveis, peitoris, mesas)",blue:"Azul:","blue-desc":"Vidros, espelhos, janelas",pink:"Rosa:","pink-desc":"Somente vasos sanitários","task2-1":"Aspirar todo o piso do quarto completamente","task2-2":"Tirar pó de todas as superfícies com pano verde (móveis, peitoris, prateleiras)","task2-3":"Limpar mesa de pratos → levar para cozinha de café da manhã e lavar","task2-4":"Preparar mesa para novos hóspedes: xícaras, pires, colheres de chá, copos, guardanapos","task2-5":"Esvaziar lixeira se cheia, substituir com novo saco","task2-6":"Abrir janela brevemente para arejar o quarto","phase3-time":"🚿 Etapa 3","phase3-title":"Limpeza profunda do banheiro","task3-1":"Limpar todas as superfícies com pano verde (pia, balcões, prateleiras)","task3-2":"Limpar espelhos e janelas com pano azul","task3-3":"Limpar vaso sanitário completamente com pano rosa e limpador de vaso","task3-4":"Verificar piso por cabelos/poeira, limpar se necessário","cross-warn":"⚠️ Nunca cruzar contaminação:","cross-desc":"Pano rosa é APENAS para vasos sanitários. Verde para superfícies gerais. Azul para vidros/espelhos. Armazená-los separadamente após limpeza.","phase4-time":"🧴 Etapa 4","phase4-title":"Amenidades e verificações finais","task4-1":"Reabastecer sabonete líquido se meio vazio (recargas no armário de limpeza)","task4-2":"Verificar níveis de sabonete corporal/condicionador, reabastecer se necessário","task4-3":"Substituir papel higiênico se meio usado (colocar usado em banheiros da equipe)","task4-4":"Colocar tapete de banho limpo no chão","task4-5":"Reabastecer lenços se caixa estiver baixa","task4-6":"Verificar duas vezes: cama feita, toalhas colocadas, piso do banheiro limpo","task4-7":"Deixar chave do quarto na fechadura","task4-8":"Devolver todas as ferramentas de limpeza ao armário","final-check":"Lista de verificação final rápida:","final-desc":"Cama? Toalhas? Mesa preparada? Banheiro? Lixo? Chave na fechadura? Se sim para todos, quarto está pronto!"},es:{title:"SOP Limpieza (Habitaciones B&B)",reset:"Reiniciar",tasks:"tareas","total-tasks":"22",deadline:"Listo a las 15h","deadline-note":"⏰ Plazo:","deadline-desc":"Todas las habitaciones deben estar listas a las 15:00. Los huéspedes hacen check-out a las 10:00. Dejar llave en la cerradura al terminar.","phase1-time":"🛏️ Paso 1","phase1-title":"Camas y ropa de cama","task1-1":"Quitar sábanas y fundas usadas de la cama","task1-2":"Poner ropa sucia en la cesta de lavandería","task1-3":"Obtener ropa limpia del armario (escalera marrón, primera puerta a la derecha)","task1-4":"Hacer cama con sábanas y fundas limpias","task1-5":"Colocar una toalla grande + una toalla pequeña por persona sobre la colcha","task1-6":"Asegurar que mantas extras estén dobladas al pie de la cama","linen-loc":"Ubicación de ropa:","linen-desc":"Escalera marrón, primera puerta a la derecha. Toallas grandes (armario derecha), toallas pequeñas (armario izquierda), alfombras de baño y manteles (inferior izquierda). Siempre rellenar armarios después de tomar artículos.","phase2-time":"🧹 Paso 2","phase2-title":"Limpieza de habitación","color-title":"Sistema de limpieza por colores",green:"Verde:","green-desc":"Superficies generales (muebles, alféizares, mesas)",blue:"Azul:","blue-desc":"Cristales, espejos, ventanas",pink:"Rosa:","pink-desc":"Solo inodoros","task2-1":"Aspirar todo el piso de la habitación completamente","task2-2":"Quitar polvo de todas las superficies con paño verde (muebles, alféizares, estantes)","task2-3":"Limpiar mesa de platos → llevar a cocina de desayuno y lavar","task2-4":"Preparar mesa para nuevos huéspedes: tazas, platillos, cucharitas, vasos, servilletas","task2-5":"Vaciar papelera si está llena, reemplazar con nueva bolsa","task2-6":"Abrir ventana brevemente para ventilar la habitación","phase3-time":"🚿 Paso 3","phase3-title":"Limpieza profunda del baño","task3-1":"Limpiar todas las superficies con paño verde (lavabo, mostradores, estantes)","task3-2":"Limpiar espejos y ventanas con paño azul","task3-3":"Limpiar inodoro completamente con paño rosa y limpiador de inodoro","task3-4":"Revisar piso por pelos/polvo, limpiar si es necesario","cross-warn":"⚠️ Nunca cruzar contaminación:","cross-desc":"Paño rosa es SOLO para inodoros. Verde para superficies generales. Azul para cristales/espejos. Almacenarlos por separado después de limpiar.","phase4-time":"🧴 Paso 4","phase4-title":"Amenidades y verificaciones finales","task4-1":"Rellenar jabón de manos si está medio vacío (recargas en armario de limpieza)","task4-2":"Verificar niveles de gel de baño/acondicionador, rellenar si es necesario","task4-3":"Reemplazar rollo de papel higiénico si está a la mitad (poner usado en baños del personal)","task4-4":"Colocar alfombra de baño limpia en el piso","task4-5":"Reabastecer pañuelos si la caja está baja","task4-6":"Verificar dos veces: cama hecha, toallas puestas, piso del baño limpio","task4-7":"Dejar llave de la habitación en la cerradura","task4-8":"Devolver todas las herramientas de limpieza al armario","final-check":"Lista de verificación final rápida:","final-desc":"¿Cama? ¿Toallas? ¿Mesa preparada? ¿Baño? ¿Papelera? ¿Llave en cerradura? Si sí a todo, ¡habitación lista!"},fr:{title:"SOP Ménage (Chambres B&B)",reset:"Réinitialiser",tasks:"tâches","total-tasks":"22",deadline:"Prêt à 15h","deadline-note":"⏰ Délai :","deadline-desc":"Toutes les chambres doivent être prêtes à 15h00. Les clients partent à 10h00. Laisser la clé dans la serrure en terminant.","phase1-time":"🛏️ Étape 1","phase1-title":"Lits et linge","task1-1":"Retirer draps et taies d'oreiller usagés du lit","task1-2":"Mettre le linge sale dans le panier à linge","task1-3":"Prendre du linge propre dans le placard (escalier marron, première porte à droite)","task1-4":"Faire le lit avec draps et taies propres","task1-5":"Placer une grande serviette + une petite serviette par personne sur la couette","task1-6":"S'assurer que les couvertures supplémentaires sont pliées au pied du lit","linen-loc":"Emplacement du linge :","linen-desc":"Escalier marron, première porte à droite. Grandes serviettes (armoire droite), petites serviettes (armoire gauche), tapis de bain et nappes (bas gauche). Toujours remplir les placards après avoir pris des articles.","phase2-time":"🧹 Étape 2","phase2-title":"Nettoyage de la chambre","color-title":"Système de nettoyage par couleur",green:"Vert :","green-desc":"Surfaces générales (meubles, rebords de fenêtre, tables)",blue:"Bleu :","blue-desc":"Verre, miroirs, fenêtres",pink:"Rose :","pink-desc":"Toilettes uniquement","task2-1":"Passer l'aspirateur sur tout le sol de la chambre","task2-2":"Dépoussiérer toutes les surfaces avec chiffon vert (meubles, rebords, étagères)","task2-3":"Débarrasser la table de la vaisselle → amener à la cuisine petit-déjeuner et laver","task2-4":"Préparer la table pour nouveaux clients : tasses, soucoupes, cuillères à café, verres, serviettes","task2-5":"Vider la poubelle si pleine, remplacer avec nouveau sac","task2-6":"Ouvrir brièvement la fenêtre pour aérer la chambre","phase3-time":"🚿 Étape 3","phase3-title":"Nettoyage profond de la salle de bain","task3-1":"Nettoyer toutes les surfaces avec chiffon vert (lavabo, comptoirs, étagères)","task3-2":"Nettoyer miroirs et fenêtres avec chiffon bleu","task3-3":"Nettoyer toilettes complètement avec chiffon rose et nettoyant WC","task3-4":"Vérifier sol pour cheveux/poussière, nettoyer si nécessaire","cross-warn":"⚠️ Jamais de contamination croisée :","cross-desc":"Chiffon rose est UNIQUEMENT pour toilettes. Vert pour surfaces générales. Bleu pour verre/miroirs. Les ranger séparément après nettoyage.","phase4-time":"🧴 Étape 4","phase4-title":"Équipements et vérifications finales","task4-1":"Remplir savon mains si à moitié vide (recharges dans placard nettoyage)","task4-2":"Vérifier niveaux gel douche/après-shampooing, remplir si nécessaire","task4-3":"Remplacer rouleau papier toilette si à moitié utilisé (mettre usagé dans WC personnel)","task4-4":"Placer tapis de bain propre au sol","task4-5":"Réapprovisionner mouchoirs si boîte basse","task4-6":"Vérifier deux fois : lit fait, serviettes placées, sol salle de bain propre","task4-7":"Laisser clé de chambre dans la serrure","task4-8":"Retourner tous les outils de nettoyage au placard","final-check":"Liste de vérification finale rapide :","final-desc":"Lit ? Serviettes ? Table préparée ? Salle de bain ? Poubelle ? Clé dans serrure ? Si oui à tout, chambre prête !"},it:{title:"SOP Pulizie (Camere B&B)",reset:"Ripristina",tasks:"compiti","total-tasks":"22",deadline:"Pronto alle 15","deadline-note":"⏰ Scadenza:","deadline-desc":"Tutte le camere devono essere pronte alle 15:00. Gli ospiti fanno check-out alle 10:00. Lasciare chiave nella serratura quando finito.","phase1-time":"🛏️ Passo 1","phase1-title":"Letti e biancheria","task1-1":"Rimuovere lenzuola e federe usate dal letto","task1-2":"Mettere biancheria sporca nel cesto della biancheria","task1-3":"Prendere biancheria pulita dall'armadio (scala marrone, prima porta a destra)","task1-4":"Rifare letto con lenzuola e federe pulite","task1-5":"Posizionare un asciugamano grande + un asciugamano piccolo per persona sopra la coperta","task1-6":"Assicurarsi che coperte extra siano piegate ai piedi del letto","linen-loc":"Posizione biancheria:","linen-desc":"Scala marrone, prima porta a destra. Asciugamani grandi (armadio destra), asciugamani piccoli (armadio sinistra), tappetini bagno e tovaglie (basso sinistra). Sempre riempire armadi dopo aver preso articoli.","phase2-time":"🧹 Passo 2","phase2-title":"Pulizia camera","color-title":"Sistema di pulizia con codice colore",green:"Verde:","green-desc":"Superfici generali (mobili, davanzali, tavoli)",blue:"Blu:","blue-desc":"Vetro, specchi, finestre",pink:"Rosa:","pink-desc":"Solo WC","task2-1":"Aspirare completamente tutto il pavimento della camera","task2-2":"Spolverare tutte le superfici con panno verde (mobili, davanzali, mensole)","task2-3":"Liberare tavolo da piatti → portare in cucina colazione e lavare","task2-4":"Preparare tavolo per nuovi ospiti: tazze, piattini, cucchiaini, bicchieri, tovaglioli","task2-5":"Svuotare cestino se pieno, sostituire con nuovo sacchetto","task2-6":"Aprire brevemente finestra per arieggiare camera","phase3-time":"🚿 Passo 3","phase3-title":"Pulizia profonda bagno","task3-1":"Pulire tutte le superfici con panno verde (lavandino, banconi, mensole)","task3-2":"Pulire specchi e finestre con panno blu","task3-3":"Pulire WC completamente con panno rosa e detergente WC","task3-4":"Controllare pavimento per capelli/polvere, pulire se necessario","cross-warn":"⚠️ Mai contaminazione incrociata:","cross-desc":"Panno rosa è SOLO per WC. Verde per superfici generali. Blu per vetro/specchi. Conservarli separatamente dopo pulizia.","phase4-time":"🧴 Passo 4","phase4-title":"Dotazioni e controlli finali","task4-1":"Riempire sapone mani se mezzo vuoto (ricariche in armadio pulizie)","task4-2":"Controllare livelli bagnoschiuma/balsamo, riempire se necessario","task4-3":"Sostituire rotolo carta igienica se usato a metà (mettere usato in bagni personale)","task4-4":"Posizionare tappetino bagno pulito sul pavimento","task4-5":"Rifornire fazzoletti se scatola bassa","task4-6":"Controllare due volte: letto fatto, asciugamani posizionati, pavimento bagno pulito","task4-7":"Lasciare chiave camera nella serratura","task4-8":"Restituire tutti gli strumenti di pulizia all'armadio","final-check":"Lista controllo finale veloce:","final-desc":"Letto? Asciugamani? Tavolo preparato? Bagno? Cestino? Chiave in serratura? Se sì a tutto, camera pronta!"}};const K='torridonia_housekeeping_progress';let currentLang='en';function setLang(l){currentLang=l;document.querySelectorAll('[data-i18n]').forEach(e=>{const k=e.getAttribute('data-i18n');if(translations[l]&&translations[l][k])e.textContent=translations[l][k]});document.querySelector('.lang-selector').value=l;localStorage.setItem('torridonia_lang',l)}function changeLang(l){setLang(l)}function load(){const l=localStorage.getItem('torridonia_lang')||'en';setLang(l);const s=localStorage.getItem(K);if(s){try{const d=JSON.parse(s);d.expanded.forEach(p=>{const e=document.querySelector('[data-phase="'+p+'"]');if(e)e.classList.add('expanded')});d.checked.forEach(i=>{const items=document.querySelectorAll('.checklist-item');if(items[i])items[i].classList.add('done')});update()}catch(e){}}}function save(){const exp=Array.from(document.querySelectorAll('.phase.expanded')).map(p=>p.dataset.phase);const items=document.querySelectorAll('.checklist-item');const chk=Array.from(items).map((item,i)=>item.classList.contains('done')?i:-1).filter(i=>i>=0);localStorage.setItem(K,JSON.stringify({expanded:exp,checked:chk}))}function togglePhase(n){document.querySelector('[data-phase="'+n+'"]').classList.toggle('expanded');save()}function toggleCheck(item){item.classList.toggle('done');update();save()}function update(){const t=document.querySelectorAll('.checklist-item').length;const d=document.querySelectorAll('.checklist-item.done').length;document.getElementById('completed').textContent=d;document.getElementById('progress').style.width=(d/t*100).toFixed(0)+'%'}function resetProgress(){const msg=currentLang==='en'?'Reset all progress? This cannot be undone.':currentLang==='pt-br'?'Resetar todo o progresso? Isso não pode ser desfeito.':currentLang==='es'?'¿Reiniciar todo el progreso? Esto no se puede deshacer.':currentLang==='fr'?'Réinitialiser tout le progrès? Cette action est irréversible.':'Ripristinare tutto il progresso? Questa azione è irreversibile.';if(confirm(msg)){localStorage.removeItem(K);document.querySelectorAll('.checklist-item').forEach(i=>i.classList.remove('done'));document.querySelectorAll('.phase').forEach(p=>p.classList.remove('expanded'));update()}}load();update();
+</script>
+</body>
+</html>

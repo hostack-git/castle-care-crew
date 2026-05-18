@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cottages Cleaning SOP - Torridonia</title>
+<style>
+:root{--c-bg1:#fff;--c-bg2:#f8f7f4;--c-bg3:#f1efe8;--c-info-bg:#e6f1fb;--c-success-bg:#eaf3de;--c-warn-bg:#faeeda;--c-text1:#1a1a19;--c-text2:#5f5e5a;--c-text3:#888780;--c-info:#185fa5;--c-success:#3b6d11;--c-warn:#854f0b;--c-border3:rgba(61,61,58,.15);--c-border2:rgba(61,61,58,.3);--c-info-border:#85b7eb;--c-success-border:#97c459;--c-warn-border:#ef9f27;--radius-md:8px;--radius-lg:12px}
+@media (prefers-color-scheme:dark){:root{--c-bg1:#1a1a19;--c-bg2:#2c2c2a;--c-bg3:#3d3d3a;--c-info-bg:#0c447c;--c-success-bg:#27500a;--c-warn-bg:#633806;--c-text1:#f8f7f4;--c-text2:#b4b2a9;--c-text3:#888780;--c-info:#b5d4f4;--c-success:#c0dd97;--c-warn:#fac775;--c-border3:rgba(248,247,244,.15);--c-border2:rgba(248,247,244,.3);--c-info-border:#378add;--c-success-border:#639922;--c-warn-border:#ba7517}}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;background:var(--c-bg3);color:var(--c-text1);line-height:1.5}
+.container{max-width:640px;margin:0 auto}
+.header{position:sticky;top:4px;background:var(--c-bg1);padding:1rem;z-index:9;border-bottom:.5px solid var(--c-border3)}
+.title-section{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.main-title{font-size:18px;font-weight:500}
+.header-actions{display:flex;gap:8px;align-items:center}
+.lang-selector{padding:6px 10px;font-size:12px;color:var(--c-text1);background:var(--c-bg2);border:.5px solid var(--c-border2);border-radius:var(--radius-md);cursor:pointer;transition:.15s}
+.lang-selector:hover{background:var(--c-bg3)}
+.reset-btn{padding:6px 12px;font-size:12px;color:var(--c-text2);background:0 0;border:.5px solid var(--c-border2);border-radius:var(--radius-md);cursor:pointer;transition:.15s}
+.reset-btn:hover{background:var(--c-bg2);color:var(--c-text1)}
+.stats{display:flex;gap:8px;font-size:12px;color:var(--c-text2)}
+.stat{display:flex;align-items:center;gap:4px}
+.progress-bar{position:sticky;top:0;height:4px;background:var(--c-bg2);border-radius:2px;overflow:hidden;z-index:10}
+.progress-fill{height:100%;background:var(--c-success-bg);transition:width .3s}
+.timeline{display:flex;flex-direction:column;gap:1rem;padding:1rem}
+.phase{background:var(--c-bg1);border:.5px solid var(--c-border3);border-radius:var(--radius-lg);overflow:hidden}
+.phase-header{padding:1rem 1.25rem;cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none;transition:background .15s}
+.phase-header:hover{background:var(--c-bg2)}
+.phase-time{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:500;padding:4px 10px;border-radius:var(--radius-md);background:var(--c-info-bg);color:var(--c-info)}
+.phase-title{font-size:16px;font-weight:500;margin-top:4px}
+.phase-icon{font-size:20px;color:var(--c-text2);transition:transform .2s}
+.phase.expanded .phase-icon{transform:rotate(180deg)}
+.phase-content{max-height:0;overflow:hidden;transition:max-height .3s;border-top:.5px solid var(--c-border3)}
+.phase.expanded .phase-content{max-height:5000px}
+.content-inner{padding:1rem 1.25rem}
+.checklist{display:flex;flex-direction:column;gap:12px}
+.checklist-item{display:flex;gap:12px;align-items:flex-start;padding:10px;border-radius:var(--radius-md);background:var(--c-bg2);cursor:pointer;transition:background .15s}
+.checklist-item:active{background:var(--c-border3)}
+.checkbox{width:20px;height:20px;min-width:20px;border:1.5px solid var(--c-border2);border-radius:4px;display:flex;align-items:center;justify-content:center;margin-top:1px;transition:all .2s}
+.checklist-item.done .checkbox{background:var(--c-success-bg);border-color:var(--c-success-border)}
+.checkbox::after{content:"✓";font-size:14px;color:var(--c-success);opacity:0;transition:opacity .2s}
+.checklist-item.done .checkbox::after{opacity:1}
+.item-text{flex:1;font-size:14px;line-height:1.5}
+.checklist-item.done .item-text{color:var(--c-text2);text-decoration:line-through}
+.alert{margin-top:1rem;padding:12px;border-radius:var(--radius-md);background:var(--c-warn-bg);border-left:3px solid var(--c-warn-border);font-size:13px;color:var(--c-warn);line-height:1.5}
+.capacity-note{margin-top:1rem;padding:10px 12px;border-radius:var(--radius-md);background:var(--c-info-bg);font-size:12px;color:var(--c-info);line-height:1.5}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header">
+<div class="title-section">
+<h1 class="main-title" data-i18n="title">Cottages Cleaning SOP</h1>
+<div class="header-actions">
+<select class="lang-selector" onchange="changeLang(this.value)">
+<option value="en">🇬🇧 English</option>
+<option value="pt-br">🇧🇷 Português</option>
+<option value="es">🇪🇸 Español</option>
+<option value="fr">🇫🇷 Français</option>
+<option value="it">🇮🇹 Italiano</option>
+</select>
+<button class="reset-btn" onclick="resetProgress()" data-i18n="reset">Reset</button>
+</div>
+</div>
+<div class="stats">
+<span class="stat">✓ <span id="completed">0</span>/<span data-i18n="total-tasks">25</span> <span data-i18n="tasks">tasks</span></span>
+<span class="stat">⏰ <span data-i18n="duration">Full day job</span></span>
+</div>
+</div>
+<div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+
+<div class="timeline">
+
+<div class="alert"><strong data-i18n="keybox-title">🔑 Key Access:</strong> <span data-i18n="keybox-desc">Keybox code is 108. Equipment stored under stairs. Leave cottage key inside on table when finished.</span></div>
+
+<div class="phase" data-phase="1">
+<div class="phase-header" onclick="togglePhase(1)">
+<div>
+<div class="phase-time" data-i18n="phase1-time">🍳 Step 1</div>
+<div class="phase-title" data-i18n="phase1-title">Kitchen deep clean</div>
+</div>
+<span class="phase-icon">▼</span>
+</div>
+<div class="phase-content">
+<div class="content-inner">
+<div class="checklist">
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task1-1">Clear all surfaces and counters completely</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task1-2">Wash all dishes, pots, pans, and utensils thoroughly</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task1-3">Wipe down all countertops with cleaning spray</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task1-4">Clean stovetop/hob (remove burner grates, clean spills)</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task1-5">Wipe down fridge exterior and handles</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task1-6">Check fridge interior, remove old food, wipe shelves if dirty</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task1-7">Empty kitchen bin, replace with new bag</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task1-8">Sweep and mop kitchen floor</div></div>
+</div>
+<div class="capacity-note">🧼 <strong data-i18n="supply-check">Supply check:</strong> <span data-i18n="supply-desc">Refill dish soap, hand soap, sponges, and bin bags if needed. Supplies stored under stairs.</span></div>
+</div>
+</div>
+</div>
+
+<div class="phase" data-phase="2">
+<div class="phase-header" onclick="togglePhase(2)">
+<div>
+<div class="phase-time" data-i18n="phase2-time">🛏️ Step 2</div>
+<div class="phase-title" data-i18n="phase2-title">Bedrooms & living areas</div>
+</div>
+<span class="phase-icon">▼</span>
+</div>
+<div class="phase-content">
+<div class="content-inner">
+<div class="checklist">
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task2-1">Strip all beds (remove sheets, pillowcases, duvet covers)</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task2-2">Put dirty linens in laundry basket to take to main house</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task2-3">Make all beds with fresh linens from storage cupboard</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task2-4">Dust all bedroom surfaces (nightstands, dressers, windowsills)</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task2-5">Hoover all bedroom floors thoroughly</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task2-6">Dust living room surfaces (tables, shelves, TV stand)</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task2-7">Hoover living room carpet/floor and under furniture</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task2-8">Empty all bins in bedrooms and living areas</div></div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="phase" data-phase="3">
+<div class="phase-header" onclick="togglePhase(3)">
+<div>
+<div class="phase-time" data-i18n="phase3-time">🚿 Step 3</div>
+<div class="phase-title" data-i18n="phase3-title">Bathrooms complete</div>
+</div>
+<span class="phase-icon">▼</span>
+</div>
+<div class="phase-content">
+<div class="content-inner">
+<div class="checklist">
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task3-1">Clean toilet bowl with toilet cleaner and brush</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task3-2">Wipe down toilet exterior, seat, and base</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task3-3">Scrub shower/bathtub including walls and floor</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task3-4">Clean sink and countertop thoroughly</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task3-5">Clean mirror with glass cleaner</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task3-6">Refill hand soap, body wash, shampoo if needed</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task3-7">Replace toilet roll if less than half remaining</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task3-8">Place fresh towels (2 large, 2 small per bedroom)</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task3-9">Sweep and mop bathroom floor</div></div>
+</div>
+<div class="alert"><strong data-i18n="towel-note">🧺 Towel protocol:</strong> <span data-i18n="towel-desc">Each bedroom gets 2 large bath towels + 2 small hand towels. Check cupboard inventory before starting.</span></div>
+</div>
+</div>
+</div>
+
+<div class="phase" data-phase="4">
+<div class="phase-header" onclick="togglePhase(4)">
+<div>
+<div class="phase-time" data-i18n="phase4-time">✅ Step 4</div>
+<div class="phase-title" data-i18n="phase4-title">Final checks & lockup</div>
+</div>
+<span class="phase-icon">▼</span>
+</div>
+<div class="phase-content">
+<div class="content-inner">
+<div class="checklist">
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task4-1">Check all windows are closed and locked</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task4-2">Turn off all lights in every room</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task4-3">Turn heating to appropriate setting (check weather)</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task4-4">Check all appliances are off (oven, stove, etc.)</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task4-5">Do final walkthrough: all rooms clean, beds made, bathrooms ready</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task4-6">Leave cottage key on kitchen table inside</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task4-7">Lock front door using keybox</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task4-8">Return all cleaning equipment to storage under stairs</div></div>
+</div>
+<div class="capacity-note">🏡 <strong data-i18n="final-standard">Quality standard:</strong> <span data-i18n="final-desc">Cottage should look completely untouched, as if no one has stayed. Every surface clean, all linens fresh, nothing out of place.</span></div>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+
+<script>
+const translations={en:{title:"Cottages Cleaning SOP",reset:"Reset",tasks:"tasks","total-tasks":"25",duration:"Full day job","keybox-title":"🔑 Key Access:","keybox-desc":"Keybox code is 108. Equipment stored under stairs. Leave cottage key inside on table when finished.","phase1-time":"🍳 Step 1","phase1-title":"Kitchen deep clean","task1-1":"Clear all surfaces and counters completely","task1-2":"Wash all dishes, pots, pans, and utensils thoroughly","task1-3":"Wipe down all countertops with cleaning spray","task1-4":"Clean stovetop/hob (remove burner grates, clean spills)","task1-5":"Wipe down fridge exterior and handles","task1-6":"Check fridge interior, remove old food, wipe shelves if dirty","task1-7":"Empty kitchen bin, replace with new bag","task1-8":"Sweep and mop kitchen floor","supply-check":"Supply check:","supply-desc":"Refill dish soap, hand soap, sponges, and bin bags if needed. Supplies stored under stairs.","phase2-time":"🛏️ Step 2","phase2-title":"Bedrooms & living areas","task2-1":"Strip all beds (remove sheets, pillowcases, duvet covers)","task2-2":"Put dirty linens in laundry basket to take to main house","task2-3":"Make all beds with fresh linens from storage cupboard","task2-4":"Dust all bedroom surfaces (nightstands, dressers, windowsills)","task2-5":"Hoover all bedroom floors thoroughly","task2-6":"Dust living room surfaces (tables, shelves, TV stand)","task2-7":"Hoover living room carpet/floor and under furniture","task2-8":"Empty all bins in bedrooms and living areas","phase3-time":"🚿 Step 3","phase3-title":"Bathrooms complete","task3-1":"Clean toilet bowl with toilet cleaner and brush","task3-2":"Wipe down toilet exterior, seat, and base","task3-3":"Scrub shower/bathtub including walls and floor","task3-4":"Clean sink and countertop thoroughly","task3-5":"Clean mirror with glass cleaner","task3-6":"Refill hand soap, body wash, shampoo if needed","task3-7":"Replace toilet roll if less than half remaining","task3-8":"Place fresh towels (2 large, 2 small per bedroom)","task3-9":"Sweep and mop bathroom floor","towel-note":"🧺 Towel protocol:","towel-desc":"Each bedroom gets 2 large bath towels + 2 small hand towels. Check cupboard inventory before starting.","phase4-time":"✅ Step 4","phase4-title":"Final checks & lockup","task4-1":"Check all windows are closed and locked","task4-2":"Turn off all lights in every room","task4-3":"Turn heating to appropriate setting (check weather)","task4-4":"Check all appliances are off (oven, stove, etc.)","task4-5":"Do final walkthrough: all rooms clean, beds made, bathrooms ready","task4-6":"Leave cottage key on kitchen table inside","task4-7":"Lock front door using keybox","task4-8":"Return all cleaning equipment to storage under stairs","final-standard":"Quality standard:","final-desc":"Cottage should look completely untouched, as if no one has stayed. Every surface clean, all linens fresh, nothing out of place."},"pt-br":{title:"SOP Limpeza de Chalés",reset:"Resetar",tasks:"tarefas","total-tasks":"25",duration:"Trabalho de dia inteiro","keybox-title":"🔑 Acesso à chave:","keybox-desc":"Código do keybox é 108. Equipamentos armazenados embaixo da escada. Deixar chave do chalé dentro sobre a mesa ao terminar.","phase1-time":"🍳 Etapa 1","phase1-title":"Limpeza profunda da cozinha","task1-1":"Limpar todas as superfícies e balcões completamente","task1-2":"Lavar todos os pratos, panelas e utensílios completamente","task1-3":"Limpar todos os balcões com spray de limpeza","task1-4":"Limpar fogão (remover grelhas, limpar respingos)","task1-5":"Limpar exterior e alças da geladeira","task1-6":"Verificar interior da geladeira, remover comida velha, limpar prateleiras se sujo","task1-7":"Esvaziar lixeira da cozinha, substituir com novo saco","task1-8":"Varrer e passar pano no chão da cozinha","supply-check":"Verificação de suprimentos:","supply-desc":"Reabastecer detergente, sabonete, esponjas e sacos de lixo se necessário. Suprimentos armazenados embaixo da escada.","phase2-time":"🛏️ Etapa 2","phase2-title":"Quartos e áreas de estar","task2-1":"Remover roupa de cama (lençóis, fronhas, capas de edredom)","task2-2":"Colocar roupas sujas no cesto para levar à casa principal","task2-3":"Arrumar todas as camas com roupas limpas do armário","task2-4":"Tirar pó de todas as superfícies dos quartos (criados-mudos, cômodas, peitoris)","task2-5":"Aspirar todos os pisos dos quartos completamente","task2-6":"Tirar pó das superfícies da sala (mesas, prateleiras, suporte TV)","task2-7":"Aspirar carpete/piso da sala e embaixo dos móveis","task2-8":"Esvaziar todas as lixeiras nos quartos e áreas de estar","phase3-time":"🚿 Etapa 3","phase3-title":"Banheiros completos","task3-1":"Limpar vaso sanitário com limpador e escova","task3-2":"Limpar exterior do vaso, assento e base","task3-3":"Esfregar chuveiro/banheira incluindo paredes e chão","task3-4":"Limpar pia e balcão completamente","task3-5":"Limpar espelho com limpador de vidros","task3-6":"Reabastecer sabonete, gel de banho, shampoo se necessário","task3-7":"Substituir papel higiênico se menos da metade restante","task3-8":"Colocar toalhas limpas (2 grandes, 2 pequenas por quarto)","task3-9":"Varrer e passar pano no chão do banheiro","towel-note":"🧺 Protocolo de toalhas:","towel-desc":"Cada quarto recebe 2 toalhas de banho grandes + 2 toalhas de mão pequenas. Verificar inventário do armário antes de começar.","phase4-time":"✅ Etapa 4","phase4-title":"Verificações finais e fechamento","task4-1":"Verificar que todas as janelas estão fechadas e trancadas","task4-2":"Desligar todas as luzes em todos os cômodos","task4-3":"Ajustar aquecimento para configuração apropriada (verificar clima)","task4-4":"Verificar que todos os aparelhos estão desligados (forno, fogão, etc.)","task4-5":"Fazer inspeção final: todos os cômodos limpos, camas feitas, banheiros prontos","task4-6":"Deixar chave do chalé sobre mesa da cozinha dentro","task4-7":"Trancar porta da frente usando keybox","task4-8":"Devolver todos os equipamentos de limpeza ao armazenamento embaixo da escada","final-standard":"Padrão de qualidade:","final-desc":"Chalé deve parecer completamente intocado, como se ninguém tivesse ficado. Todas as superfícies limpas, todas as roupas frescas, nada fora do lugar."},es:{title:"SOP Limpieza de Cabañas",reset:"Reiniciar",tasks:"tareas","total-tasks":"25",duration:"Trabajo de día completo","keybox-title":"🔑 Acceso a llave:","keybox-desc":"Código del keybox es 108. Equipo almacenado bajo escaleras. Dejar llave de cabaña dentro sobre mesa al terminar.","phase1-time":"🍳 Paso 1","phase1-title":"Limpieza profunda de cocina","task1-1":"Limpiar todas las superficies y mostradores completamente","task1-2":"Lavar todos los platos, ollas, sartenes y utensilios completamente","task1-3":"Limpiar todos los mostradores con spray limpiador","task1-4":"Limpiar estufa (quitar parrillas, limpiar derrames)","task1-5":"Limpiar exterior y manijas del refrigerador","task1-6":"Revisar interior del refrigerador, quitar comida vieja, limpiar estantes si sucio","task1-7":"Vaciar bote de basura de cocina, reemplazar con nueva bolsa","task1-8":"Barrer y trapear piso de cocina","supply-check":"Verificación de suministros:","supply-desc":"Rellenar jabón para platos, jabón de manos, esponjas y bolsas de basura si necesario. Suministros almacenados bajo escaleras.","phase2-time":"🛏️ Paso 2","phase2-title":"Habitaciones y áreas de estar","task2-1":"Quitar toda la ropa de cama (sábanas, fundas, cubrecamas)","task2-2":"Poner ropa sucia en cesta para llevar a casa principal","task2-3":"Hacer todas las camas con ropa limpia del armario","task2-4":"Quitar polvo de todas las superficies de habitaciones (mesitas, cómodas, alféizares)","task2-5":"Aspirar todos los pisos de habitaciones completamente","task2-6":"Quitar polvo de superficies de sala (mesas, estantes, mueble TV)","task2-7":"Aspirar alfombra/piso de sala y debajo de muebles","task2-8":"Vaciar todos los botes de basura en habitaciones y áreas de estar","phase3-time":"🚿 Paso 3","phase3-title":"Baños completos","task3-1":"Limpiar taza de inodoro con limpiador y cepillo","task3-2":"Limpiar exterior del inodoro, asiento y base","task3-3":"Fregar ducha/bañera incluyendo paredes y piso","task3-4":"Limpiar lavabo y mostrador completamente","task3-5":"Limpiar espejo con limpiador de vidrios","task3-6":"Rellenar jabón de manos, gel de baño, champú si necesario","task3-7":"Reemplazar rollo de papel higiénico si menos de la mitad restante","task3-8":"Colocar toallas limpias (2 grandes, 2 pequeñas por habitación)","task3-9":"Barrer y trapear piso del baño","towel-note":"🧺 Protocolo de toallas:","towel-desc":"Cada habitación recibe 2 toallas de baño grandes + 2 toallas de mano pequeñas. Verificar inventario del armario antes de comenzar.","phase4-time":"✅ Paso 4","phase4-title":"Verificaciones finales y cierre","task4-1":"Verificar que todas las ventanas estén cerradas y con seguro","task4-2":"Apagar todas las luces en todos los cuartos","task4-3":"Ajustar calefacción a configuración apropiada (verificar clima)","task4-4":"Verificar que todos los aparatos estén apagados (horno, estufa, etc.)","task4-5":"Hacer recorrido final: todos los cuartos limpios, camas hechas, baños listos","task4-6":"Dejar llave de cabaña sobre mesa de cocina dentro","task4-7":"Cerrar puerta principal usando keybox","task4-8":"Devolver todo el equipo de limpieza al almacenamiento bajo escaleras","final-standard":"Estándar de calidad:","final-desc":"Cabaña debe verse completamente intacta, como si nadie se hubiera hospedado. Todas las superficies limpias, toda la ropa fresca, nada fuera de lugar."},fr:{title:"SOP Nettoyage des Chalets",reset:"Réinitialiser",tasks:"tâches","total-tasks":"25",duration:"Travail d'une journée","keybox-title":"🔑 Accès clé :","keybox-desc":"Code du keybox est 108. Équipement rangé sous l'escalier. Laisser clé du chalet à l'intérieur sur la table en terminant.","phase1-time":"🍳 Étape 1","phase1-title":"Nettoyage profond cuisine","task1-1":"Dégager toutes les surfaces et comptoirs complètement","task1-2":"Laver toute la vaisselle, casseroles, poêles et ustensiles complètement","task1-3":"Nettoyer tous les comptoirs avec spray nettoyant","task1-4":"Nettoyer cuisinière (retirer grilles, nettoyer éclaboussures)","task1-5":"Nettoyer extérieur et poignées du réfrigérateur","task1-6":"Vérifier intérieur du réfrigérateur, retirer vieille nourriture, nettoyer étagères si sale","task1-7":"Vider poubelle de cuisine, remplacer avec nouveau sac","task1-8":"Balayer et passer serpillière sol cuisine","supply-check":"Vérification fournitures :","supply-desc":"Remplir liquide vaisselle, savon mains, éponges et sacs poubelle si nécessaire. Fournitures rangées sous escalier.","phase2-time":"🛏️ Étape 2","phase2-title":"Chambres et espaces de vie","task2-1":"Retirer toute la literie (draps, taies, housses de couette)","task2-2":"Mettre linge sale dans panier pour amener à maison principale","task2-3":"Faire tous les lits avec linge propre du placard","task2-4":"Dépoussiérer toutes surfaces chambres (tables de chevet, commodes, rebords)","task2-5":"Passer aspirateur tous sols chambres complètement","task2-6":"Dépoussiérer surfaces salon (tables, étagères, meuble TV)","task2-7":"Passer aspirateur tapis/sol salon et sous meubles","task2-8":"Vider toutes poubelles dans chambres et espaces de vie","phase3-time":"🚿 Étape 3","phase3-title":"Salles de bain complètes","task3-1":"Nettoyer cuvette WC avec nettoyant et brosse","task3-2":"Nettoyer extérieur WC, siège et base","task3-3":"Récurer douche/baignoire incluant murs et sol","task3-4":"Nettoyer lavabo et comptoir complètement","task3-5":"Nettoyer miroir avec nettoyant vitres","task3-6":"Remplir savon mains, gel douche, shampooing si nécessaire","task3-7":"Remplacer rouleau papier toilette si moins de la moitié restant","task3-8":"Placer serviettes propres (2 grandes, 2 petites par chambre)","task3-9":"Balayer et passer serpillière sol salle de bain","towel-note":"🧺 Protocole serviettes :","towel-desc":"Chaque chambre reçoit 2 grandes serviettes de bain + 2 petites serviettes de toilette. Vérifier inventaire placard avant de commencer.","phase4-time":"✅ Étape 4","phase4-title":"Vérifications finales et fermeture","task4-1":"Vérifier que toutes fenêtres sont fermées et verrouillées","task4-2":"Éteindre toutes lumières dans toutes pièces","task4-3":"Régler chauffage à réglage approprié (vérifier météo)","task4-4":"Vérifier que tous appareils sont éteints (four, cuisinière, etc.)","task4-5":"Faire tour final : toutes pièces propres, lits faits, salles de bain prêtes","task4-6":"Laisser clé chalet sur table cuisine à l'intérieur","task4-7":"Verrouiller porte d'entrée avec keybox","task4-8":"Retourner tout équipement nettoyage au rangement sous escalier","final-standard":"Standard de qualité :","final-desc":"Chalet doit paraître complètement intact, comme si personne n'y avait séjourné. Toutes surfaces propres, tout linge frais, rien hors place."},it:{title:"SOP Pulizia Cottage",reset:"Ripristina",tasks:"compiti","total-tasks":"25",duration:"Lavoro giornata intera","keybox-title":"🔑 Accesso chiave:","keybox-desc":"Codice keybox è 108. Attrezzatura conservata sotto scale. Lasciare chiave cottage dentro sul tavolo quando finito.","phase1-time":"🍳 Passo 1","phase1-title":"Pulizia profonda cucina","task1-1":"Sgomberare tutte superfici e banconi completamente","task1-2":"Lavare tutti piatti, pentole, padelle e utensili completamente","task1-3":"Pulire tutti banconi con spray detergente","task1-4":"Pulire piano cottura (rimuovere griglie, pulire schizzi)","task1-5":"Pulire esterno e maniglie del frigorifero","task1-6":"Controllare interno frigorifero, rimuovere cibo vecchio, pulire ripiani se sporco","task1-7":"Svuotare cestino cucina, sostituire con nuovo sacchetto","task1-8":"Spazzare e passare straccio pavimento cucina","supply-check":"Controllo forniture:","supply-desc":"Rifornire detersivo piatti, sapone mani, spugne e sacchetti spazzatura se necessario. Forniture conservate sotto scale.","phase2-time":"🛏️ Passo 2","phase2-title":"Camere e aree soggiorno","task2-1":"Rimuovere tutta biancheria letto (lenzuola, federe, copripiumini)","task2-2":"Mettere biancheria sporca in cesto per portare a casa principale","task2-3":"Rifare tutti letti con biancheria pulita dall'armadio","task2-4":"Spolverare tutte superfici camere (comodini, cassettiere, davanzali)","task2-5":"Aspirare tutti pavimenti camere completamente","task2-6":"Spolverare superfici soggiorno (tavoli, mensole, mobile TV)","task2-7":"Aspirare tappeto/pavimento soggiorno e sotto mobili","task2-8":"Svuotare tutti cestini in camere e aree soggiorno","phase3-time":"🚿 Passo 3","phase3-title":"Bagni completi","task3-1":"Pulire tazza WC con detergente e scopino","task3-2":"Pulire esterno WC, sedile e base","task3-3":"Strofinare doccia/vasca includendo pareti e pavimento","task3-4":"Pulire lavandino e bancone completamente","task3-5":"Pulire specchio con detergente vetri","task3-6":"Rifornire sapone mani, bagnoschiuma, shampoo se necessario","task3-7":"Sostituire rotolo carta igienica se meno della metà rimanente","task3-8":"Posizionare asciugamani puliti (2 grandi, 2 piccoli per camera)","task3-9":"Spazzare e passare straccio pavimento bagno","towel-note":"🧺 Protocollo asciugamani:","towel-desc":"Ogni camera riceve 2 asciugamani da bagno grandi + 2 asciugamani piccoli per mani. Controllare inventario armadio prima di iniziare.","phase4-time":"✅ Passo 4","phase4-title":"Controlli finali e chiusura","task4-1":"Verificare che tutte finestre siano chiuse e bloccate","task4-2":"Spegnere tutte luci in tutte stanze","task4-3":"Regolare riscaldamento a impostazione appropriata (controllare meteo)","task4-4":"Verificare che tutti elettrodomestici siano spenti (forno, piano cottura, ecc.)","task4-5":"Fare giro finale: tutte stanze pulite, letti fatti, bagni pronti","task4-6":"Lasciare chiave cottage sul tavolo cucina dentro","task4-7":"Chiudere porta principale usando keybox","task4-8":"Restituire tutta attrezzatura pulizia al deposito sotto scale","final-standard":"Standard qualità:","final-desc":"Cottage deve sembrare completamente intatto, come se nessuno avesse soggiornato. Tutte superfici pulite, tutta biancheria fresca, niente fuori posto."}};const K='torridonia_cottages_progress';let currentLang='en';function setLang(l){currentLang=l;document.querySelectorAll('[data-i18n]').forEach(e=>{const k=e.getAttribute('data-i18n');if(translations[l]&&translations[l][k])e.textContent=translations[l][k]});document.querySelector('.lang-selector').value=l;localStorage.setItem('torridonia_lang',l)}function changeLang(l){setLang(l)}function load(){const l=localStorage.getItem('torridonia_lang')||'en';setLang(l);const s=localStorage.getItem(K);if(s){try{const d=JSON.parse(s);d.expanded.forEach(p=>{const e=document.querySelector('[data-phase="'+p+'"]');if(e)e.classList.add('expanded')});d.checked.forEach(i=>{const items=document.querySelectorAll('.checklist-item');if(items[i])items[i].classList.add('done')});update()}catch(e){}}}function save(){const exp=Array.from(document.querySelectorAll('.phase.expanded')).map(p=>p.dataset.phase);const items=document.querySelectorAll('.checklist-item');const chk=Array.from(items).map((item,i)=>item.classList.contains('done')?i:-1).filter(i=>i>=0);localStorage.setItem(K,JSON.stringify({expanded:exp,checked:chk}))}function togglePhase(n){document.querySelector('[data-phase="'+n+'"]').classList.toggle('expanded');save()}function toggleCheck(item){item.classList.toggle('done');update();save()}function update(){const t=document.querySelectorAll('.checklist-item').length;const d=document.querySelectorAll('.checklist-item.done').length;document.getElementById('completed').textContent=d;document.getElementById('progress').style.width=(d/t*100).toFixed(0)+'%'}function resetProgress(){const msg=currentLang==='en'?'Reset all progress? This cannot be undone.':currentLang==='pt-br'?'Resetar todo o progresso? Isso não pode ser desfeito.':currentLang==='es'?'¿Reiniciar todo el progreso? Esto no se puede deshacer.':currentLang==='fr'?'Réinitialiser tout le progrès? Cette action est irréversible.':'Ripristinare tutto il progresso? Questa azione è irreversibile.';if(confirm(msg)){localStorage.removeItem(K);document.querySelectorAll('.checklist-item').forEach(i=>i.classList.remove('done'));document.querySelectorAll('.phase').forEach(p=>p.classList.remove('expanded'));update()}}load();update();
+</script>
+</body>
+</html>

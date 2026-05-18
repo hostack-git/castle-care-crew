@@ -3,7 +3,7 @@ import { ChevronLeft } from "lucide-react";
 
 export const Route = createFileRoute("/sops/$sopSlug")({ component: SopFrame });
 
-const BASE = "https://raw.githubusercontent.com/jorgeibanezhostack/guidebookstorridon/main";
+const BASE = "/sops";
 
 const SOP_FILES: Record<string, string> = {
   breakfast: "breakfast-sop-multilang.html",

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Laundry Service SOP - Torridonia</title>
+<style>
+:root{--c-bg1:#fff;--c-bg2:#f8f7f4;--c-bg3:#f1efe8;--c-info-bg:#e6f1fb;--c-success-bg:#eaf3de;--c-warn-bg:#faeeda;--c-text1:#1a1a19;--c-text2:#5f5e5a;--c-text3:#888780;--c-info:#185fa5;--c-success:#3b6d11;--c-warn:#854f0b;--c-border3:rgba(61,61,58,.15);--c-border2:rgba(61,61,58,.3);--c-info-border:#85b7eb;--c-success-border:#97c459;--c-warn-border:#ef9f27;--radius-md:8px;--radius-lg:12px}
+@media (prefers-color-scheme:dark){:root{--c-bg1:#1a1a19;--c-bg2:#2c2c2a;--c-bg3:#3d3d3a;--c-info-bg:#0c447c;--c-success-bg:#27500a;--c-warn-bg:#633806;--c-text1:#f8f7f4;--c-text2:#b4b2a9;--c-text3:#888780;--c-info:#b5d4f4;--c-success:#c0dd97;--c-warn:#fac775;--c-border3:rgba(248,247,244,.15);--c-border2:rgba(248,247,244,.3);--c-info-border:#378add;--c-success-border:#639922;--c-warn-border:#ba7517}}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;background:var(--c-bg3);color:var(--c-text1);line-height:1.5}
+.container{max-width:640px;margin:0 auto}
+.header{position:sticky;top:4px;background:var(--c-bg1);padding:1rem;z-index:9;border-bottom:.5px solid var(--c-border3)}
+.title-section{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.main-title{font-size:18px;font-weight:500}
+.header-actions{display:flex;gap:8px;align-items:center}
+.lang-selector{padding:6px 10px;font-size:12px;color:var(--c-text1);background:var(--c-bg2);border:.5px solid var(--c-border2);border-radius:var(--radius-md);cursor:pointer;transition:.15s}
+.lang-selector:hover{background:var(--c-bg3)}
+.reset-btn{padding:6px 12px;font-size:12px;color:var(--c-text2);background:0 0;border:.5px solid var(--c-border2);border-radius:var(--radius-md);cursor:pointer;transition:.15s}
+.reset-btn:hover{background:var(--c-bg2);color:var(--c-text1)}
+.stats{display:flex;gap:8px;font-size:12px;color:var(--c-text2)}
+.stat{display:flex;align-items:center;gap:4px}
+.progress-bar{position:sticky;top:0;height:4px;background:var(--c-bg2);border-radius:2px;overflow:hidden;z-index:10}
+.progress-fill{height:100%;background:var(--c-success-bg);transition:width .3s}
+.timeline{display:flex;flex-direction:column;gap:1rem;padding:1rem}
+.phase{background:var(--c-bg1);border:.5px solid var(--c-border3);border-radius:var(--radius-lg);overflow:hidden}
+.phase-header{padding:1rem 1.25rem;cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none;transition:background .15s}
+.phase-header:hover{background:var(--c-bg2)}
+.phase-time{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:500;padding:4px 10px;border-radius:var(--radius-md);background:var(--c-info-bg);color:var(--c-info)}
+.phase-title{font-size:16px;font-weight:500;margin-top:4px}
+.phase-icon{font-size:20px;color:var(--c-text2);transition:transform .2s}
+.phase.expanded .phase-icon{transform:rotate(180deg)}
+.phase-content{max-height:0;overflow:hidden;transition:max-height .3s;border-top:.5px solid var(--c-border3)}
+.phase.expanded .phase-content{max-height:3500px}
+.content-inner{padding:1rem 1.25rem}
+.checklist{display:flex;flex-direction:column;gap:12px}
+.checklist-item{display:flex;gap:12px;align-items:flex-start;padding:10px;border-radius:var(--radius-md);background:var(--c-bg2);cursor:pointer;transition:background .15s}
+.checklist-item:active{background:var(--c-border3)}
+.checkbox{width:20px;height:20px;min-width:20px;border:1.5px solid var(--c-border2);border-radius:4px;display:flex;align-items:center;justify-content:center;margin-top:1px;transition:all .2s}
+.checklist-item.done .checkbox{background:var(--c-success-bg);border-color:var(--c-success-border)}
+.checkbox::after{content:"✓";font-size:14px;color:var(--c-success);opacity:0;transition:opacity .2s}
+.checklist-item.done .checkbox::after{opacity:1}
+.item-text{flex:1;font-size:14px;line-height:1.5}
+.checklist-item.done .item-text{color:var(--c-text2);text-decoration:line-through}
+.alert{margin-top:1rem;padding:12px;border-radius:var(--radius-md);background:var(--c-warn-bg);border-left:3px solid var(--c-warn-border);font-size:13px;color:var(--c-warn);line-height:1.5}
+.capacity-note{margin-top:1rem;padding:10px 12px;border-radius:var(--radius-md);background:var(--c-info-bg);font-size:12px;color:var(--c-info);line-height:1.5}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header">
+<div class="title-section">
+<h1 class="main-title" data-i18n="title">Laundry Service SOP</h1>
+<div class="header-actions">
+<select class="lang-selector" onchange="changeLang(this.value)">
+<option value="en">🇬🇧 English</option>
+<option value="pt-br">🇧🇷 Português</option>
+<option value="es">🇪🇸 Español</option>
+<option value="fr">🇫🇷 Français</option>
+<option value="it">🇮🇹 Italiano</option>
+</select>
+<button class="reset-btn" onclick="resetProgress()" data-i18n="reset">Reset</button>
+</div>
+</div>
+<div class="stats">
+<span class="stat">✓ <span id="completed">0</span>/<span data-i18n="total-tasks">17</span> <span data-i18n="tasks">tasks</span></span>
+<span class="stat">⏰ <span data-i18n="duration">All day job</span></span>
+</div>
+</div>
+<div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+
+<div class="timeline">
+
+<div class="alert"><strong data-i18n="timing-note">⏰ Timing:</strong> <span data-i18n="timing-desc">This is an all-day job with waiting periods. Start early, run multiple loads throughout the day. Machines in laundry room off main hallway.</span></div>
+
+<div class="phase" data-phase="1">
+<div class="phase-header" onclick="togglePhase(1)">
+<div>
+<div class="phase-time" data-i18n="phase1-time">🧺 Step 1</div>
+<div class="phase-title" data-i18n="phase1-title">Sorting & preparation</div>
+</div>
+<span class="phase-icon">▼</span>
+</div>
+<div class="phase-content">
+<div class="content-inner">
+<div class="checklist">
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task1-1">Collect all dirty laundry from B&B rooms and cottages</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task1-2">Sort into piles: whites, colors, towels, bedding</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task1-3">Check all items for stains or damage</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task1-4">Pre-treat any visible stains with stain remover</div></div>
+</div>
+<div class="capacity-note">🔍 <strong data-i18n="sort-guide">Sorting guide:</strong> <span data-i18n="sort-desc">Whites (sheets, pillowcases) separate from colors. Towels together (heavy load). Bedding separate (duvet covers, blankets). Never mix guest and staff linens.</span></div>
+</div>
+</div>
+</div>
+
+<div class="phase" data-phase="2">
+<div class="phase-header" onclick="togglePhase(2)">
+<div>
+<div class="phase-time" data-i18n="phase2-time">🌀 Step 2</div>
+<div class="phase-title" data-i18n="phase2-title">Washing cycles</div>
+</div>
+<span class="phase-icon">▼</span>
+</div>
+<div class="phase-content">
+<div class="content-inner">
+<div class="checklist">
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task2-1">Load first batch (don't overfill - leave space for water)</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task2-2">Add detergent (follow machine instructions for amount)</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task2-3">Select appropriate cycle: hot for whites/towels, warm for colors</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task2-4">Start machine and note completion time</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task2-5">Run additional loads throughout day (rotate batches)</div></div>
+</div>
+<div class="alert"><strong data-i18n="machine-warn">⚠️ Machine care:</strong> <span data-i18n="machine-desc">Don't overload machines. Remove items promptly after cycle ends to prevent mildew. Leave door slightly open between loads for ventilation.</span></div>
+</div>
+</div>
+</div>
+
+<div class="phase" data-phase="3">
+<div class="phase-header" onclick="togglePhase(3)">
+<div>
+<div class="phase-time" data-i18n="phase3-time">☀️ Step 3</div>
+<div class="phase-title" data-i18n="phase3-title">Drying process</div>
+</div>
+<span class="phase-icon">▼</span>
+</div>
+<div class="phase-content">
+<div class="content-inner">
+<div class="checklist">
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task3-1">Transfer washed items to dryer immediately after wash cycle</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task3-2">Clean lint filter before starting dryer</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task3-3">Set dryer to appropriate heat: high for towels, medium for everything else</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task3-4">Run dryer cycle and check if fully dry (may need extra time)</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task3-5">Remove items promptly to minimize wrinkles</div></div>
+</div>
+<div class="capacity-note">💡 <strong data-i18n="dry-tip">Drying tip:</strong> <span data-i18n="dry-desc">Shake out items before putting in dryer to reduce drying time. Don't over-dry delicate items. Check pockets for forgotten items.</span></div>
+</div>
+</div>
+</div>
+
+<div class="phase" data-phase="4">
+<div class="phase-header" onclick="togglePhase(4)">
+<div>
+<div class="phase-time" data-i18n="phase4-time">📦 Step 4</div>
+<div class="phase-title" data-i18n="phase4-title">Folding & storage</div>
+</div>
+<span class="phase-icon">▼</span>
+</div>
+<div class="phase-content">
+<div class="content-inner">
+<div class="checklist">
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task4-1">Fold all sheets and pillowcases neatly</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task4-2">Fold all towels in thirds (standard hotel fold)</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task4-3">Fold duvet covers and blankets</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task4-4">Separate guest linens from staff linens</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task4-5">Store guest linens in upstairs cupboard (brown stairs, first door right)</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task4-6">Store staff/volunteer linens in laundry room cupboard</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task4-7">Return any cottage linens to cottage storage cupboards</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task4-8">Leave laundry room clean and tidy for next use</div></div>
+</div>
+<div class="capacity-note">🗄️ <strong data-i18n="storage-guide">Storage locations:</strong> <span data-i18n="storage-desc">Guest linens: Upstairs linen cupboard (brown stairs, first door right). Staff linens: Laundry room cupboard. Cottage linens: Return to each cottage storage.</span></div>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+
+<script>
+const translations={en:{title:"Laundry Service SOP",reset:"Reset",tasks:"tasks","total-tasks":"17",duration:"All day job","timing-note":"⏰ Timing:","timing-desc":"This is an all-day job with waiting periods. Start early, run multiple loads throughout the day. Machines in laundry room off main hallway.","phase1-time":"🧺 Step 1","phase1-title":"Sorting & preparation","task1-1":"Collect all dirty laundry from B&B rooms and cottages","task1-2":"Sort into piles: whites, colors, towels, bedding","task1-3":"Check all items for stains or damage","task1-4":"Pre-treat any visible stains with stain remover","sort-guide":"Sorting guide:","sort-desc":"Whites (sheets, pillowcases) separate from colors. Towels together (heavy load). Bedding separate (duvet covers, blankets). Never mix guest and staff linens.","phase2-time":"🌀 Step 2","phase2-title":"Washing cycles","task2-1":"Load first batch (don't overfill - leave space for water)","task2-2":"Add detergent (follow machine instructions for amount)","task2-3":"Select appropriate cycle: hot for whites/towels, warm for colors","task2-4":"Start machine and note completion time","task2-5":"Run additional loads throughout day (rotate batches)","machine-warn":"⚠️ Machine care:","machine-desc":"Don't overload machines. Remove items promptly after cycle ends to prevent mildew. Leave door slightly open between loads for ventilation.","phase3-time":"☀️ Step 3","phase3-title":"Drying process","task3-1":"Transfer washed items to dryer immediately after wash cycle","task3-2":"Clean lint filter before starting dryer","task3-3":"Set dryer to appropriate heat: high for towels, medium for everything else","task3-4":"Run dryer cycle and check if fully dry (may need extra time)","task3-5":"Remove items promptly to minimize wrinkles","dry-tip":"Drying tip:","dry-desc":"Shake out items before putting in dryer to reduce drying time. Don't over-dry delicate items. Check pockets for forgotten items.","phase4-time":"📦 Step 4","phase4-title":"Folding & storage","task4-1":"Fold all sheets and pillowcases neatly","task4-2":"Fold all towels in thirds (standard hotel fold)","task4-3":"Fold duvet covers and blankets","task4-4":"Separate guest linens from staff linens","task4-5":"Store guest linens in upstairs cupboard (brown stairs, first door right)","task4-6":"Store staff/volunteer linens in laundry room cupboard","task4-7":"Return any cottage linens to cottage storage cupboards","task4-8":"Leave laundry room clean and tidy for next use","storage-guide":"Storage locations:","storage-desc":"Guest linens: Upstairs linen cupboard (brown stairs, first door right). Staff linens: Laundry room cupboard. Cottage linens: Return to each cottage storage."},"pt-br":{title:"SOP Serviço de Lavanderia",reset:"Resetar",tasks:"tarefas","total-tasks":"17",duration:"Trabalho de dia inteiro","timing-note":"⏰ Tempo:","timing-desc":"Este é um trabalho de dia inteiro com períodos de espera. Comece cedo, rode múltiplas cargas ao longo do dia. Máquinas na sala de lavanderia fora do corredor principal.","phase1-time":"🧺 Etapa 1","phase1-title":"Separação e preparação","task1-1":"Coletar toda roupa suja dos quartos B&B e chalés","task1-2":"Separar em pilhas: brancos, coloridos, toalhas, roupas de cama","task1-3":"Verificar todos os itens por manchas ou danos","task1-4":"Pré-tratar quaisquer manchas visíveis com removedor de manchas","sort-guide":"Guia de separação:","sort-desc":"Brancos (lençóis, fronhas) separados de coloridos. Toalhas juntas (carga pesada). Roupas de cama separadas (capas de edredom, cobertores). Nunca misturar roupas de hóspedes e equipe.","phase2-time":"🌀 Etapa 2","phase2-title":"Ciclos de lavagem","task2-1":"Carregar primeiro lote (não encher demais - deixar espaço para água)","task2-2":"Adicionar detergente (seguir instruções da máquina para quantidade)","task2-3":"Selecionar ciclo apropriado: quente para brancos/toalhas, morno para coloridos","task2-4":"Iniciar máquina e anotar horário de conclusão","task2-5":"Executar cargas adicionais ao longo do dia (rodar lotes)","machine-warn":"⚠️ Cuidado com máquina:","machine-desc":"Não sobrecarregar máquinas. Remover itens prontamente após fim do ciclo para prevenir mofo. Deixar porta levemente aberta entre cargas para ventilação.","phase3-time":"☀️ Etapa 3","phase3-title":"Processo de secagem","task3-1":"Transferir itens lavados para secadora imediatamente após ciclo de lavagem","task3-2":"Limpar filtro de fiapos antes de iniciar secadora","task3-3":"Ajustar secadora para calor apropriado: alto para toalhas, médio para todo resto","task3-4":"Executar ciclo de secadora e verificar se completamente seco (pode precisar tempo extra)","task3-5":"Remover itens prontamente para minimizar rugas","dry-tip":"Dica de secagem:","dry-desc":"Sacudir itens antes de colocar na secadora para reduzir tempo de secagem. Não secar demais itens delicados. Verificar bolsos por itens esquecidos.","phase4-time":"📦 Etapa 4","phase4-title":"Dobrar e armazenar","task4-1":"Dobrar todos lençóis e fronhas ordenadamente","task4-2":"Dobrar todas toalhas em terços (dobra padrão hotel)","task4-3":"Dobrar capas de edredom e cobertores","task4-4":"Separar roupas de hóspedes de roupas de equipe","task4-5":"Armazenar roupas de hóspedes no armário do andar de cima (escada marrom, primeira porta à direita)","task4-6":"Armazenar roupas de equipe/voluntários no armário da lavanderia","task4-7":"Devolver quaisquer roupas de chalés aos armários de armazenamento dos chalés","task4-8":"Deixar sala de lavanderia limpa e arrumada para próximo uso","storage-guide":"Locais de armazenamento:","storage-desc":"Roupas de hóspedes: Armário de roupas do andar de cima (escada marrom, primeira porta à direita). Roupas de equipe: Armário da lavanderia. Roupas de chalés: Devolver ao armazenamento de cada chalé."},es:{title:"SOP Servicio de Lavandería",reset:"Reiniciar",tasks:"tareas","total-tasks":"17",duration:"Trabajo de todo el día","timing-note":"⏰ Tiempo:","timing-desc":"Este es un trabajo de todo el día con períodos de espera. Comenzar temprano, ejecutar múltiples cargas a lo largo del día. Máquinas en cuarto de lavandería fuera del pasillo principal.","phase1-time":"🧺 Paso 1","phase1-title":"Clasificación y preparación","task1-1":"Recoger toda la ropa sucia de habitaciones B&B y cabañas","task1-2":"Clasificar en pilas: blancos, colores, toallas, ropa de cama","task1-3":"Revisar todos los artículos por manchas o daños","task1-4":"Pre-tratar cualquier mancha visible con quitamanchas","sort-guide":"Guía de clasificación:","sort-desc":"Blancos (sábanas, fundas) separados de colores. Toallas juntas (carga pesada). Ropa de cama separada (fundas nórdicas, mantas). Nunca mezclar ropa de huéspedes y personal.","phase2-time":"🌀 Paso 2","phase2-title":"Ciclos de lavado","task2-1":"Cargar primer lote (no llenar demasiado - dejar espacio para agua)","task2-2":"Agregar detergente (seguir instrucciones de máquina para cantidad)","task2-3":"Seleccionar ciclo apropiado: caliente para blancos/toallas, tibio para colores","task2-4":"Iniciar máquina y anotar hora de finalización","task2-5":"Ejecutar cargas adicionales durante el día (rotar lotes)","machine-warn":"⚠️ Cuidado de máquina:","machine-desc":"No sobrecargar máquinas. Quitar artículos rápidamente después de que termine el ciclo para prevenir moho. Dejar puerta levemente abierta entre cargas para ventilación.","phase3-time":"☀️ Paso 3","phase3-title":"Proceso de secado","task3-1":"Transferir artículos lavados a secadora inmediatamente después de ciclo de lavado","task3-2":"Limpiar filtro de pelusa antes de iniciar secadora","task3-3":"Ajustar secadora a calor apropiado: alto para toallas, medio para todo lo demás","task3-4":"Ejecutar ciclo de secadora y verificar si está completamente seco (puede necesitar tiempo extra)","task3-5":"Quitar artículos rápidamente para minimizar arrugas","dry-tip":"Consejo de secado:","dry-desc":"Sacudir artículos antes de poner en secadora para reducir tiempo de secado. No secar demasiado artículos delicados. Verificar bolsillos por artículos olvidados.","phase4-time":"📦 Paso 4","phase4-title":"Doblar y almacenar","task4-1":"Doblar todas las sábanas y fundas ordenadamente","task4-2":"Doblar todas las toallas en tercios (doblez estándar hotel)","task4-3":"Doblar fundas nórdicas y mantas","task4-4":"Separar ropa de huéspedes de ropa de personal","task4-5":"Almacenar ropa de huéspedes en armario del piso superior (escalera marrón, primera puerta a la derecha)","task4-6":"Almacenar ropa de personal/voluntarios en armario de cuarto de lavandería","task4-7":"Devolver cualquier ropa de cabañas a armarios de almacenamiento de cabañas","task4-8":"Dejar cuarto de lavandería limpio y ordenado para próximo uso","storage-guide":"Ubicaciones de almacenamiento:","storage-desc":"Ropa de huéspedes: Armario de ropa del piso superior (escalera marrón, primera puerta a la derecha). Ropa de personal: Armario de lavandería. Ropa de cabañas: Devolver al almacenamiento de cada cabaña."},fr:{title:"SOP Service de Blanchisserie",reset:"Réinitialiser",tasks:"tâches","total-tasks":"17",duration:"Travail toute la journée","timing-note":"⏰ Timing :","timing-desc":"C'est un travail de toute la journée avec des périodes d'attente. Commencer tôt, faire plusieurs lessives tout au long de la journée. Machines dans buanderie près du couloir principal.","phase1-time":"🧺 Étape 1","phase1-title":"Tri et préparation","task1-1":"Collecter tout le linge sale des chambres B&B et chalets","task1-2":"Trier en piles : blancs, couleurs, serviettes, literie","task1-3":"Vérifier tous articles pour taches ou dommages","task1-4":"Pré-traiter toute tache visible avec détachant","sort-guide":"Guide de tri :","sort-desc":"Blancs (draps, taies) séparés des couleurs. Serviettes ensemble (charge lourde). Literie séparée (housses de couette, couvertures). Ne jamais mélanger linge clients et personnel.","phase2-time":"🌀 Étape 2","phase2-title":"Cycles de lavage","task2-1":"Charger premier lot (ne pas trop remplir - laisser espace pour eau)","task2-2":"Ajouter détergent (suivre instructions machine pour quantité)","task2-3":"Sélectionner cycle approprié : chaud pour blancs/serviettes, tiède pour couleurs","task2-4":"Démarrer machine et noter heure de fin","task2-5":"Faire lessives supplémentaires tout au long de la journée (rotation lots)","machine-warn":"⚠️ Entretien machine :","machine-desc":"Ne pas surcharger machines. Retirer articles rapidement après fin de cycle pour prévenir moisissure. Laisser porte légèrement ouverte entre lessives pour ventilation.","phase3-time":"☀️ Étape 3","phase3-title":"Processus de séchage","task3-1":"Transférer articles lavés au sèche-linge immédiatement après cycle de lavage","task3-2":"Nettoyer filtre à peluches avant démarrage sèche-linge","task3-3":"Régler sèche-linge à chaleur appropriée : haute pour serviettes, moyenne pour tout le reste","task3-4":"Lancer cycle sèche-linge et vérifier si complètement sec (peut nécessiter temps supplémentaire)","task3-5":"Retirer articles rapidement pour minimiser plis","dry-tip":"Astuce séchage :","dry-desc":"Secouer articles avant de mettre au sèche-linge pour réduire temps de séchage. Ne pas trop sécher articles délicats. Vérifier poches pour articles oubliés.","phase4-time":"📦 Étape 4","phase4-title":"Plier et ranger","task4-1":"Plier tous draps et taies soigneusement","task4-2":"Plier toutes serviettes en tiers (pliage standard hôtel)","task4-3":"Plier housses de couette et couvertures","task4-4":"Séparer linge clients du linge personnel","task4-5":"Ranger linge clients dans placard à l'étage (escalier marron, première porte à droite)","task4-6":"Ranger linge personnel/bénévoles dans placard buanderie","task4-7":"Retourner tout linge de chalets aux placards de rangement des chalets","task4-8":"Laisser buanderie propre et rangée pour prochaine utilisation","storage-guide":"Emplacements de rangement :","storage-desc":"Linge clients : Placard à linge à l'étage (escalier marron, première porte à droite). Linge personnel : Placard buanderie. Linge chalets : Retourner au rangement de chaque chalet."},it:{title:"SOP Servizio Lavanderia",reset:"Ripristina",tasks:"compiti","total-tasks":"17",duration:"Lavoro giornata intera","timing-note":"⏰ Tempistica:","timing-desc":"Questo è un lavoro di giornata intera con periodi di attesa. Iniziare presto, fare più carichi durante la giornata. Macchine in lavanderia fuori corridoio principale.","phase1-time":"🧺 Passo 1","phase1-title":"Smistamento e preparazione","task1-1":"Raccogliere tutta biancheria sporca da camere B&B e cottage","task1-2":"Dividere in pile: bianchi, colorati, asciugamani, biancheria letto","task1-3":"Controllare tutti articoli per macchie o danni","task1-4":"Pre-trattare qualsiasi macchia visibile con smacchiatore","sort-guide":"Guida smistamento:","sort-desc":"Bianchi (lenzuola, federe) separati da colorati. Asciugamani insieme (carico pesante). Biancheria letto separata (copripiumini, coperte). Mai mescolare biancheria ospiti e personale.","phase2-time":"🌀 Passo 2","phase2-title":"Cicli di lavaggio","task2-1":"Caricare primo lotto (non riempire troppo - lasciare spazio per acqua)","task2-2":"Aggiungere detersivo (seguire istruzioni macchina per quantità)","task2-3":"Selezionare ciclo appropriato: caldo per bianchi/asciugamani, tiepido per colorati","task2-4":"Avviare macchina e annotare ora fine","task2-5":"Fare carichi aggiuntivi durante giornata (rotazione lotti)","machine-warn":"⚠️ Cura macchina:","machine-desc":"Non sovraccaricare macchine. Rimuovere articoli prontamente dopo fine ciclo per prevenire muffa. Lasciare porta leggermente aperta tra carichi per ventilazione.","phase3-time":"☀️ Passo 3","phase3-title":"Processo di asciugatura","task3-1":"Trasferire articoli lavati all'asciugatrice immediatamente dopo ciclo lavaggio","task3-2":"Pulire filtro pelucchi prima di avviare asciugatrice","task3-3":"Impostare asciugatrice a calore appropriato: alto per asciugamani, medio per tutto resto","task3-4":"Avviare ciclo asciugatrice e verificare se completamente asciutto (può necessitare tempo extra)","task3-5":"Rimuovere articoli prontamente per minimizzare pieghe","dry-tip":"Suggerimento asciugatura:","dry-desc":"Scuotere articoli prima di mettere in asciugatrice per ridurre tempo asciugatura. Non asciugare troppo articoli delicati. Controllare tasche per articoli dimenticati.","phase4-time":"📦 Passo 4","phase4-title":"Piegare e conservare","task4-1":"Piegare tutti lenzuola e federe ordinatamente","task4-2":"Piegare tutti asciugamani in terzi (piega standard hotel)","task4-3":"Piegare copripiumini e coperte","task4-4":"Separare biancheria ospiti da biancheria personale","task4-5":"Conservare biancheria ospiti in armadio piano superiore (scala marrone, prima porta destra)","task4-6":"Conservare biancheria personale/volontari in armadio lavanderia","task4-7":"Restituire qualsiasi biancheria cottage agli armadi deposito cottage","task4-8":"Lasciare lavanderia pulita e ordinata per prossimo uso","storage-guide":"Posizioni conservazione:","storage-desc":"Biancheria ospiti: Armadio biancheria piano superiore (scala marrone, prima porta destra). Biancheria personale: Armadio lavanderia. Biancheria cottage: Restituire al deposito di ogni cottage."}};const K='torridonia_laundry_progress';let currentLang='en';function setLang(l){currentLang=l;document.querySelectorAll('[data-i18n]').forEach(e=>{const k=e.getAttribute('data-i18n');if(translations[l]&&translations[l][k])e.textContent=translations[l][k]});document.querySelector('.lang-selector').value=l;localStorage.setItem('torridonia_lang',l)}function changeLang(l){setLang(l)}function load(){const l=localStorage.getItem('torridonia_lang')||'en';setLang(l);const s=localStorage.getItem(K);if(s){try{const d=JSON.parse(s);d.expanded.forEach(p=>{const e=document.querySelector('[data-phase="'+p+'"]');if(e)e.classList.add('expanded')});d.checked.forEach(i=>{const items=document.querySelectorAll('.checklist-item');if(items[i])items[i].classList.add('done')});update()}catch(e){}}}function save(){const exp=Array.from(document.querySelectorAll('.phase.expanded')).map(p=>p.dataset.phase);const items=document.querySelectorAll('.checklist-item');const chk=Array.from(items).map((item,i)=>item.classList.contains('done')?i:-1).filter(i=>i>=0);localStorage.setItem(K,JSON.stringify({expanded:exp,checked:chk}))}function togglePhase(n){document.querySelector('[data-phase="'+n+'"]').classList.toggle('expanded');save()}function toggleCheck(item){item.classList.toggle('done');update();save()}function update(){const t=document.querySelectorAll('.checklist-item').length;const d=document.querySelectorAll('.checklist-item.done').length;document.getElementById('completed').textContent=d;document.getElementById('progress').style.width=(d/t*100).toFixed(0)+'%'}function resetProgress(){const msg=currentLang==='en'?'Reset all progress? This cannot be undone.':currentLang==='pt-br'?'Resetar todo o progresso? Isso não pode ser desfeito.':currentLang==='es'?'¿Reiniciar todo el progreso? Esto no se puede deshacer.':currentLang==='fr'?'Réinitialiser tout le progrès? Cette action est irréversible.':'Ripristinare tutto il progresso? Questa azione è irreversibile.';if(confirm(msg)){localStorage.removeItem(K);document.querySelectorAll('.checklist-item').forEach(i=>i.classList.remove('done'));document.querySelectorAll('.phase').forEach(p=>p.classList.remove('expanded'));update()}}load();update();
+</script>
+</body>
+</html>

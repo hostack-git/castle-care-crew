@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Breakfast Service SOP - Torridonia</title>
+<style>
+:root{--c-bg1:#fff;--c-bg2:#f8f7f4;--c-bg3:#f1efe8;--c-info-bg:#e6f1fb;--c-success-bg:#eaf3de;--c-warn-bg:#faeeda;--c-text1:#1a1a19;--c-text2:#5f5e5a;--c-text3:#888780;--c-info:#185fa5;--c-success:#3b6d11;--c-warn:#854f0b;--c-border3:rgba(61,61,58,.15);--c-border2:rgba(61,61,58,.3);--c-info-border:#85b7eb;--c-success-border:#97c459;--c-warn-border:#ef9f27;--radius-md:8px;--radius-lg:12px}
+@media (prefers-color-scheme:dark){:root{--c-bg1:#1a1a19;--c-bg2:#2c2c2a;--c-bg3:#3d3d3a;--c-info-bg:#0c447c;--c-success-bg:#27500a;--c-warn-bg:#633806;--c-text1:#f8f7f4;--c-text2:#b4b2a9;--c-text3:#888780;--c-info:#b5d4f4;--c-success:#c0dd97;--c-warn:#fac775;--c-border3:rgba(248,247,244,.15);--c-border2:rgba(248,247,244,.3);--c-info-border:#378add;--c-success-border:#639922;--c-warn-border:#ba7517}}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;background:var(--c-bg3);color:var(--c-text1);line-height:1.5}
+.container{max-width:640px;margin:0 auto}
+.header{position:sticky;top:4px;background:var(--c-bg1);padding:1rem;z-index:9;border-bottom:.5px solid var(--c-border3)}
+.title-section{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.main-title{font-size:18px;font-weight:500}
+.header-actions{display:flex;gap:8px;align-items:center}
+.lang-selector{padding:6px 10px;font-size:12px;color:var(--c-text1);background:var(--c-bg2);border:.5px solid var(--c-border2);border-radius:var(--radius-md);cursor:pointer;transition:.15s}
+.lang-selector:hover{background:var(--c-bg3)}
+.reset-btn{padding:6px 12px;font-size:12px;color:var(--c-text2);background:0 0;border:.5px solid var(--c-border2);border-radius:var(--radius-md);cursor:pointer;transition:.15s}
+.reset-btn:hover{background:var(--c-bg2);color:var(--c-text1)}
+.stats{display:flex;gap:8px;font-size:12px;color:var(--c-text2)}
+.stat{display:flex;align-items:center;gap:4px}
+.progress-bar{position:sticky;top:0;height:4px;background:var(--c-bg2);border-radius:2px;overflow:hidden;z-index:10}
+.progress-fill{height:100%;background:var(--c-success-bg);transition:width .3s}
+.timeline{display:flex;flex-direction:column;gap:1rem;padding:1rem}
+.phase{background:var(--c-bg1);border:.5px solid var(--c-border3);border-radius:var(--radius-lg);overflow:hidden}
+.phase-header{padding:1rem 1.25rem;cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none;transition:background .15s}
+.phase-header:hover{background:var(--c-bg2)}
+.phase-time{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:500;padding:4px 10px;border-radius:var(--radius-md);background:var(--c-info-bg);color:var(--c-info)}
+.phase-title{font-size:16px;font-weight:500;margin-top:4px}
+.phase-icon{font-size:20px;color:var(--c-text2);transition:transform .2s}
+.phase.expanded .phase-icon{transform:rotate(180deg)}
+.phase-content{max-height:0;overflow:hidden;transition:max-height .3s;border-top:.5px solid var(--c-border3)}
+.phase.expanded .phase-content{max-height:3000px}
+.content-inner{padding:1rem 1.25rem}
+.checklist{display:flex;flex-direction:column;gap:12px}
+.checklist-item{display:flex;gap:12px;align-items:flex-start;padding:10px;border-radius:var(--radius-md);background:var(--c-bg2);cursor:pointer;transition:background .15s}
+.checklist-item:active{background:var(--c-border3)}
+.checkbox{width:20px;height:20px;min-width:20px;border:1.5px solid var(--c-border2);border-radius:4px;display:flex;align-items:center;justify-content:center;margin-top:1px;transition:all .2s}
+.checklist-item.done .checkbox{background:var(--c-success-bg);border-color:var(--c-success-border)}
+.checkbox::after{content:"✓";font-size:14px;color:var(--c-success);opacity:0;transition:opacity .2s}
+.checklist-item.done .checkbox::after{opacity:1}
+.item-text{flex:1;font-size:14px;line-height:1.5}
+.checklist-item.done .item-text{color:var(--c-text2);text-decoration:line-through}
+.alert{margin-top:1rem;padding:12px;border-radius:var(--radius-md);background:var(--c-warn-bg);border-left:3px solid var(--c-warn-border);font-size:13px;color:var(--c-warn);line-height:1.5}
+.capacity-note{margin-top:1rem;padding:10px 12px;border-radius:var(--radius-md);background:var(--c-info-bg);font-size:12px;color:var(--c-info);line-height:1.5}
+.recipe-section{margin-top:1rem;padding:12px;border-radius:var(--radius-md);border:.5px solid var(--c-border3);background:var(--c-bg2)}
+.recipe-title{font-size:13px;font-weight:500;margin-bottom:8px}
+.recipe-list{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--c-text2);line-height:1.5}
+.recipe-list li{list-style:none;padding-left:18px;position:relative}
+.recipe-list li::before{content:"•";position:absolute;left:4px;color:var(--c-text3)}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header">
+<div class="title-section">
+<h1 class="main-title" data-i18n="title">Breakfast Service SOP</h1>
+<div class="header-actions">
+<select class="lang-selector" onchange="changeLang(this.value)">
+<option value="en">🇬🇧 English</option>
+<option value="pt-br">🇧🇷 Português</option>
+<option value="es">🇪🇸 Español</option>
+<option value="fr">🇫🇷 Français</option>
+<option value="it">🇮🇹 Italiano</option>
+</select>
+<button class="reset-btn" onclick="resetProgress()" data-i18n="reset">Reset</button>
+</div>
+</div>
+<div class="stats">
+<span class="stat">✓ <span id="completed">0</span>/<span data-i18n="total-tasks">22</span> <span data-i18n="tasks">tasks</span></span>
+<span class="stat">👥 <span data-i18n="capacity">Up to 10 guests</span></span>
+</div>
+</div>
+<div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+<div class="timeline">
+<div class="phase" data-phase="1">
+<div class="phase-header" onclick="togglePhase(1)">
+<div>
+<div class="phase-time">🕐 7:00 - 8:00 AM</div>
+<div class="phase-title" data-i18n="phase1-title">Preparation phase</div>
+</div>
+<span class="phase-icon">▼</span>
+</div>
+<div class="phase-content">
+<div class="content-inner">
+<div class="checklist">
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task1-1">Be in kitchen at 7:00 AM</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task1-2">Prepare 10 small clay plates for tomato + mozzarella starter</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task1-3">Cut 3 cherry tomatoes in half per plate</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task1-4">Add 2 mozzarella slices per plate</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task1-5">Prepare 10 deeper clay plates for egg dishes</div></div>
+</div>
+<div class="recipe-section">
+<div class="recipe-title" data-i18n="recipe-title">Egg dish assembly (per plate)</div>
+<ul class="recipe-list">
+<li data-i18n="recipe1">5 drops olive oil at bottom</li>
+<li data-i18n="recipe2">Layer of baby spinach from guest fridge</li>
+<li data-i18n="recipe3">4 cubes of feta cheese on top</li>
+<li data-i18n="recipe4">1 tablespoon chorizo spread around</li>
+<li data-i18n="recipe5">Pour beaten eggs (22-24 eggs total in jug for 10 plates)</li>
+<li data-i18n="recipe6">Sprinkle Italian seasoning to cover surface</li>
+</ul>
+</div>
+<div class="checklist">
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task1-6">Assemble all 10 egg dishes following recipe</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task1-7">Prepare 2 large French presses (6 spoons coffee each)</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task1-8">Boil water using kettle and fill presses</div></div>
+</div>
+<div class="alert"><strong data-i18n="diet-title">Dietary adaptations:</strong> <span data-i18n="diet-desc">Vegetarian = remove chorizo. Vegan = notify at check-in that breakfast is not adapted.</span></div>
+</div>
+</div>
+</div>
+
+<div class="phase" data-phase="2">
+<div class="phase-header" onclick="togglePhase(2)">
+<div>
+<div class="phase-time">🕐 8:00 - 9:00 AM</div>
+<div class="phase-title" data-i18n="phase2-title">Guest service</div>
+</div>
+<span class="phase-icon">▼</span>
+</div>
+<div class="phase-content">
+<div class="content-inner">
+<div class="checklist">
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task2-1">Listen for guests arriving in dining area</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task2-2">Greet guests and ask if they want coffee</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task2-3">Bring French press to table if yes</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task2-4">Point out sugar, cream, and tea at hot water station</div></div>
+</div>
+<div class="recipe-section">
+<div class="recipe-title" data-i18n="cooking-title">Microwave cooking process</div>
+<ul class="recipe-list">
+<li><strong data-i18n="batch-4">Standard batch (4 plates):</strong> <span data-i18n="batch-4-time">5 min max power → stir → 2 min more</span></li>
+<li><strong data-i18n="batch-2">Quick batch (2 plates):</strong> <span data-i18n="batch-2-time">3 min max power → stir → 1 min more</span></li>
+<li data-i18n="eggs-ready">Eggs should puff up slightly when ready</li>
+<li data-i18n="repeat">Repeat process for remaining plates</li>
+</ul>
+</div>
+<div class="capacity-note">💡 <span data-i18n="batch-tip">Use 4-plate batches during peak service (8:15-8:45 AM). Use 2-plate batches for staggered arrivals or late guests.</span></div>
+<div class="checklist">
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task2-5">Cook egg plates in batches (4 or 2 depending on guest flow)</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task2-6">Prepare white plates with starter + 1 bolillo + 1 sweet roll (or 2 toast slices)</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task2-7">Add cooked egg plate to each white plate</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task2-8">Deliver complete plates to guests</div></div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="phase" data-phase="3">
+<div class="phase-header" onclick="togglePhase(3)">
+<div>
+<div class="phase-time">🕐 9:00 - 10:00 AM</div>
+<div class="phase-title" data-i18n="phase3-title">Kitchen recovery</div>
+</div>
+<span class="phase-icon">▼</span>
+</div>
+<div class="phase-content">
+<div class="content-inner">
+<div class="checklist">
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task3-1">Collect used plates with wooden tray</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task3-2">Transfer leftovers (milk, juice, coffee, unused prep) to volunteer kitchen</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task3-3">Bring all dishes to B&B kitchen</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task3-4">Turn on hot water tap and plug drain</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task3-5">Fill sink with hot water and dish soap</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task3-6">Wash all plates and utensils</div></div>
+</div>
+<div class="alert"><strong data-i18n="timing-title">Timing goal:</strong> <span data-i18n="timing-desc">Complete dish washing by 10:00 AM so kitchen is free for volunteer shift start.</span></div>
+</div>
+</div>
+</div>
+
+<div class="phase" data-phase="4">
+<div class="phase-header" onclick="togglePhase(4)">
+<div>
+<div class="phase-time">🕐 <span data-i18n="phase4-time">After 10:00 AM</span></div>
+<div class="phase-title" data-i18n="phase4-title">Handover to volunteers</div>
+</div>
+<span class="phase-icon">▼</span>
+</div>
+<div class="phase-content">
+<div class="content-inner">
+<div class="checklist">
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task4-1">Empty trash bins</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task4-2">Wipe down all surfaces and tables</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task4-3">Sweep/mop floor</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text" data-i18n="task4-4">Confirm kitchen is ready for volunteer use</div></div>
+</div>
+<div class="capacity-note">ℹ️ <span data-i18n="leave-clean">Leave kitchen in clean state for volunteer shift.</span></div>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+
+<script>
+const translations={en:{title:"Breakfast Service SOP",reset:"Reset",tasks:"tasks","total-tasks":"22",capacity:"Up to 10 guests","phase1-title":"Preparation phase","task1-1":"Be in kitchen at 7:00 AM","task1-2":"Prepare 10 small clay plates for tomato + mozzarella starter","task1-3":"Cut 3 cherry tomatoes in half per plate","task1-4":"Add 2 mozzarella slices per plate","task1-5":"Prepare 10 deeper clay plates for egg dishes","recipe-title":"Egg dish assembly (per plate)",recipe1:"5 drops olive oil at bottom",recipe2:"Layer of baby spinach from guest fridge",recipe3:"4 cubes of feta cheese on top",recipe4:"1 tablespoon chorizo spread around",recipe5:"Pour beaten eggs (22-24 eggs total in jug for 10 plates)",recipe6:"Sprinkle Italian seasoning to cover surface","task1-6":"Assemble all 10 egg dishes following recipe","task1-7":"Prepare 2 large French presses (6 spoons coffee each)","task1-8":"Boil water using kettle and fill presses","diet-title":"Dietary adaptations:","diet-desc":"Vegetarian = remove chorizo. Vegan = notify at check-in that breakfast is not adapted.","phase2-title":"Guest service","task2-1":"Listen for guests arriving in dining area","task2-2":"Greet guests and ask if they want coffee","task2-3":"Bring French press to table if yes","task2-4":"Point out sugar, cream, and tea at hot water station","cooking-title":"Microwave cooking process","batch-4":"Standard batch (4 plates):","batch-4-time":"5 min max power → stir → 2 min more","batch-2":"Quick batch (2 plates):","batch-2-time":"3 min max power → stir → 1 min more","eggs-ready":"Eggs should puff up slightly when ready",repeat:"Repeat process for remaining plates","batch-tip":"Use 4-plate batches during peak service (8:15-8:45 AM). Use 2-plate batches for staggered arrivals or late guests.","task2-5":"Cook egg plates in batches (4 or 2 depending on guest flow)","task2-6":"Prepare white plates with starter + 1 bolillo + 1 sweet roll (or 2 toast slices)","task2-7":"Add cooked egg plate to each white plate","task2-8":"Deliver complete plates to guests","phase3-title":"Kitchen recovery","task3-1":"Collect used plates with wooden tray","task3-2":"Transfer leftovers (milk, juice, coffee, unused prep) to volunteer kitchen","task3-3":"Bring all dishes to B&B kitchen","task3-4":"Turn on hot water tap and plug drain","task3-5":"Fill sink with hot water and dish soap","task3-6":"Wash all plates and utensils","timing-title":"Timing goal:","timing-desc":"Complete dish washing by 10:00 AM so kitchen is free for volunteer shift start.","phase4-time":"After 10:00 AM","phase4-title":"Handover to volunteers","task4-1":"Empty trash bins","task4-2":"Wipe down all surfaces and tables","task4-3":"Sweep/mop floor","task4-4":"Confirm kitchen is ready for volunteer use","leave-clean":"Leave kitchen in clean state for volunteer shift."},"pt-br":{title:"SOP Serviço de Café da Manhã",reset:"Resetar",tasks:"tarefas","total-tasks":"22",capacity:"Até 10 hóspedes","phase1-title":"Fase de preparação","task1-1":"Estar na cozinha às 7:00","task1-2":"Preparar 10 pratos pequenos de barro para entrada de tomate + mozzarella","task1-3":"Cortar 3 tomates cereja ao meio por prato","task1-4":"Adicionar 2 fatias de mozzarella por prato","task1-5":"Preparar 10 pratos fundos de barro para os ovos","recipe-title":"Montagem do prato de ovos (por prato)",recipe1:"5 gotas de azeite de oliva no fundo",recipe2:"Camada de espinafre baby da geladeira dos hóspedes",recipe3:"4 cubos de queijo feta por cima",recipe4:"1 colher de sopa de chorizo espalhado",recipe5:"Despejar ovos batidos (22-24 ovos no total em jarra para 10 pratos)",recipe6:"Polvilhar tempero italiano para cobrir a superfície","task1-6":"Montar todos os 10 pratos de ovos seguindo a receita","task1-7":"Preparar 2 prensas francesas grandes (6 colheres de café cada)","task1-8":"Ferver água usando chaleira e encher as prensas","diet-title":"Adaptações dietéticas:","diet-desc":"Vegetariano = remover chorizo. Vegano = notificar no check-in que o café da manhã não está adaptado.","phase2-title":"Atendimento aos hóspedes","task2-1":"Ficar atento à chegada dos hóspedes na área de jantar","task2-2":"Cumprimentar os hóspedes e perguntar se querem café","task2-3":"Levar a prensa francesa à mesa se sim","task2-4":"Indicar açúcar, creme e chá na estação de água quente","cooking-title":"Processo de cozimento no micro-ondas","batch-4":"Lote padrão (4 pratos):","batch-4-time":"5 min potência máxima → mexer → mais 2 min","batch-2":"Lote rápido (2 pratos):","batch-2-time":"3 min potência máxima → mexer → mais 1 min","eggs-ready":"Os ovos devem inflar um pouco quando prontos",repeat:"Repetir o processo para os pratos restantes","batch-tip":"Use lotes de 4 pratos durante o pico de serviço (8:15-8:45). Use lotes de 2 pratos para chegadas escalonadas ou hóspedes atrasados.","task2-5":"Cozinhar pratos de ovos em lotes (4 ou 2 dependendo do fluxo)","task2-6":"Preparar pratos brancos com entrada + 1 pão + 1 pão doce (ou 2 fatias de torrada)","task2-7":"Adicionar prato de ovos cozidos a cada prato branco","task2-8":"Entregar pratos completos aos hóspedes","phase3-title":"Recuperação da cozinha","task3-1":"Recolher pratos usados com bandeja de madeira","task3-2":"Transferir sobras (leite, suco, café, preparações não usadas) para cozinha dos voluntários","task3-3":"Levar todos os pratos para cozinha do B&B","task3-4":"Abrir torneira de água quente e fechar o ralo","task3-5":"Encher pia com água quente e detergente","task3-6":"Lavar todos os pratos e utensílios","timing-title":"Meta de tempo:","timing-desc":"Completar lavagem de louça até 10:00 para que a cozinha fique disponível para o turno dos voluntários.","phase4-time":"Depois das 10:00","phase4-title":"Passagem para voluntários","task4-1":"Esvaziar lixeiras","task4-2":"Limpar todas as superfícies e mesas","task4-3":"Varrer/passar pano no chão","task4-4":"Confirmar que cozinha está pronta para uso dos voluntários","leave-clean":"Deixar cozinha em estado limpo para o turno dos voluntários."},es:{title:"SOP Servicio de Desayuno",reset:"Reiniciar",tasks:"tareas","total-tasks":"22",capacity:"Hasta 10 huéspedes","phase1-title":"Fase de preparación","task1-1":"Estar en cocina a las 7:00 AM","task1-2":"Preparar 10 platos pequeños de barro para entrada de tomate + mozzarella","task1-3":"Cortar 3 tomates cherry por la mitad por plato","task1-4":"Agregar 2 rodajas de mozzarella por plato","task1-5":"Preparar 10 platos hondos de barro para los huevos","recipe-title":"Montaje del plato de huevos (por plato)",recipe1:"5 gotas de aceite de oliva en el fondo",recipe2:"Capa de espinacas baby del refrigerador de huéspedes",recipe3:"4 cubos de queso feta encima",recipe4:"1 cucharada de chorizo esparcida",recipe5:"Verter huevos batidos (22-24 huevos en total en jarra para 10 platos)",recipe6:"Espolvorear condimento italiano para cubrir superficie","task1-6":"Montar todos los 10 platos de huevos siguiendo la receta","task1-7":"Preparar 2 prensas francesas grandes (6 cucharadas de café cada una)","task1-8":"Hervir agua usando tetera y llenar las prensas","diet-title":"Adaptaciones dietéticas:","diet-desc":"Vegetariano = quitar chorizo. Vegano = notificar en check-in que el desayuno no está adaptado.","phase2-title":"Servicio a huéspedes","task2-1":"Estar atento a la llegada de huéspedes al comedor","task2-2":"Saludar a los huéspedes y preguntar si quieren café","task2-3":"Llevar prensa francesa a la mesa si responden sí","task2-4":"Señalar azúcar, crema y té en la estación de agua caliente","cooking-title":"Proceso de cocción en microondas","batch-4":"Lote estándar (4 platos):","batch-4-time":"5 min potencia máxima → revolver → 2 min más","batch-2":"Lote rápido (2 platos):","batch-2-time":"3 min potencia máxima → revolver → 1 min más","eggs-ready":"Los huevos deben inflarse ligeramente cuando estén listos",repeat:"Repetir el proceso para los platos restantes","batch-tip":"Usar lotes de 4 platos durante servicio pico (8:15-8:45 AM). Usar lotes de 2 platos para llegadas escalonadas o huéspedes tardíos.","task2-5":"Cocinar platos de huevos en lotes (4 o 2 dependiendo del flujo)","task2-6":"Preparar platos blancos con entrada + 1 bolillo + 1 pan dulce (o 2 rebanadas de tostada)","task2-7":"Agregar plato de huevos cocidos a cada plato blanco","task2-8":"Entregar platos completos a los huéspedes","phase3-title":"Recuperación de cocina","task3-1":"Recolectar platos usados con bandeja de madera","task3-2":"Transferir sobras (leche, jugo, café, prep sin usar) a cocina de voluntarios","task3-3":"Llevar todos los platos a cocina B&B","task3-4":"Abrir llave de agua caliente y tapar desagüe","task3-5":"Llenar fregadero con agua caliente y jabón","task3-6":"Lavar todos los platos y utensilios","timing-title":"Meta de tiempo:","timing-desc":"Completar lavado de platos para las 10:00 AM para que la cocina esté libre para el turno de voluntarios.","phase4-time":"Después de las 10:00 AM","phase4-title":"Traspaso a voluntarios","task4-1":"Vaciar botes de basura","task4-2":"Limpiar todas las superficies y mesas","task4-3":"Barrer/trapear piso","task4-4":"Confirmar que cocina está lista para uso de voluntarios","leave-clean":"Dejar cocina en estado limpio para turno de voluntarios."},fr:{title:"SOP Service Petit-Déjeuner",reset:"Réinitialiser",tasks:"tâches","total-tasks":"22",capacity:"Jusqu'à 10 personnes","phase1-title":"Phase de préparation","task1-1":"Être en cuisine à 7h00","task1-2":"Préparer 10 petites assiettes en terre pour entrée tomate + mozzarella","task1-3":"Couper 3 tomates cerises en deux par assiette","task1-4":"Ajouter 2 tranches de mozzarella par assiette","task1-5":"Préparer 10 assiettes creuses en terre pour les œufs","recipe-title":"Montage du plat d'œufs (par assiette)",recipe1:"5 gouttes d'huile d'olive au fond",recipe2:"Couche d'épinards baby du frigo des clients",recipe3:"4 cubes de fromage feta sur le dessus",recipe4:"1 cuillère à soupe de chorizo étalée",recipe5:"Verser les œufs battus (22-24 œufs au total dans une carafe pour 10 assiettes)",recipe6:"Saupoudrer d'assaisonnement italien pour couvrir la surface","task1-6":"Assembler les 10 plats d'œufs en suivant la recette","task1-7":"Préparer 2 grandes cafetières à piston (6 cuillères de café chacune)","task1-8":"Faire bouillir l'eau avec la bouilloire et remplir les cafetières","diet-title":"Adaptations diététiques :","diet-desc":"Végétarien = retirer le chorizo. Végétalien = notifier au check-in que le petit-déjeuner n'est pas adapté.","phase2-title":"Service aux clients","task2-1":"Écouter l'arrivée des clients dans la salle à manger","task2-2":"Saluer les clients et demander s'ils veulent du café","task2-3":"Apporter la cafetière à piston à la table si oui","task2-4":"Indiquer le sucre, la crème et le thé à la station d'eau chaude","cooking-title":"Processus de cuisson au micro-ondes","batch-4":"Lot standard (4 assiettes) :","batch-4-time":"5 min puissance max → remuer → 2 min de plus","batch-2":"Lot rapide (2 assiettes) :","batch-2-time":"3 min puissance max → remuer → 1 min de plus","eggs-ready":"Les œufs doivent gonfler légèrement quand prêts",repeat:"Répéter le processus pour les assiettes restantes","batch-tip":"Utiliser lots de 4 assiettes pendant service de pointe (8h15-8h45). Utiliser lots de 2 assiettes pour arrivées échelonnées ou clients tardifs.","task2-5":"Cuire les assiettes d'œufs par lots (4 ou 2 selon le flux)","task2-6":"Préparer assiettes blanches avec entrée + 1 petit pain + 1 viennoiserie (ou 2 tranches de toast)","task2-7":"Ajouter l'assiette d'œufs cuits à chaque assiette blanche","task2-8":"Servir les assiettes complètes aux clients","phase3-title":"Nettoyage de la cuisine","task3-1":"Ramasser les assiettes usagées avec le plateau en bois","task3-2":"Transférer les restes (lait, jus, café, préparations non utilisées) à la cuisine des bénévoles","task3-3":"Apporter tous les plats à la cuisine B&B","task3-4":"Ouvrir le robinet d'eau chaude et boucher l'évacuation","task3-5":"Remplir l'évier d'eau chaude et de produit vaisselle","task3-6":"Laver toutes les assiettes et ustensiles","timing-title":"Objectif de temps :","timing-desc":"Terminer la vaisselle avant 10h00 pour que la cuisine soit libre pour le service des bénévoles.","phase4-time":"Après 10h00","phase4-title":"Passage aux bénévoles","task4-1":"Vider les poubelles","task4-2":"Nettoyer toutes les surfaces et tables","task4-3":"Balayer/passer la serpillière","task4-4":"Confirmer que la cuisine est prête pour l'utilisation des bénévoles","leave-clean":"Laisser la cuisine propre pour le service des bénévoles."},it:{title:"SOP Servizio Colazione",reset:"Ripristina",tasks:"compiti","total-tasks":"22",capacity:"Fino a 10 ospiti","phase1-title":"Fase di preparazione","task1-1":"Essere in cucina alle 7:00","task1-2":"Preparare 10 piccoli piatti di terracotta per antipasto pomodoro + mozzarella","task1-3":"Tagliare 3 pomodorini a metà per piatto","task1-4":"Aggiungere 2 fette di mozzarella per piatto","task1-5":"Preparare 10 piatti fondi di terracotta per le uova","recipe-title":"Assemblaggio piatto uova (per piatto)",recipe1:"5 gocce di olio d'oliva sul fondo",recipe2:"Strato di spinacini baby dal frigo ospiti",recipe3:"4 cubetti di formaggio feta sopra",recipe4:"1 cucchiaio di chorizo spalmato",recipe5:"Versare uova sbattute (22-24 uova totali in brocca per 10 piatti)",recipe6:"Spolverare condimento italiano per coprire superficie","task1-6":"Assemblare tutti i 10 piatti di uova seguendo la ricetta","task1-7":"Preparare 2 caffettiere a stantuffo grandi (6 cucchiai di caffè ciascuna)","task1-8":"Bollire acqua con bollitore e riempire le caffettiere","diet-title":"Adattamenti dietetici:","diet-desc":"Vegetariano = rimuovere chorizo. Vegano = notificare al check-in che la colazione non è adattata.","phase2-title":"Servizio agli ospiti","task2-1":"Ascoltare arrivo degli ospiti nella sala da pranzo","task2-2":"Salutare gli ospiti e chiedere se vogliono caffè","task2-3":"Portare caffettiera a stantuffo al tavolo se sì","task2-4":"Indicare zucchero, panna e tè alla stazione acqua calda","cooking-title":"Processo cottura microonde","batch-4":"Lotto standard (4 piatti):","batch-4-time":"5 min potenza massima → mescolare → 2 min in più","batch-2":"Lotto veloce (2 piatti):","batch-2-time":"3 min potenza massima → mescolare → 1 min in più","eggs-ready":"Le uova dovrebbero gonfiarsi leggermente quando pronte",repeat:"Ripetere il processo per i piatti rimanenti","batch-tip":"Usare lotti da 4 piatti durante servizio di punta (8:15-8:45). Usare lotti da 2 piatti per arrivi scaglionati o ospiti in ritardo.","task2-5":"Cuocere piatti di uova in lotti (4 o 2 a seconda del flusso)","task2-6":"Preparare piatti bianchi con antipasto + 1 panino + 1 dolce (o 2 fette di toast)","task2-7":"Aggiungere piatto di uova cotte a ogni piatto bianco","task2-8":"Servire piatti completi agli ospiti","phase3-title":"Pulizia cucina","task3-1":"Raccogliere piatti usati con vassoio di legno","task3-2":"Trasferire avanzi (latte, succo, caffè, preparazioni non usate) alla cucina volontari","task3-3":"Portare tutti i piatti alla cucina B&B","task3-4":"Aprire rubinetto acqua calda e tappare scarico","task3-5":"Riempire lavello con acqua calda e detersivo","task3-6":"Lavare tutti i piatti e utensili","timing-title":"Obiettivo temporale:","timing-desc":"Completare lavaggio piatti entro le 10:00 così la cucina è libera per turno volontari.","phase4-time":"Dopo le 10:00","phase4-title":"Passaggio ai volontari","task4-1":"Svuotare cestini spazzatura","task4-2":"Pulire tutte le superfici e tavoli","task4-3":"Spazzare/passare lo straccio","task4-4":"Confermare che cucina è pronta per uso volontari","leave-clean":"Lasciare cucina in stato pulito per turno volontari."}};const K='torridonia_breakfast_progress';let currentLang='en';function setLang(l){currentLang=l;document.querySelectorAll('[data-i18n]').forEach(e=>{const k=e.getAttribute('data-i18n');if(translations[l]&&translations[l][k])e.textContent=translations[l][k]});document.querySelector('.lang-selector').value=l;localStorage.setItem('torridonia_lang',l)}function changeLang(l){setLang(l)}function load(){const l=localStorage.getItem('torridonia_lang')||'en';setLang(l);const s=localStorage.getItem(K);if(s){try{const d=JSON.parse(s);d.expanded.forEach(p=>{const e=document.querySelector('[data-phase="'+p+'"]');if(e)e.classList.add('expanded')});d.checked.forEach(i=>{const items=document.querySelectorAll('.checklist-item');if(items[i])items[i].classList.add('done')});update()}catch(e){}}}function save(){const exp=Array.from(document.querySelectorAll('.phase.expanded')).map(p=>p.dataset.phase);const items=document.querySelectorAll('.checklist-item');const chk=Array.from(items).map((item,i)=>item.classList.contains('done')?i:-1).filter(i=>i>=0);localStorage.setItem(K,JSON.stringify({expanded:exp,checked:chk}))}function togglePhase(n){document.querySelector('[data-phase="'+n+'"]').classList.toggle('expanded');save()}function toggleCheck(item){item.classList.toggle('done');update();save()}function update(){const t=document.querySelectorAll('.checklist-item').length;const d=document.querySelectorAll('.checklist-item.done').length;document.getElementById('completed').textContent=d;document.getElementById('progress').style.width=(d/t*100).toFixed(0)+'%'}function resetProgress(){const msg=currentLang==='en'?'Reset all progress? This cannot be undone.':currentLang==='pt-br'?'Resetar todo o progresso? Isso não pode ser desfeito.':currentLang==='es'?'¿Reiniciar todo el progreso? Esto no se puede deshacer.':currentLang==='fr'?'Réinitialiser tout le progrès? Cette action est irréversible.':'Ripristinare tutto il progresso? Questa azione è irreversibile.';if(confirm(msg)){localStorage.removeItem(K);document.querySelectorAll('.checklist-item').forEach(i=>i.classList.remove('done'));document.querySelectorAll('.phase').forEach(p=>p.classList.remove('expanded'));update()}}load();update();
+</script>
+</body>
+</html>
