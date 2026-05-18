@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guest Check-In SOP - Torridonia</title>
+<style>
+:root{--c-bg1:#fff;--c-bg2:#f8f7f4;--c-bg3:#f1efe8;--c-info-bg:#e6f1fb;--c-success-bg:#eaf3de;--c-warn-bg:#faeeda;--c-text1:#1a1a19;--c-text2:#5f5e5a;--c-text3:#888780;--c-info:#185fa5;--c-success:#3b6d11;--c-warn:#854f0b;--c-border3:rgba(61,61,58,.15);--c-border2:rgba(61,61,58,.3);--c-info-border:#85b7eb;--c-success-border:#97c459;--c-warn-border:#ef9f27;--radius-md:8px;--radius-lg:12px}
+@media (prefers-color-scheme:dark){:root{--c-bg1:#1a1a19;--c-bg2:#2c2c2a;--c-bg3:#3d3d3a;--c-info-bg:#0c447c;--c-success-bg:#27500a;--c-warn-bg:#633806;--c-text1:#f8f7f4;--c-text2:#b4b2a9;--c-text3:#888780;--c-info:#b5d4f4;--c-success:#c0dd97;--c-warn:#fac775;--c-border3:rgba(248,247,244,.15);--c-border2:rgba(248,247,244,.3);--c-info-border:#378add;--c-success-border:#639922;--c-warn-border:#ba7517}}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;background:var(--c-bg3);color:var(--c-text1);line-height:1.5}
+.container{max-width:640px;margin:0 auto}
+.header{position:sticky;top:4px;background:var(--c-bg1);padding:1rem;z-index:9;border-bottom:.5px solid var(--c-border3)}
+.title-section{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.main-title{font-size:18px;font-weight:500}
+.reset-btn{padding:6px 12px;font-size:12px;color:var(--c-text2);background:0 0;border:.5px solid var(--c-border2);border-radius:var(--radius-md);cursor:pointer;transition:.15s}
+.reset-btn:hover{background:var(--c-bg2);color:var(--c-text1)}
+.stats{display:flex;gap:8px;font-size:12px;color:var(--c-text2)}
+.stat{display:flex;align-items:center;gap:4px}
+.progress-bar{position:sticky;top:0;height:4px;background:var(--c-bg2);border-radius:2px;overflow:hidden;z-index:10}
+.progress-fill{height:100%;background:var(--c-success-bg);transition:width .3s}
+.timeline{display:flex;flex-direction:column;gap:1rem;padding:1rem}
+.phase{background:var(--c-bg1);border:.5px solid var(--c-border3);border-radius:var(--radius-lg);overflow:hidden}
+.phase-header{padding:1rem 1.25rem;cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none;transition:background .15s}
+.phase-header:hover{background:var(--c-bg2)}
+.phase-time{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:500;padding:4px 10px;border-radius:var(--radius-md);background:var(--c-info-bg);color:var(--c-info)}
+.phase-title{font-size:16px;font-weight:500;margin-top:4px}
+.phase-icon{font-size:20px;color:var(--c-text2);transition:transform .2s}
+.phase.expanded .phase-icon{transform:rotate(180deg)}
+.phase-content{max-height:0;overflow:hidden;transition:max-height .3s;border-top:.5px solid var(--c-border3)}
+.phase.expanded .phase-content{max-height:3500px}
+.content-inner{padding:1rem 1.25rem}
+.checklist{display:flex;flex-direction:column;gap:12px}
+.checklist-item{display:flex;gap:12px;align-items:flex-start;padding:10px;border-radius:var(--radius-md);background:var(--c-bg2);cursor:pointer;transition:background .15s}
+.checklist-item:active{background:var(--c-border3)}
+.checkbox{width:20px;height:20px;min-width:20px;border:1.5px solid var(--c-border2);border-radius:4px;display:flex;align-items:center;justify-content:center;margin-top:1px;transition:all .2s}
+.checklist-item.done .checkbox{background:var(--c-success-bg);border-color:var(--c-success-border)}
+.checkbox::after{content:"✓";font-size:14px;color:var(--c-success);opacity:0;transition:opacity .2s}
+.checklist-item.done .checkbox::after{opacity:1}
+.item-text{flex:1;font-size:14px;line-height:1.5}
+.checklist-item.done .item-text{color:var(--c-text2);text-decoration:line-through}
+.alert{margin-top:1rem;padding:12px;border-radius:var(--radius-md);background:var(--c-warn-bg);border-left:3px solid var(--c-warn-border);font-size:13px;color:var(--c-warn);line-height:1.5}
+.capacity-note{margin-top:1rem;padding:10px 12px;border-radius:var(--radius-md);background:var(--c-info-bg);font-size:12px;color:var(--c-info);line-height:1.5}
+.recipe-section{margin-top:1rem;padding:12px;border-radius:var(--radius-md);border:.5px solid var(--c-border3);background:var(--c-bg2)}
+.recipe-title{font-size:13px;font-weight:500;margin-bottom:8px}
+.recipe-list{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--c-text2);line-height:1.5}
+.recipe-list li{list-style:none;padding-left:18px;position:relative}
+.recipe-list li::before{content:"•";position:absolute;left:4px;color:var(--c-text3)}
+.season-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;padding:4px 8px;border-radius:var(--radius-md);margin-top:8px}
+.high-season{background:#fef3c7;color:#92400e}
+.low-season{background:#dbeafe;color:#1e40af}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header">
+<div class="title-section">
+<h1 class="main-title">Guest Check-In SOP</h1>
+<button class="reset-btn" onclick="resetProgress()">Reset</button>
+</div>
+<div class="stats">
+<span class="stat">✓ <span id="completed">0</span>/18 tasks</span>
+<span class="stat">🏠 Torridon Estate</span>
+</div>
+</div>
+<div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+
+<div class="timeline">
+
+<div class="capacity-note">
+<strong>📋 Note:</strong> Check-in is primarily performed by managers/owners (Felix, Sara, Team Leader). You will only be assigned this task during high season or when supporting the main reception desk.
+</div>
+
+<div class="phase" data-phase="1">
+<div class="phase-header" onclick="togglePhase(1)">
+<div>
+<div class="phase-time">🔔 Step 1</div>
+<div class="phase-title">Guest arrival & greeting</div>
+</div>
+<span class="phase-icon">▼</span>
+</div>
+<div class="phase-content">
+<div class="content-inner">
+<div class="recipe-section">
+<div class="recipe-title">How guests notify arrival</div>
+<ul class="recipe-list">
+<li>Doorbell ring</li>
+<li>Phone call to reception number</li>
+<li>WhatsApp message to reception phone</li>
+</ul>
+</div>
+
+<div class="checklist">
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text">Open WhatsApp and locate the pinned message with today's check-in list</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text">Greet guest at entrance: "Hello! Welcome to Torridon Estate. I'm [your name]"</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text">Ask for their name and reservation details</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text">Check WhatsApp pinned list to find which room they're assigned to</div></div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="phase" data-phase="2">
+<div class="phase-header" onclick="togglePhase(2)">
+<div>
+<div class="phase-time">🍳 Step 2</div>
+<div class="phase-title">Breakfast information</div>
+</div>
+<span class="phase-icon">▼</span>
+</div>
+<div class="phase-content">
+<div class="content-inner">
+<div class="alert">
+<strong>Season-dependent service:</strong> Breakfast location changes based on season (high/low).
+</div>
+
+<div class="recipe-section">
+<div class="recipe-title">High Season (Summer/Warm Months)</div>
+<span class="season-badge high-season">☀️ Dining Room Service</span>
+<ul class="recipe-list">
+<li><strong>Time:</strong> 8:00 AM - 9:00 AM</li>
+<li><strong>Location:</strong> Dining Room (point to right door from entrance)</li>
+<li><strong>Menu:</strong> Eggs with chorizo, spinach, feta cheese</li>
+<li><strong>Available:</strong> Coffee, granola, cereals</li>
+</ul>
+</div>
+
+<div class="recipe-section">
+<div class="recipe-title">Low Season (Cold Months)</div>
+<span class="season-badge low-season">❄️ In-Room Service</span>
+<ul class="recipe-list">
+<li>Breakfast is delivered directly to guest rooms</li>
+<li>Inform guest of approximate delivery time</li>
+</ul>
+</div>
+
+<div class="checklist">
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text">Inform: "Breakfast is served from 8:00 to 9:00 AM in the Dining Room" (point to right door)</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text">Mention menu: eggs with chorizo, spinach, feta, plus coffee, granola, cereals</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text">Ask about dietary restrictions: "Do you have any dietary restrictions? Dairy, meat, vegetarian?"</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text">Note restrictions to communicate to breakfast staff</div></div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="phase" data-phase="3">
+<div class="phase-header" onclick="togglePhase(3)">
+<div>
+<div class="phase-time">🏛️ Step 3</div>
+<div class="phase-title">Property tour & room guidance</div>
+</div>
+<span class="phase-icon">▼</span>
+</div>
+<div class="phase-content">
+<div class="content-inner">
+<div class="checklist">
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text">Walk guest toward their room while sharing property history</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text">Explain: "This is a 150-year-old house with historical significance"</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text">Mention: "Different families have lived here over the years"</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text">When reaching first floor, explain layout clearly</div></div>
+</div>
+
+<div class="alert">
+<strong>Privacy reminder:</strong> Right side of the property is the family's private area. Guests must stay in the left section where the 5 B&B rooms are located.
+</div>
+
+<div class="checklist">
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text">Point right: "The right side is the family's private residence, please do not enter"</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text">Guide left: "All five guest rooms are on this left section of the property"</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text">Walk guest to their assigned room</div></div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="phase" data-phase="4">
+<div class="phase-header" onclick="togglePhase(4)">
+<div>
+<div class="phase-time">🔑 Step 4</div>
+<div class="phase-title">Key handover & checkout info</div>
+</div>
+<span class="phase-icon">▼</span>
+</div>
+<div class="phase-content">
+<div class="content-inner">
+<div class="checklist">
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text">Hand room key to guest</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text">Explain: "Here is your room key"</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text">Inform checkout time: "Check-out is between 10:00 and 10:30 AM"</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text">Request: "Please leave the key on the door when you check out"</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text">Point to information boards showing WiFi details and local recommendations</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text">Show contact numbers: "Manager and host numbers are on the board for any questions"</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text">Encourage messaging: "Please send a message for the fastest response"</div></div>
+</div>
+
+<div class="capacity-note">
+📝 <strong>Quick reference:</strong> Breakfast 8-9 AM | Check-out 10-10:30 AM | WiFi & contacts on wall boards
+</div>
+
+<div class="checklist">
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text">Say farewell: "Enjoy your stay! Let us know if you need anything"</div></div>
+<div class="checklist-item" onclick="toggleCheck(this)"><div class="checkbox"></div><div class="item-text">Return to reception and mark check-in as complete in WhatsApp group or app</div></div>
+</div>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+
+<script>
+const K='torridonia_checkin_progress';
+function load(){const s=localStorage.getItem(K);if(s){try{const d=JSON.parse(s);d.expanded.forEach(p=>{const e=document.querySelector('[data-phase="'+p+'"]');if(e)e.classList.add('expanded')});d.checked.forEach(i=>{const items=document.querySelectorAll('.checklist-item');if(items[i])items[i].classList.add('done')});update()}catch(e){}}}
+function save(){const exp=Array.from(document.querySelectorAll('.phase.expanded')).map(p=>p.dataset.phase);const items=document.querySelectorAll('.checklist-item');const chk=Array.from(items).map((item,i)=>item.classList.contains('done')?i:-1).filter(i=>i>=0);localStorage.setItem(K,JSON.stringify({expanded:exp,checked:chk}))}
+function togglePhase(n){document.querySelector('[data-phase="'+n+'"]').classList.toggle('expanded');save()}
+function toggleCheck(item){item.classList.toggle('done');update();save()}
+function update(){const t=document.querySelectorAll('.checklist-item').length;const d=document.querySelectorAll('.checklist-item.done').length;document.getElementById('completed').textContent=d;document.getElementById('progress').style.width=(d/t*100).toFixed(0)+'%'}
+function resetProgress(){if(confirm('Reset all progress? This cannot be undone.')){localStorage.removeItem(K);document.querySelectorAll('.checklist-item').forEach(i=>i.classList.remove('done'));document.querySelectorAll('.phase').forEach(p=>p.classList.remove('expanded'));update()}}
+load();update();
+</script>
+</body>
+</html>
