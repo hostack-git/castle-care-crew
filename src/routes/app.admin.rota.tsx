@@ -93,9 +93,11 @@ function RotaBuilderPage() {
       const ids: Record<string, string> = {};
       for (const v of vols) g[v.id] = {};
       for (const s of shifts) {
-        if (!g[s.volunteer_id]) g[s.volunteer_id] = {};
-        g[s.volunteer_id][s.shift_date] = s.shift_template_id ?? OFF_KEY;
-        if (s.id) ids[`${s.volunteer_id}_${s.shift_date}`] = s.id;
+        const volunteerId = s.volunteer_id ?? s.staff_id;
+        if (!volunteerId) continue;
+        if (!g[volunteerId]) g[volunteerId] = {};
+        g[volunteerId][s.shift_date] = s.shift_template_id ?? OFF_KEY;
+        if (s.id) ids[`${volunteerId}_${s.shift_date}`] = s.id;
       }
 
       setVolunteers(vols);
