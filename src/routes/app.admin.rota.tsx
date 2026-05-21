@@ -84,29 +84,10 @@ function RotaBuilderPage() {
     let cancel = false;
     setLoadingData(true);
     (async () => {
-      const [volRes, tplRes, shiftRes] = await Promise.all([
-        hostackSupabase
-          .from("volunteers")
-          .select("id, name, role_type")
-          .eq("property_id", TORRIDONIA_PROPERTY_ID)
-          .eq("status", "active")
-          .order("name"),
-        hostackSupabase
-          .from("shift_templates")
-          .select("id, name, start_time, end_time")
-          .eq("property_id", TORRIDONIA_PROPERTY_ID)
-          .order("name"),
-        hostackSupabase
-          .from("shifts")
-          .select("id, shift_date, volunteer_id, shift_template_id")
-          .eq("property_id", TORRIDONIA_PROPERTY_ID)
-          .gte("shift_date", startStr)
-          .lte("shift_date", endStr),
-      ]);
+      const token = session?.access_token;
+      if (!token) return;
+      const { volunteers: vols, templates: tpls, shifts } = await loadRotaWeek({ data: { accessToken: token, weekStart: startStr } });
       if (cancel) return;
-      const vols = (volRes.data as Volunteer[]) ?? [];
-      const tpls = (tplRes.data as Template[]) ?? [];
-      const shifts = (shiftRes.data as Shift[]) ?? [];
 
       const g: Record<string, Record<string, string | null>> = {};
       const ids: Record<string, string> = {};
@@ -123,11 +104,16 @@ function RotaBuilderPage() {
       setOriginalGrid(JSON.parse(JSON.stringify(g)));
       setShiftIds(ids);
       setLoadingData(false);
-    })();
+    })().catch((e) => {
+      if (!cancel) {
+        toast.error(e instanceof Error ? e.message : "Error cargando rota");
+        setLoadingData(false);
+      }
+    });
     return () => {
       cancel = true;
     };
-  }, [startStr, endStr]);
+  }, [session?.access_token, loadRotaWeek, startStr, reloadTick]);
 
   const setCell = (vid: string, date: string, value: string | null) => {
     setGrid((prev) => ({ ...prev, [vid]: { ...(prev[vid] ?? {}), [date]: value } }));
@@ -158,19 +144,17 @@ function RotaBuilderPage() {
           if (next === OFF_KEY) {
             upserts.push({
               ...(existingId ? { id: existingId } : {}),
-              property_id: TORRIDONIA_PROPERTY_ID,
               shift_date: date,
               volunteer_id: v.id,
               shift_template_id: null,
-              start_time: null,
-              end_time: null,
+              start_time: "00:00",
+              end_time: "00:00",
               status: "scheduled",
             });
           } else {
             const tpl = tplById[next];
             upserts.push({
               ...(existingId ? { id: existingId } : {}),
-              property_id: TORRIDONIA_PROPERTY_ID,
               shift_date: date,
               volunteer_id: v.id,
               shift_template_id: next,
@@ -182,28 +166,13 @@ function RotaBuilderPage() {
         }
       }
 
-      if (deletes.length) {
-        const { error } = await hostackSupabase.from("shifts").delete().in("id", deletes);
-        if (error) throw error;
-      }
-      if (upserts.length) {
-        const { error } = await hostackSupabase.from("shifts").upsert(upserts);
-        if (error) throw error;
-      }
+      const token = session?.access_token;
+      if (!token) throw new Error("Sesión expirada");
+      await saveRotaWeek({ data: { accessToken: token, upserts, deletes } });
 
       toast.success(`Guardado: ${upserts.length} cambios, ${deletes.length} eliminados`);
       setOriginalGrid(JSON.parse(JSON.stringify(grid)));
-      const { data: refreshed } = await hostackSupabase
-        .from("shifts")
-        .select("id, shift_date, volunteer_id")
-        .eq("property_id", TORRIDONIA_PROPERTY_ID)
-        .gte("shift_date", startStr)
-        .lte("shift_date", endStr);
-      const ids: Record<string, string> = {};
-      for (const s of (refreshed as { id: string; shift_date: string; volunteer_id: string }[]) ?? []) {
-        ids[`${s.volunteer_id}_${s.shift_date}`] = s.id;
-      }
-      setShiftIds(ids);
+      setReloadTick((x) => x + 1);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Error al guardar");
     } finally {
