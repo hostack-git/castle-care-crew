@@ -1,7 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { getPublishedPlaybooks } from "@/lib/hostack-admin.functions";
+import { hostackSupabase, TORRIDONIA_PROPERTY_ID } from "@/integrations/hostack/client";
 import { SOPS } from "@/lib/sops";
 import { Button } from "@/components/ui/button";
 import { Calendar, BookOpen, Megaphone, ArrowRight, Sparkles } from "lucide-react";
@@ -35,7 +34,6 @@ const LOCAL_PLAYBOOKS: Playbook[] = SOPS.slice(0, 5).map((sop) => ({
 
 function Onboarding() {
   const navigate = useNavigate();
-  const loadPlaybooks = useServerFn(getPublishedPlaybooks);
   const [step, setStep] = useState(1);
   const [playbooks, setPlaybooks] = useState<Playbook[]>([]);
 
@@ -47,18 +45,29 @@ function Onboarding() {
 
   useEffect(() => {
     let mounted = true;
-    loadPlaybooks()
-      .then(({ playbooks }) => {
-        if (mounted) setPlaybooks(playbooks.length > 0 ? ((playbooks as Playbook[]) ?? []).slice(0, 5) : LOCAL_PLAYBOOKS);
-      })
-      .catch((error) => {
-        console.error("Failed to load onboarding SOPs", error);
+    (async () => {
+      try {
+        const { data, error } = await hostackSupabase
+          .from("playbooks")
+          .select("id, title, description, category")
+          .eq("property_id", TORRIDONIA_PROPERTY_ID)
+          .eq("is_archived", false)
+          .order("order_index", { ascending: true })
+          .limit(5);
+        if (!mounted) return;
+        if (error || !data || data.length === 0) {
+          setPlaybooks(LOCAL_PLAYBOOKS);
+        } else {
+          setPlaybooks(data as Playbook[]);
+        }
+      } catch {
         if (mounted) setPlaybooks(LOCAL_PLAYBOOKS);
-      });
+      }
+    })();
     return () => {
       mounted = false;
     };
-  }, [loadPlaybooks]);
+  }, []);
 
   const finish = () => {
     localStorage.setItem("onboarding_done", "true");

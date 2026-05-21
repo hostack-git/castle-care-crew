@@ -46,7 +46,7 @@ function AppLayout() {
       <aside className="fixed inset-y-0 left-0 hidden lg:flex w-64 flex-col bg-sidebar border-r p-5">
         <Link to="/app/dashboard" className="flex items-center gap-2 mb-8">
           <Mountain className="h-6 w-6 text-primary" />
-          <span className="font-display text-lg font-semibold">Torridon</span>
+          <span className="font-display text-lg font-semibold">Torridonia</span>
         </Link>
         <nav className="flex-1 space-y-1">
           {nav.map((n) => {
@@ -107,7 +107,7 @@ function AppLayout() {
       <header className="lg:hidden sticky top-0 z-20 bg-card border-b px-4 py-3 flex items-center justify-between">
         <Link to="/app/dashboard" className="flex items-center gap-2">
           <Mountain className="h-5 w-5 text-primary" />
-          <span className="font-display font-semibold">Torridon</span>
+          <span className="font-display font-semibold">Torridonia</span>
         </Link>
         <div className="flex items-center gap-2">
           <LanguageSwitcher compact />

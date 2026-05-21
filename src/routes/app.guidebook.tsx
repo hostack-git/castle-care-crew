@@ -1,8 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { getPublishedPlaybooks } from "@/lib/hostack-admin.functions";
+import { hostackSupabase, TORRIDONIA_PROPERTY_ID } from "@/integrations/hostack/client";
 import { SOPS } from "@/lib/sops";
 import { useI18n } from "@/lib/i18n";
 import { Input } from "@/components/ui/input";
@@ -63,7 +62,6 @@ const LOCAL_PLAYBOOKS: Playbook[] = [
 function GuidebookPage() {
   const { t } = useI18n();
   const navigate = useNavigate();
-  const loadPlaybooks = useServerFn(getPublishedPlaybooks);
   const [playbooks, setPlaybooks] = useState<Playbook[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
@@ -71,24 +69,35 @@ function GuidebookPage() {
 
   useEffect(() => {
     let mounted = true;
-    loadPlaybooks()
-      .then(({ playbooks }) => {
-        if (mounted) {
-          const remote = (playbooks as Playbook[]).filter((p) => !LOCAL_PLAYBOOKS.some((local) => local.title === p.title));
+    (async () => {
+      try {
+        const { data, error } = await hostackSupabase
+          .from("playbooks")
+          .select("id, title, category, description, content_type, content_text, file_url, order_index")
+          .eq("property_id", TORRIDONIA_PROPERTY_ID)
+          .eq("is_archived", false)
+          .order("order_index", { ascending: true });
+        if (!mounted) return;
+        if (error) {
+          console.error("Failed to load playbooks", error);
+          setPlaybooks(LOCAL_PLAYBOOKS);
+        } else {
+          const remote = ((data as Playbook[]) ?? []).filter(
+            (p) => !LOCAL_PLAYBOOKS.some((local) => local.title === p.title)
+          );
           setPlaybooks([...LOCAL_PLAYBOOKS, ...remote]);
         }
-      })
-      .catch((error) => {
-        console.error("Failed to load SOPs", error);
+      } catch (err) {
+        console.error("Failed to load SOPs", err);
         if (mounted) setPlaybooks(LOCAL_PLAYBOOKS);
-      })
-      .finally(() => {
+      } finally {
         if (mounted) setLoading(false);
-      });
+      }
+    })();
     return () => {
       mounted = false;
     };
-  }, [loadPlaybooks]);
+  }, []);
 
   const filtered = playbooks.filter((p) => {
     if (!q) return true;

@@ -1,7 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { hostackSupabase } from "@/integrations/hostack/client";
-import { getUserAccess } from "@/lib/hostack-admin.functions";
 
 type Profile = {
   id: string;
@@ -57,15 +56,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setIsVolunteer(false);
     try {
-      const { data } = await hostackSupabase.auth.getSession();
-      const accessToken = data.session?.access_token;
-      if (!accessToken) throw new Error("Missing session token");
-      const res = await getUserAccess({ data: { accessToken } });
-      setProfile((res.profile as Profile | null) ?? null);
-      setIsAdmin(res.isAdmin);
-      setIsRoomManager(res.isRoomManager);
+      // Direct client-side query — no server function needed
+      const { data: staff } = await hostackSupabase
+        .from("staff")
+        .select("id, name, email, role, status, preferred_language, phone")
+        .eq("auth_user_id", currentUser.id)
+        .maybeSingle();
+
+      if (staff) {
+        const roleLc = (staff.role ?? "").toLowerCase();
+        const admin = roleLc.includes("manager") || roleLc === "admin" || roleLc === "owner";
+        setProfile({
+          id: staff.id as string,
+          full_name: (staff.name as string | null) ?? currentUser.email?.split("@")[0] ?? "Manager",
+          email: staff.email as string | null,
+          phone: staff.phone as string | null,
+          language: ((staff.preferred_language ?? "en") as Profile["language"]),
+          nationality: null,
+          passport_number: null,
+          passport_url: null,
+          avatar_url: null,
+          bio: null,
+          onboarded: staff.status === "active",
+        });
+        setIsAdmin(admin);
+        setIsRoomManager(admin);
+      } else {
+        // Fallback: treat any authenticated email user as manager (property owner)
+        setProfile({
+          id: currentUser.id,
+          full_name: currentUser.email?.split("@")[0] ?? "Manager",
+          email: currentUser.email ?? null,
+          phone: null,
+          language: "en",
+          nationality: null,
+          passport_number: null,
+          passport_url: null,
+          avatar_url: null,
+          bio: null,
+          onboarded: true,
+        });
+        setIsAdmin(true);
+        setIsRoomManager(true);
+      }
     } catch (e) {
-      console.error("getUserAccess failed", e);
+      console.error("loadProfile failed", e);
       setProfile(null);
       setIsAdmin(false);
       setIsRoomManager(false);
