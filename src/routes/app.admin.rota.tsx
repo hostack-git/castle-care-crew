@@ -217,12 +217,15 @@ function RotaBuilderPage() {
               const a = days[0], b = days[6];
               const tab = `${a.getDate()}-${b.getDate()} ${MON3[a.getMonth()]}`;
               try {
-                const r = await runImport({ data: { tabs: [tab] } });
+                const token = session?.access_token;
+                if (!token) throw new Error("Sesión expirada");
+                const r = await runImport({ data: { accessToken: token, tabs: [tab] } });
                 const t = r.tabs[0];
                 toast.success(
                   `Importado "${t.tab}" (sem. ${t.weekStart}): ${t.shifts} turnos · ${r.volunteersCreated} voluntarios nuevos · ${r.templatesCreated} plantillas nuevas`,
                 );
                 setWeekStart(new Date(t.weekStart + "T00:00:00"));
+                setReloadTick((x) => x + 1);
               } catch (e) {
                 toast.error(e instanceof Error ? e.message : "Error importando");
               }
