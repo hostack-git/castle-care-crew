@@ -164,8 +164,8 @@ function RotaBuilderPage() {
               shift_date: date,
               volunteer_id: v.id,
               shift_template_id: next,
-              start_time: tpl?.start_time ?? null,
-              end_time: tpl?.end_time ?? null,
+              start_time: tpl?.start_time ?? "00:00",
+              end_time: tpl?.end_time ?? "00:00",
               status: "scheduled",
             });
           }
