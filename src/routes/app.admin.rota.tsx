@@ -2,11 +2,11 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/hooks/useAuth";
-import { hostackSupabase, TORRIDONIA_PROPERTY_ID } from "@/integrations/hostack/client";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Save, ArrowLeft, Download } from "lucide-react";
 import { toast } from "sonner";
 import { importTorridoniaRota } from "@/lib/rota-import.functions";
+import { getAdminRotaWeek, saveAdminRotaWeek } from "@/lib/hostack-admin.functions";
 
 export const Route = createFileRoute("/app/admin/rota")({ component: RotaBuilderPage });
 
@@ -62,7 +62,7 @@ function ymd(d: Date) {
 const DAY_LABELS_ES = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
 function RotaBuilderPage() {
-  const { isAdmin, loading } = useAuth();
+  const { isAdmin, loading, session } = useAuth();
   const [weekStart, setWeekStart] = useState<Date>(() => startOfWeekMonday(new Date()));
   const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -71,11 +71,14 @@ function RotaBuilderPage() {
   const [shiftIds, setShiftIds] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
+  const [reloadTick, setReloadTick] = useState(0);
 
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
   const startStr = ymd(days[0]);
   const endStr = ymd(days[6]);
   const runImport = useServerFn(importTorridoniaRota);
+  const loadRotaWeek = useServerFn(getAdminRotaWeek);
+  const saveRotaWeek = useServerFn(saveAdminRotaWeek);
 
   useEffect(() => {
     let cancel = false;
