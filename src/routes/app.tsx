@@ -38,12 +38,8 @@ function AppLayout() {
     { to: "/app/announcements", label: t("nav.announcements"), icon: Megaphone },
     { to: "/app/chat", label: t("nav.chat"), icon: MessageCircle },
   ];
-  const volunteerNav = [
-    { to: "/app/dashboard", label: t("nav.dashboard"), icon: LayoutDashboard },
-    { to: "/app/calendar", label: t("nav.calendar"), icon: Calendar },
-    { to: "/app/guidebook", label: t("nav.guidebook"), icon: BookOpen },
-  ];
-  const nav = isVolunteer ? volunteerNav : fullNav;
+  const nav = fullNav;
+  const displayName = profile?.full_name || profile?.email || (user.user_metadata as { full_name?: string } | undefined)?.full_name || user.email || "Voluntario";
 
   return (
     <div className="min-h-screen bg-cream-paper">
@@ -99,7 +95,7 @@ function AppLayout() {
           <LanguageSwitcher />
           <div>
             <p className="text-xs text-muted-foreground mb-1">{t("nav.signedInAs")}</p>
-            <p className="text-sm font-medium truncate">{profile?.full_name || profile?.email}</p>
+            <p className="text-sm font-medium truncate">{displayName}</p>
           </div>
           <Button variant="ghost" size="sm" onClick={signOut} className="w-full justify-start text-muted-foreground">
             <LogOut className="h-4 w-4 mr-2" /> {t("nav.signOut")}
