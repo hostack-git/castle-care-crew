@@ -1,8 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
 import { hostackSupabase, TORRIDONIA_PROPERTY_ID } from "@/integrations/hostack/client";
+import { getDashboardRota } from "@/lib/hostack-admin.functions";
 import { Calendar, Clock, CheckCircle2, Circle, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 
@@ -28,8 +30,10 @@ function pickTemplate(t: Shift["shift_templates"]): ShiftTemplate | null {
 }
 
 function DashboardRoute() {
-  const { isVolunteer } = useAuth();
-  return isVolunteer ? <VolunteerDashboard /> : <Dashboard />;
+  const { user, session, loading, isVolunteer } = useAuth();
+  if (loading) return <p className="text-sm text-muted-foreground">Loading…</p>;
+  if (!user || !session?.access_token) return null;
+  return <RotaDashboard accessToken={session.access_token} isVolunteer={isVolunteer} />;
 }
 
 type VolShift = {
@@ -37,6 +41,103 @@ type VolShift = {
   shift_date: string;
   shift_templates: ShiftTemplate | ShiftTemplate[] | null;
 };
+
+type DashboardRota = {
+  mode: "manager" | "volunteer";
+  weekStart: string;
+  volunteer?: { id: string; name: string | null } | null;
+  allVolunteers?: { id: string; name: string | null }[];
+  volunteers?: { id: string; name: string | null; role_type: string | null }[];
+  templates: { id: string; name: string; start_time: string | null; end_time: string | null }[];
+  shifts: { id?: string; shift_date: string; volunteer_id?: string | null; shift_template_id: string | null; start_time?: string | null; end_time?: string | null }[];
+};
+
+function RotaDashboard({ accessToken, isVolunteer }: { accessToken: string; isVolunteer: boolean }) {
+  const { user } = useAuth();
+  const { lang } = useI18n();
+  const loadRota = useServerFn(getDashboardRota);
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<DashboardRota | null>(null);
+
+  const localeMap: Record<string, string> = { en: "en-GB", pt: "pt-BR", es: "es-ES", de: "de-DE", gd: "gd-GB" };
+  const locale = localeMap[lang] ?? "en-GB";
+  const tplById = new Map((data?.templates ?? []).map((t) => [t.id, t]));
+  const volById = new Map(((data?.volunteers ?? data?.allVolunteers) ?? []).map((v) => [v.id, v]));
+  const name = data?.volunteer?.name || (user?.user_metadata as { full_name?: string } | undefined)?.full_name || user?.email?.split("@")[0] || "Voluntario";
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    loadRota({ data: { accessToken } })
+      .then((res) => {
+        if (!cancelled) setData(res as DashboardRota);
+      })
+      .catch((e) => {
+        if (!cancelled) toast.error(e instanceof Error ? e.message : "Error cargando rota");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken, loadRota]);
+
+  const fmtTime = (v: string | null | undefined) => (v ? v.slice(0, 5) : "");
+  const sortedShifts = [...(data?.shifts ?? [])].sort((a, b) => a.shift_date.localeCompare(b.shift_date));
+
+  return (
+    <div className="space-y-8">
+      <header>
+        <p className="text-sm text-muted-foreground">
+          {new Date().toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long" })}
+        </p>
+        <h1 className="font-display text-4xl font-semibold mt-1">Hola, {name}! 👋</h1>
+      </header>
+
+      <section>
+        <h2 className="font-display text-xl font-semibold mb-4 flex items-center gap-2">
+          <Calendar className="h-4 w-4 text-accent" /> {isVolunteer ? "Tus turnos de esta semana" : "Rota de esta semana"}
+        </h2>
+        {loading ? (
+          <div className="h-24 rounded-2xl bg-secondary/40 animate-pulse" />
+        ) : sortedShifts.length === 0 ? (
+          <div className="rounded-2xl border border-dashed bg-secondary/30 p-8 text-center text-muted-foreground text-sm">
+            No hay turnos asignados para esta semana.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {sortedShifts.map((s, idx) => {
+              const tpl = s.shift_template_id ? tplById.get(s.shift_template_id) : null;
+              const d = new Date(`${s.shift_date}T00:00:00`);
+              const volunteer = s.volunteer_id ? volById.get(s.volunteer_id) : null;
+              return (
+                <div key={s.id ?? `${s.shift_date}-${idx}`} className="rounded-2xl border bg-card p-4 shadow-soft flex items-center justify-between gap-3">
+                  <div>
+                    <p className="font-medium">{d.toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "short" })}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {tpl?.name ?? "Off"}{!isVolunteer && volunteer?.name ? ` · ${volunteer.name}` : ""}
+                    </p>
+                  </div>
+                  {(tpl?.start_time || tpl?.end_time) && (
+                    <span className="text-sm text-muted-foreground flex items-center gap-1.5">
+                      <Clock className="h-3.5 w-3.5" />
+                      {fmtTime(tpl?.start_time)}{tpl?.end_time ? ` – ${fmtTime(tpl.end_time)}` : ""}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      <Link to="/app/guidebook" className="flex items-center justify-center gap-2 rounded-2xl bg-primary text-primary-foreground py-4 font-medium shadow-soft hover:opacity-90 transition">
+        <BookOpen className="h-5 w-5" /> Ver guías de trabajo
+      </Link>
+    </div>
+  );
+}
 
 function VolunteerDashboard() {
   const { user } = useAuth();
