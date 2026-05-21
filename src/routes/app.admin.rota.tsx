@@ -234,6 +234,24 @@ function RotaBuilderPage() {
           <span className="text-sm text-muted-foreground ml-2">
             {startStr} → {endStr}
           </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              try {
+                const r = await runImport();
+                toast.success(
+                  `Importado (sem. ${r.weekStart}): ${r.shiftsUpserted} turnos · ${r.volunteersCreated} voluntarios nuevos · ${r.templatesCreated} plantillas nuevas`,
+                );
+                setWeekStart(new Date(r.weekStart + "T00:00:00"));
+              } catch (e) {
+                toast.error(e instanceof Error ? e.message : "Error importando");
+              }
+            }}
+            className="gap-1 ml-2"
+          >
+            <Download className="h-4 w-4" /> Importar Sheet
+          </Button>
           <Button onClick={onSave} disabled={busy} className="gap-2 ml-2">
             <Save className="h-4 w-4" />
             {busy ? "Guardando…" : "Guardar semana"}
