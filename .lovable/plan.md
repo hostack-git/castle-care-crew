@@ -1,57 +1,44 @@
+## Contexto
 
-## Estado actual de la pantalla de Rota
+El sheet `Rota 2026` ya es público. Tiene 3 pestañas:
+- `04-10 MAY` (pasada)
+- `11-17 MAY` (pasada)
+- `18-24 MAY` (semana actual) ✅
+- ❌ **`25-31 MAY` aún no existe** — la próxima semana todavía no está creada en el sheet
 
-`/app/admin/rota` **ya existe y funciona** como un Google Sheet:
+La implementación actual (`src/lib/rota-import.functions.ts`) tiene la rota del 18-24 hardcodeada. Voy a sustituirla por una versión que lea el sheet en vivo, para que cuando crees la pestaña de la próxima semana, solo tengas que pulsar el botón otra vez.
 
-- Grid voluntarios (filas) × 7 días (columnas), navegable por semana.
-- Cada celda es un dropdown con todos los `shift_templates` (Breakfast, Housekeeping, Cottages, Laundry, Maintenance, Special task, Onboarding, etc.) + "Off" + vacío.
-- Colores por tipo de turno (igual que tu Sheet).
-- Botón **Guardar semana** hace upsert/delete masivo de todos los cambios en la tabla `shifts` del backend Hostack.
-- Botones "Semana anterior / Hoy / Semana siguiente".
+## Cambios
 
-Lo que **no** tiene todavía (existe en tu Sheet pero no en la pantalla):
-- Sección **Room Rota** (Suite, East 1/2, Schoolroom, Riverview, Lochside, Corry, Gardeners, Stables) con estados To Clean / Check In / Staying / Free / Maintenance.
-- Fila **Check-Ins** (responsable por día).
-- Fila **Family Dinners** (pareja por día).
+### 1. `src/lib/rota-import.functions.ts` — reescribir
 
-Esos tres bloques quedan **fuera de scope** de esta tarea (los abordamos en una segunda iteración si quieres). Esta tarea importa solo voluntarios + turnos, que es lo que pediste.
+- Descargar el sheet vía `https://docs.google.com/spreadsheets/d/{ID}/export?format=csv&gid={gid}` (no requiere OAuth porque es público).
+- Parsear cada pestaña con un parser CSV ligero (sin dependencias nuevas).
+- Detectar la sección de staff: empieza en la fila después de `CHECK INS` / con cabecera `Name | Monday X | ... | Sunday X`.
+- Calcular `WEEK_START` desde la celda `B1` (`WEEK OF:`), no hardcoded.
+- Mapear cada celda como antes (Breakfast → template, Off → null, vacío → skip).
+- Reutilizar la lógica existente de `upsertVolunteer` / `upsertTemplate` / `upsertShifts`.
 
-## Datos detectados en la hoja (semana del 18 may 2026, lun→dom)
+Aceptar un parámetro `weekTabs: string[]` (default: `["18-24 MAY"]`). Devolver resumen por pestaña.
 
-**Voluntarios (16):** Pepe, Miguel, Nadia, Thais, Helena, Eva, Charlie, River, Molly, Lotte, Izzy, Blanche, Mike, Alexa, Roxana, Jorge.
+### 2. `src/routes/app.admin.rota.tsx`
 
-**Tipos de turno usados:** Breakfast, Housekeeping, Laundry, Cottages, Maintenance, Special task, Onboarding, Arrive, Off, y una nota suelta "Departure :´(" para Nadia y Thais el miércoles (lo trato como `Off` + nota, porque "Departure" no es un turno operativo).
+- El botón "Importar Sheet" abre un pequeño dialog con checkboxes de pestañas disponibles (las descubre llamando primero a una función ligera `listRotaTabs`).
+- Por defecto marca solo la semana de la fecha mostrada.
 
-**Casos especiales detectados:**
-- Nadia y Thais solo trabajan lun y mar; mié = Departure; jue–dom = vacío.
-- Alexa empieza el jueves (Arrive); lun–mié = vacío.
-- Celdas vacías = `– vacío` (no se inserta nada).
+### 3. Sin cambios de esquema
 
-## Implementación
+Sigue escribiendo en las tablas Hostack (`volunteers`, `shift_templates`, `shifts`) con la service-role key.
 
-### 1. Script de migración (server function admin-only)
-`src/lib/rota-import.functions.ts` — `importRotaFromCsv`:
-- Recibe el CSV/JSON parseado de la semana (lo paso hardcodeado en este primer run para la semana del 18 may; la función queda lista para reusar).
-- Protegida con `requireSupabaseAuth` + check `is_admin`.
-- Usa `HOSTACK_SERVICE_ROLE_KEY` (ya existe como secreto) para escribir en Hostack saltándose RLS.
-- Lógica:
-  1. Carga `volunteers` activos y `shift_templates` de Hostack para la propiedad Torridonia.
-  2. Para cada nombre del CSV, hace match por `name` (case-insensitive, trim). Si no existe, lo **crea** (`status='active'`, `property_id=TORRIDONIA_PROPERTY_ID`, `role_type` derivado del turno más frecuente).
-  3. Para cada turno del CSV, busca el `shift_template` por nombre (con alias: "Special task" → template "Special Task", "Arrive" → "Arrival" si existe, "Onboarding", etc.). Si no existe, lo crea con `start_time/end_time` por defecto.
-  4. Para cada celda (volunteer × día), hace upsert en `shifts` (clave `property_id+volunteer_id+shift_date`). "Off" = `shift_template_id=null, status='scheduled'`. Vacío = no toca.
-  5. Devuelve resumen: voluntarios creados/encontrados, templates creados/encontrados, shifts insertados/actualizados.
+## Detalles técnicos
 
-### 2. Botón "Importar desde Sheet" en /app/admin/rota
-Pequeño botón en el header (solo visible para admin) que llama a la server function y muestra el resultado en un toast + un dialog con el resumen. Idempotente: re-ejecutarlo no duplica nada.
+- ID del sheet: `1k7SwmRTv6qKljEfyjOBVOYkfQHed263ovFrP3gevbis`
+- Para descubrir gids dinámicamente: parsear `/htmlview` o `/pubhtml`. Más simple: hardcodear el ID del sheet y dejar que el usuario elija pestaña por **nombre** — el endpoint `export?format=csv&sheet={nombre}` también funciona y evita lidiar con gids.
+- Cabeceras de columnas: `Name | Monday DD | Tuesday DD | ... | Sunday DD`. Parseo flexible (trim, case-insensitive, ignora espacios sueltos).
+- Mapa de turnos (igual que antes): Breakfast, Housekeeping, Laundry, Cottages, Maintenance, Special Task, Onboarding, Arrive. Variantes con número (`Maintenance 2`) se normalizan al template base. `Departure :´(`  → skip. `Off` → shift sin template.
 
-### 3. Ejecución
-Disparo la importación una vez al terminar la build, para la semana del 18 may. Te confirmo en chat el resumen exacto (cuántos voluntarios nuevos, cuántos shifts).
+## Fuera de alcance
 
-### Próxima semana (25 may)
-La hoja solo expone una pestaña pública en este momento. Cuando publiques la próxima semana en el Sheet (o me digas el `gid`), corro el mismo botón apuntando a la nueva pestaña — sin cambios de código.
-
-## Fuera de scope (para una segunda iteración, si confirmas)
-
-- Sección Room Rota + Check-Ins + Family Dinners en la misma pantalla.
-- Generación automática de `tasks` a partir del Room Rota (la migración SQL `weekly_rotas`/`rota_room_cells` ya está en la base por si lo quieres aprovechar después).
-- Importación recurrente desde Google Sheets vía conector (requiere arreglar el acceso del conector de Google Sheets al proyecto).
+- Próxima semana (25-31 MAY): no se puede migrar hasta que crees la pestaña. Una vez creada, abres el botón y la seleccionas.
+- Sección Room Rota / Check-Ins / Family Dinners.
+- Sync automático recurrente.

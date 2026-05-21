@@ -239,12 +239,16 @@ function RotaBuilderPage() {
             variant="outline"
             size="sm"
             onClick={async () => {
+              const MON3 = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+              const a = days[0], b = days[6];
+              const tab = `${a.getDate()}-${b.getDate()} ${MON3[a.getMonth()]}`;
               try {
-                const r = await runImport();
+                const r = await runImport({ data: { tabs: [tab] } });
+                const t = r.tabs[0];
                 toast.success(
-                  `Importado (sem. ${r.weekStart}): ${r.shiftsUpserted} turnos · ${r.volunteersCreated} voluntarios nuevos · ${r.templatesCreated} plantillas nuevas`,
+                  `Importado "${t.tab}" (sem. ${t.weekStart}): ${t.shifts} turnos · ${r.volunteersCreated} voluntarios nuevos · ${r.templatesCreated} plantillas nuevas`,
                 );
-                setWeekStart(new Date(r.weekStart + "T00:00:00"));
+                setWeekStart(new Date(t.weekStart + "T00:00:00"));
               } catch (e) {
                 toast.error(e instanceof Error ? e.message : "Error importando");
               }
