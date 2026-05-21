@@ -1,13 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const HOSTACK_URL = "https://yskzkobduekupiobrbxr.supabase.co";
+const HOSTACK_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlza3prb2JkdWVrdXBpb2JyYnhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1NjAxNjAsImV4cCI6MjA5MDEzNjE2MH0.5t6mm90F7k_8zXVVzUJAYzFA4IoNdTm6-UTRWFzsjfg";
 const TORRIDONIA_PROPERTY_ID = "bf2720e8-eb8a-4c7e-9742-6b0dfe9e636a";
 const SHEET_ID = "1k7SwmRTv6qKljEfyjOBVOYkfQHed263ovFrP3gevbis";
 const SHEET_YEAR = 2026;
+const MANAGER_EMAILS = new Set(["jorge.ibanez.ciej@gmail.com"]);
 
 function hostackAdmin() {
   const key = process.env.HOSTACK_SERVICE_ROLE_KEY?.trim();
@@ -15,6 +15,29 @@ function hostackAdmin() {
   return createClient(HOSTACK_URL, key, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+}
+
+function hostackAuth() {
+  return createClient(HOSTACK_URL, HOSTACK_ANON_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
+async function assertHostackManager(accessToken: string) {
+  const { data, error } = await hostackAuth().auth.getUser(accessToken);
+  if (error || !data.user) throw new Error(error?.message ?? "Invalid session");
+  const email = data.user.email?.toLowerCase() ?? "";
+  if (MANAGER_EMAILS.has(email)) return;
+  const { data: staff, error: staffError } = await hostackAdmin()
+    .from("staff")
+    .select("role,status")
+    .eq("property_id", TORRIDONIA_PROPERTY_ID)
+    .eq("auth_user_id", data.user.id)
+    .maybeSingle();
+  if (staffError) throw new Error(staffError.message);
+  const role = ((staff?.role as string | null) ?? "").toLowerCase();
+  if (staff?.status === "active" && (role.includes("manager") || role === "admin" || role === "owner")) return;
+  throw new Error("Not authorized");
 }
 
 // ---------- CSV ----------
@@ -138,15 +161,14 @@ async function fetchTabCSV(tab: string): Promise<string> {
 
 // ---------- Server function ----------
 const InputSchema = z.object({
+  accessToken: z.string().min(10),
   tabs: z.array(z.string().min(1)).min(1).max(8),
 });
 
 export const importTorridoniaRota = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => InputSchema.parse(input))
-  .handler(async ({ data, context }) => {
-    const { data: isAdminRow } = await supabaseAdmin.rpc("is_admin", { _user_id: context.userId });
-    if (!isAdminRow) throw new Error("Not authorized");
+  .handler(async ({ data }) => {
+    await assertHostackManager(data.accessToken.trim());
 
     const sb = hostackAdmin();
 
@@ -195,6 +217,8 @@ export const importTorridoniaRota = createServerFn({ method: "POST" })
           name,
           status: "active",
           role_type: dominantRole(cells),
+          start_date: "2026-05-18",
+          end_date: "2026-12-31",
         }).select("id").single();
         if (ins.error) throw new Error(`create volunteer ${name}: ${ins.error.message}`);
         volIds[name] = ins.data.id as string;
@@ -256,8 +280,8 @@ export const importTorridoniaRota = createServerFn({ method: "POST" })
               volunteer_id: vid,
               shift_date: date,
               shift_template_id: null,
-              start_time: null,
-              end_time: null,
+              start_time: "00:00",
+              end_time: "00:00",
               status: "scheduled",
             });
           } else if (n.kind === "shift" && n.name) {

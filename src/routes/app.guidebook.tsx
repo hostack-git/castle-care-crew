@@ -21,6 +21,8 @@ const CATEGORY_ICON: Record<string, string> = {
   cottages: "🏡",
 };
 
+const INTERACTIVE_SOP_IDS = new Set(["breakfast", "housekeeping", "cottages", "laundry", "checkin"]);
+
 type Playbook = {
   id: string;
   title: string;
@@ -33,17 +35,30 @@ type Playbook = {
   local_sop_id?: string;
 };
 
-const LOCAL_PLAYBOOKS: Playbook[] = SOPS.map((sop, index) => ({
-  id: `local-${sop.id}`,
-  title: sop.title,
-  category: sop.icon === "coffee" ? "Kitchen Operations" : sop.icon === "wrench" ? "Maintenance" : sop.title.replace(" SOP", ""),
-  description: sop.subtitle,
-  content_type: "local",
-  content_text: null,
-  file_url: null,
-  order_index: index,
-  local_sop_id: sop.id,
-}));
+const LOCAL_PLAYBOOKS: Playbook[] = [
+  ...SOPS.filter((sop) => INTERACTIVE_SOP_IDS.has(sop.id)).map((sop, index) => ({
+    id: `local-${sop.id}`,
+    title: sop.title,
+    category: sop.icon === "coffee" ? "Kitchen Operations" : sop.icon === "wrench" ? "Maintenance" : sop.title.replace(" SOP", ""),
+    description: sop.subtitle,
+    content_type: "local",
+    content_text: null,
+    file_url: null,
+    order_index: index,
+    local_sop_id: sop.id,
+  })),
+  {
+    id: "local-checkin",
+    title: "Guest Check-In SOP",
+    category: "General",
+    description: "Guest arrival and key handover",
+    content_type: "local",
+    content_text: null,
+    file_url: null,
+    order_index: 99,
+    local_sop_id: "checkin",
+  },
+];
 
 function GuidebookPage() {
   const { t } = useI18n();
@@ -58,7 +73,10 @@ function GuidebookPage() {
     let mounted = true;
     loadPlaybooks()
       .then(({ playbooks }) => {
-        if (mounted) setPlaybooks(playbooks.length > 0 ? (playbooks as Playbook[]) : LOCAL_PLAYBOOKS);
+        if (mounted) {
+          const remote = (playbooks as Playbook[]).filter((p) => !LOCAL_PLAYBOOKS.some((local) => local.title === p.title));
+          setPlaybooks([...LOCAL_PLAYBOOKS, ...remote]);
+        }
       })
       .catch((error) => {
         console.error("Failed to load SOPs", error);

@@ -1,6 +1,8 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useState, type FormEvent } from "react";
 import { hostackSupabase, TORRIDONIA_PROPERTY_ID } from "@/integrations/hostack/client";
+import { bindVolunteerByName } from "@/lib/hostack-admin.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +13,7 @@ export const Route = createFileRoute("/volunteer-access")({ component: Volunteer
 
 function VolunteerAccess() {
   const navigate = useNavigate();
+  const bindVolunteer = useServerFn(bindVolunteerByName);
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -30,19 +33,8 @@ function VolunteerAccess() {
         },
       });
 
-      const { data: vol } = await hostackSupabase
-        .from("volunteers")
-        .select("id")
-        .eq("property_id", TORRIDONIA_PROPERTY_ID)
-        .ilike("name", name.trim())
-        .maybeSingle();
-
-      if (vol?.id) {
-        await hostackSupabase
-          .from("volunteers")
-          .update({ auth_user_id: anon.user.id })
-          .eq("id", vol.id);
-      }
+      const token = anon.session?.access_token ?? (await hostackSupabase.auth.getSession()).data.session?.access_token;
+      if (token) await bindVolunteer({ data: { accessToken: token, name: name.trim() } });
 
       navigate({ to: "/app/dashboard" });
     } catch (err) {

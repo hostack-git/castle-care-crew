@@ -2,11 +2,11 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/hooks/useAuth";
-import { hostackSupabase, TORRIDONIA_PROPERTY_ID } from "@/integrations/hostack/client";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Save, ArrowLeft, Download } from "lucide-react";
 import { toast } from "sonner";
 import { importTorridoniaRota } from "@/lib/rota-import.functions";
+import { getAdminRotaWeek, saveAdminRotaWeek } from "@/lib/hostack-admin.functions";
 
 export const Route = createFileRoute("/app/admin/rota")({ component: RotaBuilderPage });
 
@@ -15,7 +15,8 @@ type Template = { id: string; name: string; start_time: string | null; end_time:
 type Shift = {
   id?: string;
   shift_date: string;
-  volunteer_id: string;
+  volunteer_id?: string | null;
+  staff_id?: string | null;
   shift_template_id: string | null;
 };
 
@@ -57,12 +58,15 @@ function addDays(d: Date, n: number) {
   return x;
 }
 function ymd(d: Date) {
-  return d.toISOString().slice(0, 10);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 const DAY_LABELS_ES = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
 function RotaBuilderPage() {
-  const { isAdmin, loading } = useAuth();
+  const { isAdmin, loading, session } = useAuth();
   const [weekStart, setWeekStart] = useState<Date>(() => startOfWeekMonday(new Date()));
   const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -71,47 +75,36 @@ function RotaBuilderPage() {
   const [shiftIds, setShiftIds] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
+  const [reloadTick, setReloadTick] = useState(0);
 
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
   const startStr = ymd(days[0]);
   const endStr = ymd(days[6]);
   const runImport = useServerFn(importTorridoniaRota);
+  const loadRotaWeek = useServerFn(getAdminRotaWeek);
+  const saveRotaWeek = useServerFn(saveAdminRotaWeek);
 
   useEffect(() => {
     let cancel = false;
     setLoadingData(true);
     (async () => {
-      const [volRes, tplRes, shiftRes] = await Promise.all([
-        hostackSupabase
-          .from("volunteers")
-          .select("id, name, role_type")
-          .eq("property_id", TORRIDONIA_PROPERTY_ID)
-          .eq("status", "active")
-          .order("name"),
-        hostackSupabase
-          .from("shift_templates")
-          .select("id, name, start_time, end_time")
-          .eq("property_id", TORRIDONIA_PROPERTY_ID)
-          .order("name"),
-        hostackSupabase
-          .from("shifts")
-          .select("id, shift_date, volunteer_id, shift_template_id")
-          .eq("property_id", TORRIDONIA_PROPERTY_ID)
-          .gte("shift_date", startStr)
-          .lte("shift_date", endStr),
-      ]);
+      const token = session?.access_token;
+      if (!token) {
+        setLoadingData(false);
+        return;
+      }
+      const { volunteers: vols, templates: tpls, shifts } = await loadRotaWeek({ data: { accessToken: token, weekStart: startStr } });
       if (cancel) return;
-      const vols = (volRes.data as Volunteer[]) ?? [];
-      const tpls = (tplRes.data as Template[]) ?? [];
-      const shifts = (shiftRes.data as Shift[]) ?? [];
 
       const g: Record<string, Record<string, string | null>> = {};
       const ids: Record<string, string> = {};
       for (const v of vols) g[v.id] = {};
       for (const s of shifts) {
-        if (!g[s.volunteer_id]) g[s.volunteer_id] = {};
-        g[s.volunteer_id][s.shift_date] = s.shift_template_id ?? OFF_KEY;
-        if (s.id) ids[`${s.volunteer_id}_${s.shift_date}`] = s.id;
+        const volunteerId = s.volunteer_id ?? s.staff_id;
+        if (!volunteerId) continue;
+        if (!g[volunteerId]) g[volunteerId] = {};
+        g[volunteerId][s.shift_date] = s.shift_template_id ?? OFF_KEY;
+        if (s.id) ids[`${volunteerId}_${s.shift_date}`] = s.id;
       }
 
       setVolunteers(vols);
@@ -120,11 +113,16 @@ function RotaBuilderPage() {
       setOriginalGrid(JSON.parse(JSON.stringify(g)));
       setShiftIds(ids);
       setLoadingData(false);
-    })();
+    })().catch((e) => {
+      if (!cancel) {
+        toast.error(e instanceof Error ? e.message : "Error cargando rota");
+        setLoadingData(false);
+      }
+    });
     return () => {
       cancel = true;
     };
-  }, [startStr, endStr]);
+  }, [session?.access_token, loadRotaWeek, startStr, reloadTick]);
 
   const setCell = (vid: string, date: string, value: string | null) => {
     setGrid((prev) => ({ ...prev, [vid]: { ...(prev[vid] ?? {}), [date]: value } }));
@@ -155,52 +153,35 @@ function RotaBuilderPage() {
           if (next === OFF_KEY) {
             upserts.push({
               ...(existingId ? { id: existingId } : {}),
-              property_id: TORRIDONIA_PROPERTY_ID,
               shift_date: date,
               volunteer_id: v.id,
               shift_template_id: null,
-              start_time: null,
-              end_time: null,
+              start_time: "00:00",
+              end_time: "00:00",
               status: "scheduled",
             });
           } else {
             const tpl = tplById[next];
             upserts.push({
               ...(existingId ? { id: existingId } : {}),
-              property_id: TORRIDONIA_PROPERTY_ID,
               shift_date: date,
               volunteer_id: v.id,
               shift_template_id: next,
-              start_time: tpl?.start_time ?? null,
-              end_time: tpl?.end_time ?? null,
+              start_time: tpl?.start_time ?? "00:00",
+              end_time: tpl?.end_time ?? "00:00",
               status: "scheduled",
             });
           }
         }
       }
 
-      if (deletes.length) {
-        const { error } = await hostackSupabase.from("shifts").delete().in("id", deletes);
-        if (error) throw error;
-      }
-      if (upserts.length) {
-        const { error } = await hostackSupabase.from("shifts").upsert(upserts);
-        if (error) throw error;
-      }
+      const token = session?.access_token;
+      if (!token) throw new Error("Sesión expirada");
+      await saveRotaWeek({ data: { accessToken: token, upserts, deletes } });
 
       toast.success(`Guardado: ${upserts.length} cambios, ${deletes.length} eliminados`);
       setOriginalGrid(JSON.parse(JSON.stringify(grid)));
-      const { data: refreshed } = await hostackSupabase
-        .from("shifts")
-        .select("id, shift_date, volunteer_id")
-        .eq("property_id", TORRIDONIA_PROPERTY_ID)
-        .gte("shift_date", startStr)
-        .lte("shift_date", endStr);
-      const ids: Record<string, string> = {};
-      for (const s of (refreshed as { id: string; shift_date: string; volunteer_id: string }[]) ?? []) {
-        ids[`${s.volunteer_id}_${s.shift_date}`] = s.id;
-      }
-      setShiftIds(ids);
+      setReloadTick((x) => x + 1);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Error al guardar");
     } finally {
@@ -243,12 +224,15 @@ function RotaBuilderPage() {
               const a = days[0], b = days[6];
               const tab = `${a.getDate()}-${b.getDate()} ${MON3[a.getMonth()]}`;
               try {
-                const r = await runImport({ data: { tabs: [tab] } });
+                const token = session?.access_token;
+                if (!token) throw new Error("Sesión expirada");
+                const r = await runImport({ data: { accessToken: token, tabs: [tab] } });
                 const t = r.tabs[0];
                 toast.success(
                   `Importado "${t.tab}" (sem. ${t.weekStart}): ${t.shifts} turnos · ${r.volunteersCreated} voluntarios nuevos · ${r.templatesCreated} plantillas nuevas`,
                 );
                 setWeekStart(new Date(t.weekStart + "T00:00:00"));
+                setReloadTick((x) => x + 1);
               } catch (e) {
                 toast.error(e instanceof Error ? e.message : "Error importando");
               }
