@@ -1,71 +1,57 @@
-## Weekly Rota Builder — Plan
 
-A new Admin module that replaces one-by-one task creation with a spreadsheet-like weekly grid, then auto-generates tasks for volunteers.
+## Estado actual de la pantalla de Rota
 
-### 1. Database (new tables via migration)
+`/app/admin/rota` **ya existe y funciona** como un Google Sheet:
 
-- `weekly_rotas` — one row per week. Fields: `week_start` (date, Monday), `status` ('draft' | 'published'), `created_by`, `published_at`.
-- `rota_room_cells` — one cell per room × day. Fields: `rota_id`, `room_id` (FK rooms), `day` (date), `status` (enum: to_clean, check_in, staying, free, maintenance).
-- `rota_team_cells` — one cell per volunteer × day. Fields: `rota_id`, `user_id`, `day`, `assignment` (enum), `note`.
-- `rota_checkins` — one row per day. Fields: `rota_id`, `day`, `responsible_id`.
-- `task_templates` — editable checklist templates. Fields: `kind` (room_clean, cottage_clean, breakfast, checkin, maintenance, deep_clean, onboarding), `items` (text[]).
-- `generated_tasks` — link rota cell → created `tasks.id` for idempotency. Unique on (rota_id, day, scope_key) so re-generation can upsert without duplicates.
+- Grid voluntarios (filas) × 7 días (columnas), navegable por semana.
+- Cada celda es un dropdown con todos los `shift_templates` (Breakfast, Housekeeping, Cottages, Laundry, Maintenance, Special task, Onboarding, etc.) + "Off" + vacío.
+- Colores por tipo de turno (igual que tu Sheet).
+- Botón **Guardar semana** hace upsert/delete masivo de todos los cambios en la tabla `shifts` del backend Hostack.
+- Botones "Semana anterior / Hoy / Semana siguiente".
 
-All tables RLS: SELECT for signed-in, ALL for admin.
+Lo que **no** tiene todavía (existe en tu Sheet pero no en la pantalla):
+- Sección **Room Rota** (Suite, East 1/2, Schoolroom, Riverview, Lochside, Corry, Gardeners, Stables) con estados To Clean / Check In / Staying / Free / Maintenance.
+- Fila **Check-Ins** (responsable por día).
+- Fila **Family Dinners** (pareja por día).
 
-Seed `task_templates` with the checklists from the spec.
+Esos tres bloques quedan **fuera de scope** de esta tarea (los abordamos en una segunda iteración si quieres). Esta tarea importa solo voluntarios + turnos, que es lo que pediste.
 
-### 2. Routes
+## Datos detectados en la hoja (semana del 18 may 2026, lun→dom)
 
-- `src/routes/app.admin.rota.tsx` — Weekly Rota Builder (the main grid).
-- `src/routes/app.admin.templates.tsx` — Edit checklist templates.
-- Add sidebar links in `app.admin.tsx`.
+**Voluntarios (16):** Pepe, Miguel, Nadia, Thais, Helena, Eva, Charlie, River, Molly, Lotte, Izzy, Blanche, Mike, Alexa, Roxana, Jorge.
 
-### 3. UI — Weekly Rota Builder
+**Tipos de turno usados:** Breakfast, Housekeeping, Laundry, Cottages, Maintenance, Special task, Onboarding, Arrive, Off, y una nota suelta "Departure :´(" para Nadia y Thais el miércoles (lo trato como `Off` + nota, porque "Departure" no es un turno operativo).
 
-Header with title + subtitle, action buttons (Duplicate last week / Import CSV / Save draft / Generate Tasks).
+**Casos especiales detectados:**
+- Nadia y Thais solo trabajan lun y mar; mié = Departure; jue–dom = vacío.
+- Alexa empieza el jueves (Arrive); lun–mié = vacío.
+- Celdas vacías = `– vacío` (no se inserta nada).
 
-Grid with 3 sections (Room Rota, Team Rota, Check-ins), 7 day columns. Each cell is a compact dropdown styled as a colored pill matching the reference image:
-- Room statuses: to_clean=red, check_in=light green, staying=blue, free=grey, maintenance=orange.
-- Team assignments: housekeeping, cottages, breakfast, maintenance, off, special, onboarding, deep_clean, departure, arrive — each with its own pill color.
+## Implementación
 
-Right-side summary panel: counts (auto-gen tasks, rooms to clean, expected check-ins, volunteers off), "Ready to generate" status, View preview button.
+### 1. Script de migración (server function admin-only)
+`src/lib/rota-import.functions.ts` — `importRotaFromCsv`:
+- Recibe el CSV/JSON parseado de la semana (lo paso hardcodeado en este primer run para la semana del 18 may; la función queda lista para reusar).
+- Protegida con `requireSupabaseAuth` + check `is_admin`.
+- Usa `HOSTACK_SERVICE_ROLE_KEY` (ya existe como secreto) para escribir en Hostack saltándose RLS.
+- Lógica:
+  1. Carga `volunteers` activos y `shift_templates` de Hostack para la propiedad Torridonia.
+  2. Para cada nombre del CSV, hace match por `name` (case-insensitive, trim). Si no existe, lo **crea** (`status='active'`, `property_id=TORRIDONIA_PROPERTY_ID`, `role_type` derivado del turno más frecuente).
+  3. Para cada turno del CSV, busca el `shift_template` por nombre (con alias: "Special task" → template "Special Task", "Arrive" → "Arrival" si existe, "Onboarding", etc.). Si no existe, lo crea con `start_time/end_time` por defecto.
+  4. Para cada celda (volunteer × día), hace upsert en `shifts` (clave `property_id+volunteer_id+shift_date`). "Off" = `shift_template_id=null, status='scheduled'`. Vacío = no toca.
+  5. Devuelve resumen: voluntarios creados/encontrados, templates creados/encontrados, shifts insertados/actualizados.
 
-Week navigator (prev/next, current Monday–Sunday range).
+### 2. Botón "Importar desde Sheet" en /app/admin/rota
+Pequeño botón en el header (solo visible para admin) que llama a la server function y muestra el resultado en un toast + un dialog con el resumen. Idempotente: re-ejecutarlo no duplica nada.
 
-Color tokens added to `src/styles.css` as semantic rota tokens.
+### 3. Ejecución
+Disparo la importación una vez al terminar la build, para la semana del 18 may. Te confirmo en chat el resumen exacto (cuántos voluntarios nuevos, cuántos shifts).
 
-### 4. Behavior
+### Próxima semana (25 may)
+La hoja solo expone una pestaña pública en este momento. Cuando publiques la próxima semana en el Sheet (o me digas el `gid`), corro el mismo botón apuntando a la nueva pestaña — sin cambios de código.
 
-- Cell edits autosave to the right `rota_*_cells` table (upsert keyed by rota+day+row).
-- "Duplicate last week": copy all cells from previous Monday into current rota.
-- "Save draft": sets `status='draft'` (default).
-- "Generate Tasks": confirm dialog → server function loops cells and inserts into `tasks` + `task_checklist_items`, recording `generated_tasks` rows. Re-running upserts (skips if already generated for that scope_key, or deletes+regenerates if user confirms).
-- "Publish": sets `status='published'` so volunteers see them on dashboard (tasks already feed dashboard via existing flow).
-- Import CSV: deferred — wire button but show "coming soon" toast (out of scope for first cut).
+## Fuera de scope (para una segunda iteración, si confirmas)
 
-### 5. Generation logic (server)
-
-Implemented as a `createServerFn` (admin-only, checks `is_admin`). For each day:
-- For each room with `to_clean`: insert task type=`housekeeping` (rooms) or `cottages`, title="Clean {room name}", checklist from matching template.
-- For each room with `check_in`: insert check-in prep task with checkin template.
-- For each volunteer assignment: create matching task assigned to that volunteer (breakfast, maintenance, etc.). Housekeeping/Cottages volunteers get tasks linked to all rooms/cottages marked `to_clean` that day (one task with combined checklist or one per unit — one per unit, assigned).
-- Check-ins row: assign a "Daily check-ins" task to the responsible volunteer.
-
-Idempotency via `generated_tasks (rota_id, day, scope_key)` unique. `scope_key` = e.g. `room:<id>:to_clean` or `vol:<id>:breakfast`.
-
-### 6. Sidebar submenu
-
-Update `app.admin.tsx` header to show submenu links: Team / Volunteers / Rooms & Cottages / Weekly Rota Builder / Tasks / Settings (link to existing pages where they exist; placeholders are fine for missing ones).
-
-### Technical notes
-
-- Server function in `src/lib/rota.functions.ts` using `requireSupabaseAuth` middleware (admin check inside).
-- Realtime not required — autosave is enough.
-- Color pills: shared `<RotaPill>` component using semantic tokens; dropdown via shadcn `Select` styled as pill.
-- Mobile: grid scrolls horizontally (sticky first column).
-
-### Deliverable scope
-
-In: DB migration, rota page with grid + autosave + duplicate week + generate, summary panel, templates page, sidebar submenu.
-Out (for follow-up): CSV import, publish/unpublish workflow distinct from generate (treated as one flow for now), drag-fill, undo history.
+- Sección Room Rota + Check-Ins + Family Dinners en la misma pantalla.
+- Generación automática de `tasks` a partir del Room Rota (la migración SQL `weekly_rotas`/`rota_room_cells` ya está en la base por si lo quieres aprovechar después).
+- Importación recurrente desde Google Sheets vía conector (requiere arreglar el acceso del conector de Google Sheets al proyecto).
