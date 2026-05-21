@@ -1,10 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/hooks/useAuth";
 import { hostackSupabase, TORRIDONIA_PROPERTY_ID } from "@/integrations/hostack/client";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Save, ArrowLeft } from "lucide-react";
+import { ChevronLeft, ChevronRight, Save, ArrowLeft, Download } from "lucide-react";
 import { toast } from "sonner";
+import { importTorridoniaRota } from "@/lib/rota-import.functions";
 
 export const Route = createFileRoute("/app/admin/rota")({ component: RotaBuilderPage });
 
@@ -73,6 +75,7 @@ function RotaBuilderPage() {
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
   const startStr = ymd(days[0]);
   const endStr = ymd(days[6]);
+  const runImport = useServerFn(importTorridoniaRota);
 
   useEffect(() => {
     let cancel = false;
@@ -232,6 +235,24 @@ function RotaBuilderPage() {
           <span className="text-sm text-muted-foreground ml-2">
             {startStr} → {endStr}
           </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              try {
+                const r = await runImport();
+                toast.success(
+                  `Importado (sem. ${r.weekStart}): ${r.shiftsUpserted} turnos · ${r.volunteersCreated} voluntarios nuevos · ${r.templatesCreated} plantillas nuevas`,
+                );
+                setWeekStart(new Date(r.weekStart + "T00:00:00"));
+              } catch (e) {
+                toast.error(e instanceof Error ? e.message : "Error importando");
+              }
+            }}
+            className="gap-1 ml-2"
+          >
+            <Download className="h-4 w-4" /> Importar Sheet
+          </Button>
           <Button onClick={onSave} disabled={busy} className="gap-2 ml-2">
             <Save className="h-4 w-4" />
             {busy ? "Guardando…" : "Guardar semana"}
