@@ -217,6 +217,8 @@ export const importTorridoniaRota = createServerFn({ method: "POST" })
           name,
           status: "active",
           role_type: dominantRole(cells),
+          start_date: "2026-05-18",
+          end_date: "2026-12-31",
         }).select("id").single();
         if (ins.error) throw new Error(`create volunteer ${name}: ${ins.error.message}`);
         volIds[name] = ins.data.id as string;
@@ -278,8 +280,8 @@ export const importTorridoniaRota = createServerFn({ method: "POST" })
               volunteer_id: vid,
               shift_date: date,
               shift_template_id: null,
-              start_time: null,
-              end_time: null,
+              start_time: "00:00",
+              end_time: "00:00",
               status: "scheduled",
             });
           } else if (n.kind === "shift" && n.name) {
