@@ -21,6 +21,8 @@ const CATEGORY_ICON: Record<string, string> = {
   cottages: "🏡",
 };
 
+const INTERACTIVE_SOP_IDS = new Set(["breakfast", "housekeeping", "cottages", "laundry", "checkin"]);
+
 type Playbook = {
   id: string;
   title: string;
@@ -33,7 +35,7 @@ type Playbook = {
   local_sop_id?: string;
 };
 
-const LOCAL_PLAYBOOKS: Playbook[] = SOPS.map((sop, index) => ({
+const LOCAL_PLAYBOOKS: Playbook[] = SOPS.filter((sop) => INTERACTIVE_SOP_IDS.has(sop.id)).map((sop, index) => ({
   id: `local-${sop.id}`,
   title: sop.title,
   category: sop.icon === "coffee" ? "Kitchen Operations" : sop.icon === "wrench" ? "Maintenance" : sop.title.replace(" SOP", ""),
@@ -58,7 +60,10 @@ function GuidebookPage() {
     let mounted = true;
     loadPlaybooks()
       .then(({ playbooks }) => {
-        if (mounted) setPlaybooks(playbooks.length > 0 ? (playbooks as Playbook[]) : LOCAL_PLAYBOOKS);
+        if (mounted) {
+          const remote = (playbooks as Playbook[]).filter((p) => !LOCAL_PLAYBOOKS.some((local) => local.title === p.title));
+          setPlaybooks([...LOCAL_PLAYBOOKS, ...remote]);
+        }
       })
       .catch((error) => {
         console.error("Failed to load SOPs", error);
