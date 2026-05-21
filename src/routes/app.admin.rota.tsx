@@ -75,6 +75,7 @@ function RotaBuilderPage() {
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
   const startStr = ymd(days[0]);
   const endStr = ymd(days[6]);
+  const runImport = useServerFn(importTorridoniaRota);
 
   useEffect(() => {
     let cancel = false;
