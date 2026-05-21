@@ -15,7 +15,8 @@ type Template = { id: string; name: string; start_time: string | null; end_time:
 type Shift = {
   id?: string;
   shift_date: string;
-  volunteer_id: string;
+  volunteer_id?: string | null;
+  staff_id?: string | null;
   shift_template_id: string | null;
 };
 
@@ -85,7 +86,10 @@ function RotaBuilderPage() {
     setLoadingData(true);
     (async () => {
       const token = session?.access_token;
-      if (!token) return;
+      if (!token) {
+        setLoadingData(false);
+        return;
+      }
       const { volunteers: vols, templates: tpls, shifts } = await loadRotaWeek({ data: { accessToken: token, weekStart: startStr } });
       if (cancel) return;
 
