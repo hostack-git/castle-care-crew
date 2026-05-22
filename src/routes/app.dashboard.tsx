@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useI18n, LOCALE_MAP } from "@/lib/i18n";
 import { hostackSupabase, TORRIDONIA_PROPERTY_ID } from "@/integrations/hostack/client";
-import { Calendar, Clock, CheckCircle2, Circle, BookOpen, ChevronLeft, ChevronRight, MessageCircle, Plus, X, LogIn, LogOut } from "lucide-react";
+import { Calendar, Clock, CheckCircle2, Circle, BookOpen, ChevronLeft, ChevronRight, MessageCircle, Plus, X, LogIn, LogOut, Search } from "lucide-react";
 import { startOfWeekMondayUTC } from "@/lib/rota-utils";
 import { loadTodaysRooms, roomsToClean, type RoomEntry } from "@/lib/amenitiz-parser";
 import { Button } from "@/components/ui/button";
@@ -291,7 +291,7 @@ type MatrixShift = {
   shift_templates: { id: string; name: string } | { id: string; name: string }[] | null;
 };
 
-type VolunteerRow = { id: string; name: string };
+type VolunteerRow = { id: string; name: string; role_type?: string | null };
 type TemplateRow  = { id: string; name: string };
 
 const TASK_ORDER = [
@@ -327,8 +327,9 @@ function AdminMatrix() {
   const [volunteers, setVolunteers] = useState<VolunteerRow[]>([]);
   const [templates, setTemplates]  = useState<TemplateRow[]>([]);
   const [loading, setLoading]      = useState(true);
-  const [assigning, setAssigning]  = useState<string | null>(null); // "templateId__date"
-  const assignRef = useRef<HTMLSelectElement>(null);
+  const [assigning, setAssigning]  = useState<string | null>(null); // "task__date"
+  const [volSearch, setVolSearch]  = useState("");
+  const pickerRef = useRef<HTMLDivElement>(null);
 
   const days = useMemo(
     () => Array.from({ length: 7 }, (_, i) => addDaysUTC(weekStart, i)),
@@ -346,7 +347,7 @@ function AdminMatrix() {
         .lte("shift_date", days[6]),
       hostackSupabase
         .from("volunteers")
-        .select("id, name")
+        .select("id, name, role_type")
         .eq("property_id", TORRIDONIA_PROPERTY_ID)
         .eq("status", "active")
         .order("name"),
@@ -398,8 +399,31 @@ function AdminMatrix() {
     const { error } = await hostackSupabase.from("shifts").insert(payload);
     if (error) { toast.error(error.message); return; }
     setAssigning(null);
+    setVolSearch("");
     await loadData();
   };
+
+  const openAssign = useCallback((key: string) => {
+    setAssigning(key);
+    setVolSearch("");
+    // close on outside click
+    setTimeout(() => {
+      const handler = (e: MouseEvent) => {
+        if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+          setAssigning(null);
+          setVolSearch("");
+          document.removeEventListener("mousedown", handler);
+        }
+      };
+      document.addEventListener("mousedown", handler);
+    }, 0);
+  }, []);
+
+  const assignedOnDay = useCallback((date: string): Set<string> => {
+    const ids = new Set<string>();
+    shifts.forEach((s) => { if (s.shift_date === date && s.volunteer_id) ids.add(s.volunteer_id); });
+    return ids;
+  }, [shifts]);
 
   const prevWeek = () => setWeekStart(addDaysUTC(weekStart, -7));
   const nextWeek = () => setWeekStart(addDaysUTC(weekStart, 7));
@@ -452,8 +476,13 @@ function AdminMatrix() {
                     const cellKey = `${task}__${d}`;
                     const cell = cellShifts(task, d);
                     const isAssigning = assigning === cellKey;
+                    const busyIds = isAssigning ? assignedOnDay(d) : new Set<string>();
+                    const filtered = volunteers.filter((v) => {
+                      if (!volSearch) return true;
+                      return v.name.toLowerCase().includes(volSearch.toLowerCase());
+                    });
                     return (
-                      <td key={d} className="p-2 align-top min-w-[110px]">
+                      <td key={d} className="p-2 align-top min-w-[120px] relative">
                         <div className="flex flex-wrap gap-1">
                           {cell.map((s) => (
                             <span
@@ -470,35 +499,71 @@ function AdminMatrix() {
                               </button>
                             </span>
                           ))}
-                          {isAssigning ? (
-                            <span className="flex items-center gap-1">
-                              <select
-                                ref={assignRef}
-                                className="text-[11px] rounded border px-1 py-0.5 bg-background"
-                                defaultValue=""
-                                onChange={(e) => {
-                                  if (e.target.value) assignVolunteer(task, d, e.target.value);
-                                }}
-                              >
-                                <option value="" disabled>{t("matrix.selectVol")}</option>
-                                {volunteers.map((v) => (
-                                  <option key={v.id} value={v.id}>{v.name}</option>
-                                ))}
-                              </select>
-                              <button type="button" onClick={() => setAssigning(null)} className="opacity-50 hover:opacity-100">
-                                <X className="h-3 w-3" />
-                              </button>
-                            </span>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => setAssigning(cellKey)}
-                              className="inline-flex items-center justify-center rounded-full border border-dashed border-muted-foreground/40 text-muted-foreground hover:border-primary hover:text-primary w-5 h-5 transition"
-                            >
-                              <Plus className="h-3 w-3" />
-                            </button>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() => isAssigning ? (setAssigning(null), setVolSearch("")) : openAssign(cellKey)}
+                            className={`inline-flex items-center justify-center rounded-full border border-dashed w-5 h-5 transition ${
+                              isAssigning
+                                ? "border-primary text-primary"
+                                : "border-muted-foreground/40 text-muted-foreground hover:border-primary hover:text-primary"
+                            }`}
+                          >
+                            {isAssigning ? <X className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
+                          </button>
                         </div>
+
+                        {isAssigning && (
+                          <div
+                            ref={pickerRef}
+                            className="absolute z-50 top-8 left-0 bg-popover border rounded-xl shadow-xl w-52 overflow-hidden"
+                            onKeyDown={(e) => { if (e.key === "Escape") { setAssigning(null); setVolSearch(""); } }}
+                          >
+                            <div className="px-2 pt-2 pb-1 border-b">
+                              <div className="flex items-center gap-1.5 rounded-lg border bg-background px-2 py-1">
+                                <Search className="h-3 w-3 text-muted-foreground shrink-0" />
+                                <input
+                                  autoFocus
+                                  className="text-xs bg-transparent outline-none w-full placeholder:text-muted-foreground"
+                                  placeholder={t("matrix.selectVol")}
+                                  value={volSearch}
+                                  onChange={(e) => setVolSearch(e.target.value)}
+                                />
+                              </div>
+                            </div>
+                            <div className="max-h-48 overflow-y-auto py-1">
+                              {filtered.length === 0 ? (
+                                <p className="text-xs text-muted-foreground text-center py-3">No results</p>
+                              ) : (
+                                filtered.map((v) => {
+                                  const busy = busyIds.has(v.id);
+                                  const alreadyHere = cell.some((s) => s.volunteer_id === v.id);
+                                  if (alreadyHere) return null;
+                                  return (
+                                    <button
+                                      key={v.id}
+                                      type="button"
+                                      disabled={busy}
+                                      onClick={() => assignVolunteer(task, d, v.id)}
+                                      className={`w-full text-left px-3 py-1.5 text-xs flex items-center justify-between gap-2 transition ${
+                                        busy
+                                          ? "opacity-40 cursor-not-allowed"
+                                          : "hover:bg-secondary/60 cursor-pointer"
+                                      }`}
+                                    >
+                                      <div>
+                                        <div className="font-medium">{v.name}</div>
+                                        {v.role_type && (
+                                          <div className="text-[10px] text-muted-foreground">{v.role_type}</div>
+                                        )}
+                                      </div>
+                                      {busy && <span className="text-[10px] text-muted-foreground shrink-0">busy</span>}
+                                    </button>
+                                  );
+                                })
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </td>
                     );
                   })}
