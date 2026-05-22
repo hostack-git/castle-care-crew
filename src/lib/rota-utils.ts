@@ -9,16 +9,19 @@ const SHEET_ID = "1k7SwmRTv6qKljEfyjOBVOYkfQHed263ovFrP3gevbis";
 
 const DEFAULT_TIMES: Record<string, { start: string; end: string }> = {
   Breakfast:       { start: "07:00", end: "12:00" },
-  Housekeeping:    { start: "09:00", end: "15:00" },
-  Laundry:         { start: "09:00", end: "15:00" },
-  Cottages:        { start: "09:00", end: "15:00" },
-  Maintenance:     { start: "09:00", end: "17:00" },
-  "Special Task":  { start: "09:00", end: "15:00" },
+  Housekeeping:    { start: "10:00", end: "15:00" },
+  Laundry:         { start: "08:00", end: "13:00" },
+  Cottages:        { start: "10:00", end: "15:00" },
+  Maintenance:     { start: "10:00", end: "15:00" },
+  "Special Task":  { start: "09:00", end: "17:00" },
   Onboarding:      { start: "09:00", end: "17:00" },
   Arrive:          { start: "09:00", end: "17:00" },
-  "Deep Cleaning": { start: "09:00", end: "15:00" },
-  "Family Dinner": { start: "18:00", end: "22:00" },
+  "Deep Cleaning": { start: "10:00", end: "15:00" },
   "Family Dinners":{ start: "18:00", end: "22:00" },
+};
+
+const ALIASES: Record<string, string> = {
+  "Family Dinner": "Family Dinners",
 };
 
 // ---------- CSV ----------
@@ -99,7 +102,8 @@ function normalizeCell(raw: string): { kind: "shift" | "off" | "empty"; name?: s
     .split(/\s+/)
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
     .join(" ");
-  return { kind: "shift", name: canonical };
+  const resolved = ALIASES[canonical] ?? canonical;
+  return { kind: "shift", name: resolved };
 }
 
 // ---------- Rota CSV parser ----------
