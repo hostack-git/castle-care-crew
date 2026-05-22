@@ -3,17 +3,16 @@ import { useEffect, useState } from "react";
 import { hostackSupabase, TORRIDONIA_PROPERTY_ID } from "@/integrations/hostack/client";
 import { useI18n, LOCALE_MAP } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Clock, User } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
 
 export const Route = createFileRoute("/app/calendar")({ component: CalendarPage });
 
-type Volunteer = { name: string | null };
 type ShiftTemplate = { name: string | null; start_time: string | null; end_time: string | null };
 type WeekShift = {
   id: string;
   shift_date: string;
   volunteer_id: string | null;
-  volunteers: Volunteer | Volunteer[] | null;
+  volunteers: { name: string | null } | { name: string | null }[] | null;
   shift_templates: ShiftTemplate | ShiftTemplate[] | null;
 };
 
@@ -40,6 +39,24 @@ function fmtDate(d: Date): string {
   return d.toISOString().split("T")[0];
 }
 
+const TYPE_COLORS: { match: string; cls: string }[] = [
+  { match: "breakfast",    cls: "bg-orange-100 text-orange-900" },
+  { match: "housekeep",   cls: "bg-emerald-100 text-emerald-900" },
+  { match: "laundry",     cls: "bg-blue-100 text-blue-900" },
+  { match: "cottage",     cls: "bg-teal-100 text-teal-900" },
+  { match: "maintenance", cls: "bg-amber-100 text-amber-900" },
+  { match: "deep",        cls: "bg-purple-100 text-purple-900" },
+  { match: "special",     cls: "bg-red-100 text-red-900" },
+  { match: "family",      cls: "bg-pink-100 text-pink-900" },
+  { match: "dinner",      cls: "bg-pink-100 text-pink-900" },
+];
+function shiftColor(name: string | null | undefined) {
+  if (!name) return "bg-secondary/60 text-secondary-foreground";
+  const n = name.toLowerCase();
+  for (const t of TYPE_COLORS) if (n.includes(t.match)) return t.cls;
+  return "bg-secondary/60 text-secondary-foreground";
+}
+
 function CalendarPage() {
   const { t, lang } = useI18n();
   const locale = LOCALE_MAP[lang] ?? "en-GB";
@@ -58,6 +75,7 @@ function CalendarPage() {
       .eq("property_id", TORRIDONIA_PROPERTY_ID)
       .gte("shift_date", start)
       .lte("shift_date", end)
+      .not("shift_template_id", "is", null)
       .order("shift_date")
       .then(({ data }) => {
         setShifts((data as WeekShift[]) ?? []);
@@ -96,49 +114,57 @@ function CalendarPage() {
       {loading ? (
         <div className="flex gap-3 overflow-x-auto pb-2">
           {Array.from({ length: 7 }).map((_, i) => (
-            <div key={i} className="rounded-xl border bg-card p-3 min-w-[140px] flex-1 min-h-[160px] animate-pulse bg-secondary/40" />
+            <div key={i} className="rounded-xl border bg-card p-3 min-w-[140px] flex-1 min-h-[120px] animate-pulse bg-secondary/40" />
           ))}
         </div>
       ) : (
         <div className="flex gap-3 overflow-x-auto pb-2">
           {days.map((d) => {
             const key = fmtDate(d);
-            const dayShifts = shifts.filter((s) => s.shift_date === key);
+            // Only show shifts with an actual task (filter out Off/unassigned)
+            const dayShifts = shifts.filter((s) => {
+              if (s.shift_date !== key) return false;
+              const tpl = pickOne(s.shift_templates);
+              return tpl?.name != null && tpl.name !== "";
+            });
             const today = isToday(d);
             return (
               <div
                 key={key}
-                className={`rounded-xl border bg-card p-3 min-w-[140px] flex-1 min-h-[160px] ${today ? "ring-2 ring-accent/40" : ""}`}
+                className={`rounded-xl border bg-card p-3 min-w-[150px] flex-1 ${today ? "ring-2 ring-accent/40" : ""}`}
               >
                 <div className={`text-xs font-semibold uppercase tracking-wide ${today ? "text-accent" : "text-muted-foreground"}`}>
                   {d.toLocaleDateString(locale, { weekday: "short" })}
                 </div>
-                <div className={`text-2xl font-display font-semibold ${today ? "text-accent" : ""}`}>{d.getDate()}</div>
-                <div className="mt-3 space-y-2">
-                  {dayShifts.length === 0 && <p className="text-xs text-muted-foreground/50">—</p>}
-                  {dayShifts.map((s) => {
-                    const tpl = pickOne<ShiftTemplate>(s.shift_templates);
-                    const vol = pickOne<Volunteer>(s.volunteers);
-                    return (
-                      <div key={s.id} className="rounded-lg bg-secondary/60 p-2 text-xs space-y-0.5">
-                        {vol?.name && (
-                          <div className="flex items-center gap-1 font-semibold text-foreground truncate">
-                            <User className="h-3 w-3 shrink-0 text-primary" />
-                            <span className="truncate">{vol.name}</span>
-                          </div>
-                        )}
-                        <div className="text-muted-foreground truncate">{tpl?.name ?? "—"}</div>
-                        {(tpl?.start_time || tpl?.end_time) && (
-                          <div className="flex items-center gap-1 text-muted-foreground">
-                            <Clock className="h-3 w-3" />
-                            {fmtTime(tpl?.start_time ?? null)}
-                            {tpl?.end_time ? `–${fmtTime(tpl.end_time)}` : ""}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                <div className={`text-2xl font-display font-semibold mb-3 ${today ? "text-accent" : ""}`}>
+                  {d.getDate()}
                 </div>
+                {dayShifts.length === 0 ? (
+                  <p className="text-xs text-muted-foreground/40 mt-2">—</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {dayShifts.map((s) => {
+                      const tpl = pickOne<ShiftTemplate>(s.shift_templates);
+                      const vol = pickOne(s.volunteers);
+                      const color = shiftColor(tpl?.name);
+                      return (
+                        <div key={s.id} className={`rounded-lg px-2.5 py-2 text-xs ${color}`}>
+                          <div className="font-semibold truncate">{tpl?.name}</div>
+                          {vol?.name && (
+                            <div className="truncate opacity-80 mt-0.5">{vol.name}</div>
+                          )}
+                          {(tpl?.start_time || tpl?.end_time) && (
+                            <div className="flex items-center gap-1 mt-0.5 opacity-70">
+                              <Clock className="h-2.5 w-2.5" />
+                              {fmtTime(tpl?.start_time ?? null)}
+                              {tpl?.end_time ? `–${fmtTime(tpl.end_time)}` : ""}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             );
           })}
