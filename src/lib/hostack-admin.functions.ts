@@ -98,7 +98,7 @@ export const getUserAccess = createServerFn({ method: "POST" })
       full_name: staff.name as string | null,
       email: staff.email as string | null,
       phone: staff.phone as string | null,
-      language: (staff.preferred_language ?? "en") as "en" | "pt" | "es" | "de" | "gd",
+      language: (staff.preferred_language ?? "en") as "en" | "pt" | "es" | "fr" | "it",
       nationality: null,
       passport_number: null,
       passport_url: null,
