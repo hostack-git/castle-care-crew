@@ -61,9 +61,10 @@ function JoinPage() {
         const { data: anon, error: anonErr } = await hostackSupabase.auth.signInAnonymously();
         if (anonErr || !anon.user) throw anonErr ?? new Error("No se pudo iniciar sesión");
         userId = anon.user.id;
-        await hostackSupabase.auth.updateUser({
+        const { error: updateErr } = await hostackSupabase.auth.updateUser({
           data: { full_name: name.trim(), role: "volunteer", property_id: TORRIDONIA_PROPERTY_ID },
         });
+        if (updateErr) throw updateErr;
       }
 
       // Match volunteer by name + update profile
@@ -78,7 +79,16 @@ function JoinPage() {
         const updates: Record<string, unknown> = { whatsapp: whatsapp.trim() || null };
         if (email.trim()) updates.email = email.trim();
         if (!volunteer.auth_user_id) updates.auth_user_id = userId;
-        await hostackSupabase.from("volunteers").update(updates).eq("id", volunteer.id);
+        const { error: volErr } = await hostackSupabase
+          .from("volunteers")
+          .update(updates)
+          .eq("id", volunteer.id);
+        if (volErr) {
+          console.error("volunteer update failed:", volErr);
+          throw new Error(`No se pudo vincular tu perfil: ${volErr.message}`);
+        }
+      } else {
+        console.warn("no volunteer row found for name:", name.trim());
       }
 
       // First time? Go to onboarding. Otherwise dashboard.

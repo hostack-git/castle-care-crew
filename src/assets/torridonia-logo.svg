@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 270" fill="none">
+  <!-- Shield outer -->
+  <path d="M110 258 C110 258 18 210 18 130 L18 32 C18 28 22 24 26 24 L194 24 C198 24 202 28 202 32 L202 130 C202 210 110 258 110 258 Z" fill="#1d4a2e" stroke="#0f2a18" stroke-width="3"/>
+  <!-- Shield inner top band (cream) -->
+  <path d="M30 32 L190 32 L190 118 L30 118 Z" fill="#f5f0e8" rx="2"/>
+  <!-- Orange sun -->
+  <circle cx="110" cy="68" r="32" fill="#e07820"/>
+  <!-- Antler left -->
+  <path d="M80 68 C74 55 68 42 72 30 M72 30 C69 25 64 24 60 28 M72 30 C75 22 72 16 68 14 M80 68 C76 58 70 52 65 50" stroke="#1d4a2e" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <!-- Antler right -->
+  <path d="M140 68 C146 55 152 42 148 30 M148 30 C151 25 156 24 160 28 M148 30 C145 22 148 16 152 14 M140 68 C144 58 150 52 155 50" stroke="#1d4a2e" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <!-- Inner escutcheon (small shield) -->
+  <path d="M110 148 C110 148 86 136 86 116 L86 96 L134 96 L134 116 C134 136 110 148 110 148Z" fill="#f5f0e8" stroke="#1d4a2e" stroke-width="2"/>
+  <!-- Lion rampant (simplified heraldic) -->
+  <g fill="#111111" transform="translate(92,98)">
+    <ellipse cx="18" cy="8" rx="7" ry="6"/>
+    <path d="M14 13 C10 18 9 26 12 30 L18 32 L24 30 C27 26 26 18 22 13 Z"/>
+    <path d="M12 30 C9 34 8 40 11 42"/>
+    <path d="M24 30 C27 34 28 40 25 42"/>
+    <path d="M10 22 C6 20 4 22 5 25"/>
+    <path d="M26 22 C30 20 32 22 31 25"/>
+    <path d="M14 8 C12 4 14 1 17 2"/>
+    <circle cx="14" cy="7" r="1.5"/>
+    <circle cx="22" cy="7" r="1.5"/>
+  </g>
+  <!-- Unicorn left (simplified) -->
+  <g stroke="#f5f0e8" stroke-width="2" fill="none" transform="translate(26,145)">
+    <ellipse cx="20" cy="18" rx="12" ry="10" fill="#f5f0e8" stroke="#1d4a2e"/>
+    <path d="M12 12 C8 6 10 0 14 2" stroke="#1d4a2e" stroke-width="2"/>
+    <path d="M20 28 C18 34 20 40 22 42" stroke="#1d4a2e" stroke-width="2"/>
+    <path d="M28 28 C30 34 28 40 26 42" stroke="#1d4a2e" stroke-width="2"/>
+  </g>
+  <!-- Unicorn right (simplified) -->
+  <g stroke="#f5f0e8" stroke-width="2" fill="none" transform="translate(152,145)">
+    <ellipse cx="22" cy="18" rx="12" ry="10" fill="#f5f0e8" stroke="#1d4a2e"/>
+    <path d="M30 12 C34 6 32 0 28 2" stroke="#1d4a2e" stroke-width="2"/>
+    <path d="M22 28 C20 34 22 40 24 42" stroke="#1d4a2e" stroke-width="2"/>
+    <path d="M14 28 C12 34 14 40 16 42" stroke="#1d4a2e" stroke-width="2"/>
+  </g>
+  <!-- TORRIDONIA text above -->
+  <text x="110" y="18" text-anchor="middle" font-family="Georgia, serif" font-size="16" font-weight="bold" fill="#1d4a2e" letter-spacing="2">TORRIDONIA</text>
+</svg>

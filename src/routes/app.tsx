@@ -3,8 +3,9 @@ import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
-import { Mountain, LayoutDashboard, Calendar, BookOpen, Mountain as Trail, Megaphone, MessageCircle, Settings, LogOut, Home } from "lucide-react";
+import { LayoutDashboard, Calendar, BookOpen, Mountain as Trail, Megaphone, MessageCircle, Settings, LogOut, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import torridoniaLogo from "@/assets/torridonia-logo.svg";
 
 export const Route = createFileRoute("/app")({
   component: AppLayout,
@@ -44,9 +45,8 @@ function AppLayout() {
   return (
     <div className="min-h-screen bg-cream-paper">
       <aside className="fixed inset-y-0 left-0 hidden lg:flex w-64 flex-col bg-sidebar border-r p-5">
-        <Link to="/app/dashboard" className="flex items-center gap-2 mb-8">
-          <Mountain className="h-6 w-6 text-primary" />
-          <span className="font-display text-lg font-semibold">Torridonia</span>
+        <Link to="/app/dashboard" className="flex items-center mb-8">
+          <img src={torridoniaLogo} alt="Torridonia" className="h-12 w-auto" />
         </Link>
         <nav className="flex-1 space-y-1">
           {nav.map((n) => {
@@ -75,7 +75,7 @@ function AppLayout() {
                   : "text-foreground hover:bg-secondary"
               }`}
             >
-              <Home className="h-4 w-4" /> Rooms
+              <Home className="h-4 w-4" /> {t("nav.rooms")}
             </Link>
           )}
           {isAdmin && !isVolunteer && (
@@ -105,9 +105,8 @@ function AppLayout() {
 
       {/* Mobile top bar */}
       <header className="lg:hidden sticky top-0 z-20 bg-card border-b px-4 py-3 flex items-center justify-between">
-        <Link to="/app/dashboard" className="flex items-center gap-2">
-          <Mountain className="h-5 w-5 text-primary" />
-          <span className="font-display font-semibold">Torridonia</span>
+        <Link to="/app/dashboard" className="flex items-center">
+          <img src={torridoniaLogo} alt="Torridonia" className="h-8 w-auto" />
         </Link>
         <div className="flex items-center gap-2">
           <LanguageSwitcher compact />
