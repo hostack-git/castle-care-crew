@@ -20,7 +20,7 @@ function ForgotPassword() {
     e.preventDefault();
     setLoading(true);
     const { error } = await hostackSupabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'https://id-preview--4a1e4c77-89b3-4432-955d-de2ed62005cc.lovable.app/reset-password',
+      redirectTo: 'https://tanstack-start-app.hostack.workers.dev/reset-password',
     });
     setLoading(false);
     if (error) {
