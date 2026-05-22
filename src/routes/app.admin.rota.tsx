@@ -3,7 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { hostackSupabase, TORRIDONIA_PROPERTY_ID } from "@/integrations/hostack/client";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Save, ArrowLeft } from "lucide-react";
+import { ChevronLeft, ChevronRight, Save, ArrowLeft, Download } from "lucide-react";
+import { importRotaFromSheets, tabNameForDate, startOfWeekMondayUTC } from "@/lib/rota-utils";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/admin/rota")({ component: RotaBuilderPage });
@@ -72,6 +73,7 @@ function RotaBuilderPage() {
   const [originalGrid, setOriginalGrid] = useState<Record<string, Record<string, string | null>>>({});
   const [shiftIds, setShiftIds] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const [reloadTick, setReloadTick] = useState(0);
 
@@ -145,6 +147,28 @@ function RotaBuilderPage() {
     for (const t of templates) m[t.id] = t;
     return m;
   }, [templates]);
+
+  const onImport = async () => {
+    setImporting(true);
+    try {
+      // Import current week + next week
+      const monCurrent = startOfWeekMondayUTC(new Date());
+      const monNext = new Date(monCurrent);
+      monNext.setUTCDate(monCurrent.getUTCDate() + 7);
+      const tabs = [tabNameForDate(monCurrent), tabNameForDate(monNext)];
+      const result = await importRotaFromSheets(tabs);
+      if (result.errors.length > 0) {
+        toast.error(`Importado con advertencias: ${result.errors[0]}`);
+      } else {
+        toast.success(`Importado: ${result.inserted} nuevos, ${result.updated} actualizados`);
+      }
+      setReloadTick((x) => x + 1);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al importar");
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const onSave = async () => {
     setBusy(true);
@@ -231,7 +255,11 @@ function RotaBuilderPage() {
           <span className="text-sm text-muted-foreground ml-2">
             {startStr} → {endStr}
           </span>
-          <Button onClick={onSave} disabled={busy} className="gap-2 ml-2">
+          <Button onClick={onImport} disabled={importing} variant="outline" className="gap-2 ml-2">
+            <Download className="h-4 w-4" />
+            {importing ? "Importando…" : "Importar Sheets"}
+          </Button>
+          <Button onClick={onSave} disabled={busy} className="gap-2">
             <Save className="h-4 w-4" />
             {busy ? "Guardando…" : "Guardar semana"}
           </Button>

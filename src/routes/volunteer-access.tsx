@@ -38,14 +38,28 @@ function VolunteerAccess() {
         .ilike("name", name.trim())
         .maybeSingle();
 
+      let profileComplete = false;
       if (volunteer?.id) {
         await hostackSupabase
           .from("volunteers")
           .update({ auth_user_id: anon.user.id })
           .eq("id", volunteer.id);
+        // Check if contact info is already on file
+        const { data: vol } = await hostackSupabase
+          .from("volunteers")
+          .select("whatsapp, email")
+          .eq("id", volunteer.id)
+          .single();
+        profileComplete = !!(vol?.whatsapp);
       }
 
-      navigate({ to: "/app/dashboard" });
+      // If volunteer has no WhatsApp → ask for contact info
+      if (!profileComplete) {
+        navigate({ to: "/join" });
+      } else {
+        const onboardingDone = typeof window !== "undefined" && localStorage.getItem("onboarding_done") === "true";
+        navigate({ to: onboardingDone ? "/app/dashboard" : "/onboarding" });
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al entrar");
     } finally {

@@ -6,31 +6,34 @@ export const Route = createFileRoute("/app/guidebook/sop/$sopId")({
   component: SopPage,
 });
 
+const BASE = "https://jorgeibanezhostack.github.io/guidebookstorridon";
+
+const FILE_MAP: Record<string, string> = {
+  breakfast:    `${BASE}/breakfast-sop-multilang.html`,
+  housekeeping: `${BASE}/housekeeping-sop-multilang.html`,
+  cottages:     `${BASE}/cottages-sop-multilang.html`,
+  laundry:      `${BASE}/laundry-sop-multilang.html`,
+  checkin:      `${BASE}/checkin-sop-en.html`,
+};
+
 function SopPage() {
   const { sopId } = useParams({ from: "/app/guidebook/sop/$sopId" });
-  const fileMap: Record<string, string> = {
-    breakfast: "breakfast-sop-multilang.html",
-    housekeeping: "housekeeping-sop-multilang.html",
-    cottages: "cottages-sop-multilang.html",
-    laundry: "laundry-sop-multilang.html",
-    checkin: "checkin-sop-en.html",
-  };
-  const file = fileMap[sopId];
+  const src = FILE_MAP[sopId];
 
   return (
-    <div className="space-y-4">
-      <Button asChild variant="ghost" size="sm" className="-ml-2">
+    <div className="flex flex-col" style={{ height: "calc(100vh - 3.5rem)" }}>
+      <Button asChild variant="ghost" size="sm" className="-ml-2 shrink-0 mb-1">
         <Link to="/app/guidebook">
           <ChevronLeft className="h-4 w-4 mr-1" /> Guidebook
         </Link>
       </Button>
-      {!file ? (
+      {!src ? (
         <p className="text-muted-foreground">SOP not found.</p>
       ) : (
         <iframe
-          src={`/sops/${file}`}
+          src={src}
           title={`SOP ${sopId}`}
-          className="w-full h-[calc(100vh-9rem)] rounded-2xl border bg-white"
+          className="flex-1 w-full rounded-2xl border bg-white"
           allow="clipboard-read; clipboard-write"
         />
       )}
