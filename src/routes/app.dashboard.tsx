@@ -3,15 +3,35 @@ import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useI18n, LOCALE_MAP } from "@/lib/i18n";
 import { hostackSupabase, TORRIDONIA_PROPERTY_ID } from "@/integrations/hostack/client";
-import { Calendar, Clock, CheckCircle2, Circle, BookOpen, ChevronLeft, ChevronRight, MessageCircle, Plus, X, LogIn, LogOut, Search } from "lucide-react";
+import { Calendar, Clock, CheckCircle2, Circle, BookOpen, ChevronLeft, ChevronRight, MessageCircle, Plus, X, LogIn, LogOut, Search, Copy } from "lucide-react";
 import { startOfWeekMondayUTC } from "@/lib/rota-utils";
-import { loadTodaysRooms, roomsToClean, type RoomEntry } from "@/lib/amenitiz-parser";
+import { loadTodaysRooms, type RoomEntry } from "@/lib/amenitiz-parser";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/dashboard")({ component: DashboardRoute });
 
 const WHATSAPP_URL = "https://chat.whatsapp.com/DvsSz15BQp98Zl8mQRIMLp";
+
+type VolColor = { chip: string; dot: string };
+const VOL_PALETTE: VolColor[] = [
+  { chip: "bg-violet-100 text-violet-800",   dot: "bg-violet-400" },
+  { chip: "bg-sky-100 text-sky-800",         dot: "bg-sky-400" },
+  { chip: "bg-teal-100 text-teal-800",       dot: "bg-teal-400" },
+  { chip: "bg-emerald-100 text-emerald-800", dot: "bg-emerald-400" },
+  { chip: "bg-amber-100 text-amber-800",     dot: "bg-amber-400" },
+  { chip: "bg-orange-100 text-orange-800",   dot: "bg-orange-400" },
+  { chip: "bg-rose-100 text-rose-800",       dot: "bg-rose-400" },
+  { chip: "bg-pink-100 text-pink-800",       dot: "bg-pink-400" },
+  { chip: "bg-indigo-100 text-indigo-800",   dot: "bg-indigo-400" },
+  { chip: "bg-cyan-100 text-cyan-800",       dot: "bg-cyan-400" },
+  { chip: "bg-lime-100 text-lime-800",       dot: "bg-lime-400" },
+  { chip: "bg-red-100 text-red-800",         dot: "bg-red-400" },
+  { chip: "bg-fuchsia-100 text-fuchsia-800", dot: "bg-fuchsia-400" },
+  { chip: "bg-yellow-100 text-yellow-800",   dot: "bg-yellow-400" },
+  { chip: "bg-green-100 text-green-800",     dot: "bg-green-400" },
+  { chip: "bg-blue-100 text-blue-800",       dot: "bg-blue-400" },
+];
 
 type ShiftTemplate = { name: string | null; start_time: string | null; end_time: string | null };
 type Shift = {
@@ -47,15 +67,15 @@ type VolShift = {
 };
 
 const TYPE_COLORS: { match: string; cls: string }[] = [
-  { match: "breakfast",   cls: "bg-orange-100 text-orange-900 border-orange-200" },
-  { match: "housekeep",  cls: "bg-emerald-100 text-emerald-900 border-emerald-200" },
-  { match: "laundry",    cls: "bg-blue-100 text-blue-900 border-blue-200" },
-  { match: "cottage",    cls: "bg-teal-100 text-teal-900 border-teal-200" },
-  { match: "maintenance",cls: "bg-amber-100 text-amber-900 border-amber-200" },
-  { match: "deep",       cls: "bg-purple-100 text-purple-900 border-purple-200" },
-  { match: "special",    cls: "bg-red-100 text-red-900 border-red-200" },
-  { match: "family",     cls: "bg-pink-100 text-pink-900 border-pink-200" },
-  { match: "dinner",     cls: "bg-pink-100 text-pink-900 border-pink-200" },
+  { match: "breakfast",    cls: "bg-orange-100 text-orange-900 border-orange-200" },
+  { match: "housekeep",   cls: "bg-emerald-100 text-emerald-900 border-emerald-200" },
+  { match: "laundry",     cls: "bg-blue-100 text-blue-900 border-blue-200" },
+  { match: "cottage",     cls: "bg-teal-100 text-teal-900 border-teal-200" },
+  { match: "maintenance", cls: "bg-amber-100 text-amber-900 border-amber-200" },
+  { match: "deep",        cls: "bg-purple-100 text-purple-900 border-purple-200" },
+  { match: "special",     cls: "bg-red-100 text-red-900 border-red-200" },
+  { match: "family",      cls: "bg-pink-100 text-pink-900 border-pink-200" },
+  { match: "dinner",      cls: "bg-pink-100 text-pink-900 border-pink-200" },
 ];
 function shiftColor(name: string | null | undefined) {
   if (!name) return "bg-muted/40 text-muted-foreground border-border";
@@ -67,6 +87,8 @@ function shiftColor(name: string | null | undefined) {
 function ymdDate(d: Date) {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
 }
+
+// ── Volunteer dashboard ────────────────────────────────────────────────────
 
 function VolunteerDashboard() {
   const { user } = useAuth();
@@ -227,7 +249,7 @@ function VolunteerDashboard() {
       </section>
 
       {rooms !== null && (() => {
-        const toClean = roomsToClean(rooms);
+        const toClean = rooms.filter((r) => r.checkout || r.checkin);
         return (
           <section className="space-y-2">
             <h2 className="font-display text-xl font-semibold flex items-center gap-2">
@@ -316,6 +338,12 @@ function addDaysUTC(ymd: string, n: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+function isManagerRole(role: string | null | undefined): boolean {
+  if (!role) return false;
+  const r = role.toLowerCase();
+  return r.includes("manager") || r === "admin" || r === "owner";
+}
+
 function AdminMatrix() {
   const { t, lang } = useI18n();
   const locale = LOCALE_MAP[lang] ?? "en-GB";
@@ -323,12 +351,13 @@ function AdminMatrix() {
     const d = startOfWeekMondayUTC(new Date());
     return ymdDate(d);
   });
-  const [shifts, setShifts]       = useState<MatrixShift[]>([]);
-  const [volunteers, setVolunteers] = useState<VolunteerRow[]>([]);
-  const [templates, setTemplates]  = useState<TemplateRow[]>([]);
-  const [loading, setLoading]      = useState(true);
-  const [assigning, setAssigning]  = useState<string | null>(null); // "task__date"
-  const [volSearch, setVolSearch]  = useState("");
+  const [shifts, setShifts]         = useState<MatrixShift[]>([]);
+  const [volunteers, setVolunteers]  = useState<VolunteerRow[]>([]);
+  const [templates, setTemplates]    = useState<TemplateRow[]>([]);
+  const [loading, setLoading]        = useState(true);
+  const [copying, setCopying]        = useState(false);
+  const [assigning, setAssigning]    = useState<string | null>(null);
+  const [volSearch, setVolSearch]    = useState("");
   const pickerRef = useRef<HTMLDivElement>(null);
 
   const days = useMemo(
@@ -336,15 +365,28 @@ function AdminMatrix() {
     [weekStart]
   );
 
-  const loadData = async () => {
+  // Stable color map: sorted volunteer list index → VOL_PALETTE
+  const volColorMap = useMemo(() => {
+    const map = new Map<string, VolColor>();
+    volunteers.forEach((v, i) => map.set(v.id, VOL_PALETTE[i % VOL_PALETTE.length]));
+    return map;
+  }, [volunteers]);
+
+  // Volunteers eligible for field tasks (exclude managers)
+  const fieldVolunteers = useMemo(
+    () => volunteers.filter((v) => !isManagerRole(v.role_type)),
+    [volunteers]
+  );
+
+  const loadData = useCallback(async (daysArr: string[]) => {
     setLoading(true);
     const [shiftRes, volRes, tplRes] = await Promise.all([
       hostackSupabase
         .from("shifts")
         .select("id, shift_date, volunteer_id, shift_template_id, volunteers(id, name), shift_templates(id, name)")
         .eq("property_id", TORRIDONIA_PROPERTY_ID)
-        .gte("shift_date", days[0])
-        .lte("shift_date", days[6]),
+        .gte("shift_date", daysArr[0])
+        .lte("shift_date", daysArr[6]),
       hostackSupabase
         .from("volunteers")
         .select("id, name, role_type")
@@ -364,9 +406,9 @@ function AdminMatrix() {
     setVolunteers((volRes.data as VolunteerRow[]) ?? []);
     setTemplates((tplRes.data as TemplateRow[]) ?? []);
     setLoading(false);
-  };
+  }, []);
 
-  useEffect(() => { loadData(); }, [weekStart]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { loadData(days); }, [weekStart]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const taskNames = useMemo(() => {
     const fromData = [...new Set(shifts.map((s) => pickName(s.shift_templates)).filter(Boolean) as string[])];
@@ -376,9 +418,7 @@ function AdminMatrix() {
   }, [shifts]);
 
   const cellShifts = (tplName: string, date: string) =>
-    shifts.filter(
-      (s) => pickName(s.shift_templates) === tplName && s.shift_date === date
-    );
+    shifts.filter((s) => pickName(s.shift_templates) === tplName && s.shift_date === date);
 
   const removeShift = async (shiftId: string) => {
     const { error } = await hostackSupabase.from("shifts").delete().eq("id", shiftId);
@@ -398,15 +438,12 @@ function AdminMatrix() {
     };
     const { error } = await hostackSupabase.from("shifts").insert(payload);
     if (error) { toast.error(error.message); return; }
-    setAssigning(null);
-    setVolSearch("");
-    await loadData();
+    await loadData(days);
   };
 
   const openAssign = useCallback((key: string) => {
     setAssigning(key);
     setVolSearch("");
-    // close on outside click
     setTimeout(() => {
       const handler = (e: MouseEvent) => {
         if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
@@ -425,6 +462,52 @@ function AdminMatrix() {
     return ids;
   }, [shifts]);
 
+  const copyWeekToNext = async () => {
+    setCopying(true);
+    const nextStart = addDaysUTC(weekStart, 7);
+    const nextEnd   = addDaysUTC(nextStart, 6);
+
+    // Check for existing shifts in next week to avoid duplicates
+    const { data: existing } = await hostackSupabase
+      .from("shifts")
+      .select("shift_date, volunteer_id, shift_template_id")
+      .eq("property_id", TORRIDONIA_PROPERTY_ID)
+      .gte("shift_date", nextStart)
+      .lte("shift_date", nextEnd);
+
+    const existingSet = new Set(
+      (existing ?? []).map((s) => `${s.shift_date}__${s.volunteer_id}__${s.shift_template_id}`)
+    );
+
+    const toInsert = shifts
+      .filter((s) => s.volunteer_id && s.shift_template_id)
+      .map((s) => {
+        const newDate = addDaysUTC(s.shift_date, 7);
+        const key = `${newDate}__${s.volunteer_id}__${s.shift_template_id}`;
+        if (existingSet.has(key)) return null;
+        return {
+          property_id: TORRIDONIA_PROPERTY_ID,
+          shift_date: newDate,
+          volunteer_id: s.volunteer_id,
+          shift_template_id: s.shift_template_id,
+          status: "scheduled",
+        };
+      })
+      .filter(Boolean);
+
+    if (toInsert.length === 0) {
+      toast.info("Next week already has shifts or no shifts to copy.");
+      setCopying(false);
+      return;
+    }
+
+    const { error } = await hostackSupabase.from("shifts").insert(toInsert);
+    if (error) { toast.error(error.message); setCopying(false); return; }
+    toast.success(`${toInsert.length} shifts copied to next week.`);
+    setCopying(false);
+    setWeekStart(nextStart);
+  };
+
   const prevWeek = () => setWeekStart(addDaysUTC(weekStart, -7));
   const nextWeek = () => setWeekStart(addDaysUTC(weekStart, 7));
   const thisWeek = () => setWeekStart(ymdDate(startOfWeekMondayUTC(new Date())));
@@ -436,12 +519,24 @@ function AdminMatrix() {
           <h2 className="font-display text-2xl font-semibold">{t("matrix.title")}</h2>
           <p className="text-sm text-muted-foreground">{t("matrix.sub")}</p>
         </div>
-        <div className="flex items-center gap-1">
-          <Button variant="outline" size="icon" onClick={prevWeek}><ChevronLeft className="h-4 w-4" /></Button>
-          <Button variant="ghost" size="sm" className="text-xs" onClick={thisWeek}>
-            {days[0]} – {days[6]}
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-xs gap-1.5"
+            onClick={copyWeekToNext}
+            disabled={copying || loading || shifts.length === 0}
+          >
+            <Copy className="h-3.5 w-3.5" />
+            {copying ? t("matrix.copying") : t("matrix.copyWeek")}
           </Button>
-          <Button variant="outline" size="icon" onClick={nextWeek}><ChevronRight className="h-4 w-4" /></Button>
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="icon" onClick={prevWeek}><ChevronLeft className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="sm" className="text-xs" onClick={thisWeek}>
+              {days[0]} – {days[6]}
+            </Button>
+            <Button variant="outline" size="icon" onClick={nextWeek}><ChevronRight className="h-4 w-4" /></Button>
+          </div>
         </div>
       </div>
 
@@ -477,28 +572,33 @@ function AdminMatrix() {
                     const cell = cellShifts(task, d);
                     const isAssigning = assigning === cellKey;
                     const busyIds = isAssigning ? assignedOnDay(d) : new Set<string>();
-                    const filtered = volunteers.filter((v) => {
+                    const filtered = fieldVolunteers.filter((v) => {
                       if (!volSearch) return true;
                       return v.name.toLowerCase().includes(volSearch.toLowerCase());
                     });
                     return (
                       <td key={d} className="p-2 align-top min-w-[120px] relative">
                         <div className="flex flex-wrap gap-1">
-                          {cell.map((s) => (
-                            <span
-                              key={s.id}
-                              className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[11px] font-medium"
-                            >
-                              {pickName(s.volunteers) ?? "?"}
-                              <button
-                                type="button"
-                                onClick={() => removeShift(s.id)}
-                                className="opacity-50 hover:opacity-100 ml-0.5"
+                          {cell.map((s) => {
+                            const volId = s.volunteer_id ?? pickId(s.volunteers) ?? "";
+                            const vc = volColorMap.get(volId) ?? VOL_PALETTE[0];
+                            return (
+                              <span
+                                key={s.id}
+                                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${vc.chip}`}
                               >
-                                <X className="h-2.5 w-2.5" />
-                              </button>
-                            </span>
-                          ))}
+                                <span className={`inline-block w-1.5 h-1.5 rounded-full shrink-0 ${vc.dot}`} />
+                                {pickName(s.volunteers) ?? "?"}
+                                <button
+                                  type="button"
+                                  onClick={() => removeShift(s.id)}
+                                  className="opacity-50 hover:opacity-100 ml-0.5"
+                                >
+                                  <X className="h-2.5 w-2.5" />
+                                </button>
+                              </span>
+                            );
+                          })}
                           <button
                             type="button"
                             onClick={() => isAssigning ? (setAssigning(null), setVolSearch("")) : openAssign(cellKey)}
@@ -515,7 +615,7 @@ function AdminMatrix() {
                         {isAssigning && (
                           <div
                             ref={pickerRef}
-                            className="absolute z-50 top-8 left-0 bg-popover border rounded-xl shadow-xl w-52 overflow-hidden"
+                            className="absolute z-50 top-8 left-0 bg-popover border rounded-xl shadow-xl w-56 overflow-hidden"
                             onKeyDown={(e) => { if (e.key === "Escape") { setAssigning(null); setVolSearch(""); } }}
                           >
                             <div className="px-2 pt-2 pb-1 border-b">
@@ -530,7 +630,7 @@ function AdminMatrix() {
                                 />
                               </div>
                             </div>
-                            <div className="max-h-48 overflow-y-auto py-1">
+                            <div className="max-h-52 overflow-y-auto py-1">
                               {filtered.length === 0 ? (
                                 <p className="text-xs text-muted-foreground text-center py-3">No results</p>
                               ) : (
@@ -538,6 +638,7 @@ function AdminMatrix() {
                                   const busy = busyIds.has(v.id);
                                   const alreadyHere = cell.some((s) => s.volunteer_id === v.id);
                                   if (alreadyHere) return null;
+                                  const vc = volColorMap.get(v.id) ?? VOL_PALETTE[0];
                                   return (
                                     <button
                                       key={v.id}
@@ -550,11 +651,14 @@ function AdminMatrix() {
                                           : "hover:bg-secondary/60 cursor-pointer"
                                       }`}
                                     >
-                                      <div>
-                                        <div className="font-medium">{v.name}</div>
-                                        {v.role_type && (
-                                          <div className="text-[10px] text-muted-foreground">{v.role_type}</div>
-                                        )}
+                                      <div className="flex items-center gap-2 min-w-0">
+                                        <span className={`inline-block w-2 h-2 rounded-full shrink-0 ${vc.dot}`} />
+                                        <div className="min-w-0">
+                                          <div className="font-medium truncate">{v.name}</div>
+                                          {v.role_type && (
+                                            <div className="text-[10px] text-muted-foreground">{v.role_type}</div>
+                                          )}
+                                        </div>
                                       </div>
                                       {busy && <span className="text-[10px] text-muted-foreground shrink-0">busy</span>}
                                     </button>
@@ -577,67 +681,77 @@ function AdminMatrix() {
   );
 }
 
+// ── Manager "Today" section ───────────────────────────────────────────────
+
+function TodayRooms() {
+  const { t } = useI18n();
+  const [rooms, setRooms] = useState<RoomEntry[] | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const today = new Date().toISOString().split("T")[0];
+    setLoading(true);
+    loadTodaysRooms(today)
+      .then((r) => { setRooms(r); setLoading(false); })
+      .catch(() => { setRooms(null); setLoading(false); });
+  }, []);
+
+  if (loading) return <div className="h-16 rounded-2xl bg-secondary/40 animate-pulse" />;
+  if (!rooms || rooms.length === 0) return (
+    <div className="rounded-2xl border border-dashed bg-secondary/30 p-6 text-center text-muted-foreground">
+      <Calendar className="h-6 w-6 mx-auto mb-2" />
+      <p className="text-sm">{t("dash.noToday")}</p>
+    </div>
+  );
+
+  const checkins  = rooms.filter((r) => r.checkin);
+  const checkouts = rooms.filter((r) => r.checkout && !r.checkin);
+
+  return (
+    <div className="space-y-4">
+      {checkins.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-sm font-semibold flex items-center gap-2 text-emerald-700">
+            <LogIn className="h-4 w-4" /> {t("dash.checkinsToday")}
+          </h3>
+          <div className="space-y-1.5">
+            {checkins.map((r, i) => (
+              <div key={i} className="rounded-xl border bg-emerald-50 px-4 py-2.5 flex items-center justify-between text-sm">
+                <div>
+                  <p className="font-semibold text-emerald-900">{r.guest || r.room}</p>
+                  {r.guest && <p className="text-xs text-emerald-700 mt-0.5">{r.room}</p>}
+                </div>
+                {r.guests > 0 && (
+                  <span className="text-xs text-emerald-600 font-medium">{r.guests} {t("dash.guests")}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {checkouts.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-sm font-semibold flex items-center gap-2 text-orange-700">
+            <LogOut className="h-4 w-4" /> {t("dash.checkoutsToday")}
+          </h3>
+          <div className="space-y-1.5">
+            {checkouts.map((r, i) => (
+              <div key={i} className="rounded-xl border bg-orange-50 px-4 py-2.5 text-sm">
+                <p className="font-medium text-orange-900">{r.room}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Dashboard() {
   const { user, profile } = useAuth();
   const { t, lang } = useI18n();
-  const [loading, setLoading] = useState(true);
-  const [shift, setShift] = useState<Shift | null>(null);
-  const [tasks, setTasks] = useState<Task[]>([]);
-
   const locale = LOCALE_MAP[lang] ?? "en-GB";
-
-  useEffect(() => {
-    if (!user) return;
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      const staffId = profile?.id ?? null;
-      if (!staffId) {
-        if (!cancelled) { setShift(null); setTasks([]); setLoading(false); }
-        return;
-      }
-
-      const today = new Date().toISOString().split("T")[0];
-      const { data: shiftRow } = await hostackSupabase
-        .from("shifts")
-        .select("id, shift_date, shift_templates(name, start_time, end_time)")
-        .eq("property_id", TORRIDONIA_PROPERTY_ID)
-        .eq("staff_id", staffId)
-        .eq("shift_date", today)
-        .maybeSingle();
-
-      if (cancelled) return;
-      const s = (shiftRow as Shift | null) ?? null;
-      setShift(s);
-
-      if (s) {
-        const { data: taskRows } = await hostackSupabase
-          .from("checklist_tasks")
-          .select("id, title, status, due_time, notes")
-          .eq("shift_id", s.id)
-          .order("due_time", { ascending: true });
-        if (!cancelled) setTasks((taskRows as Task[]) ?? []);
-      } else {
-        setTasks([]);
-      }
-      if (!cancelled) setLoading(false);
-    })();
-    return () => { cancelled = true; };
-  }, [user, profile?.id]);
-
-  const toggleTask = async (task: Task) => {
-    const next = task.status === "completed" ? "pending" : "completed";
-    const prev = tasks;
-    setTasks((cur) => cur.map((x) => (x.id === task.id ? { ...x, status: next } : x)));
-    const { error } = await hostackSupabase
-      .from("checklist_tasks")
-      .update({ status: next })
-      .eq("id", task.id);
-    if (error) { setTasks(prev); toast.error(error.message); }
-  };
-
-  const tpl = pickTemplate(shift?.shift_templates ?? null);
-  const fmtTime = (v: string | null) => (v ? v.slice(0, 5) : "");
 
   return (
     <div className="space-y-10">
@@ -654,66 +768,7 @@ function Dashboard() {
         <h2 className="font-display text-xl font-semibold mb-4 flex items-center gap-2">
           <Clock className="h-4 w-4 text-accent" /> {t("dash.today")}
         </h2>
-
-        {loading ? (
-          <div className="h-24 rounded-2xl bg-secondary/40 animate-pulse" />
-        ) : !shift ? (
-          <div className="rounded-2xl border border-dashed bg-secondary/30 p-8 text-center text-muted-foreground">
-            <Calendar className="h-6 w-6 mx-auto mb-2" />
-            <p className="text-sm">{t("dash.noToday")}</p>
-          </div>
-        ) : (
-          <div className="rounded-2xl border bg-card p-6 shadow-soft">
-            <div className="flex items-baseline justify-between gap-3 flex-wrap">
-              <div>
-                <h3 className="font-display text-2xl font-semibold">{tpl?.name ?? "Shift"}</h3>
-                {(tpl?.start_time || tpl?.end_time) && (
-                  <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
-                    <Clock className="h-3.5 w-3.5" />
-                    {fmtTime(tpl?.start_time ?? null)}
-                    {tpl?.end_time ? ` – ${fmtTime(tpl.end_time)}` : ""}
-                  </p>
-                )}
-              </div>
-              <span className="text-xs text-muted-foreground">
-                {tasks.filter((x) => x.status === "completed").length} / {tasks.length} done
-              </span>
-            </div>
-
-            <div className="mt-5 space-y-2">
-              {tasks.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{t("dash.noToday")}</p>
-              ) : (
-                tasks.map((task) => {
-                  const done = task.status === "completed";
-                  return (
-                    <button
-                      key={task.id}
-                      type="button"
-                      onClick={() => toggleTask(task)}
-                      className={`w-full flex items-start gap-3 rounded-xl border p-3 text-left transition hover:bg-secondary/50 ${done ? "bg-secondary/30" : "bg-card"}`}
-                    >
-                      {done ? (
-                        <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
-                      ) : (
-                        <Circle className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-medium ${done ? "line-through text-muted-foreground" : ""}`}>
-                          {task.title}
-                        </p>
-                        <div className="mt-0.5 flex items-center gap-3 text-xs text-muted-foreground">
-                          {task.due_time && <span>{fmtTime(task.due_time)}</span>}
-                          {task.notes && <span className="truncate">{task.notes}</span>}
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        )}
+        <TodayRooms />
       </section>
 
       <AdminMatrix />

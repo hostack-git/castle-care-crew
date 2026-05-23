@@ -125,6 +125,11 @@ const en: Dict = {
   "amenitiz.success":  "Rooms imported",
   "amenitiz.error":    "Import failed",
   "amenitiz.drop":     "Drop an .xlsx file here, or click to browse",
+  "dash.checkinsToday":  "Today's arrivals",
+  "dash.checkoutsToday": "Rooms to clean",
+  "dash.guests":         "guests",
+  "matrix.copyWeek":     "Copy to next week →",
+  "matrix.copying":      "Copying…",
 };
 
 const es: Dict = {
@@ -232,6 +237,11 @@ const es: Dict = {
   "amenitiz.success":  "Habitaciones importadas",
   "amenitiz.error":    "Error al importar",
   "amenitiz.drop":     "Arrastra un archivo .xlsx aquí o haz clic para buscar",
+  "dash.checkinsToday":  "Llegadas de hoy",
+  "dash.checkoutsToday": "Habitaciones a limpiar",
+  "dash.guests":         "huéspedes",
+  "matrix.copyWeek":     "Copiar a la semana siguiente →",
+  "matrix.copying":      "Copiando…",
 };
 
 const pt: Dict = {
@@ -339,6 +349,11 @@ const pt: Dict = {
   "amenitiz.success":  "Quartos importados",
   "amenitiz.error":    "Falha na importação",
   "amenitiz.drop":     "Arraste um arquivo .xlsx aqui ou clique para buscar",
+  "dash.checkinsToday":  "Chegadas de hoje",
+  "dash.checkoutsToday": "Quartos a limpar",
+  "dash.guests":         "hóspedes",
+  "matrix.copyWeek":     "Copiar para a próxima semana →",
+  "matrix.copying":      "Copiando…",
 };
 
 const fr: Dict = {
@@ -446,6 +461,11 @@ const fr: Dict = {
   "amenitiz.success":  "Chambres importées",
   "amenitiz.error":    "Échec de l'import",
   "amenitiz.drop":     "Déposez un fichier .xlsx ici ou cliquez pour parcourir",
+  "dash.checkinsToday":  "Arrivées du jour",
+  "dash.checkoutsToday": "Chambres à nettoyer",
+  "dash.guests":         "hôtes",
+  "matrix.copyWeek":     "Copier à la semaine suivante →",
+  "matrix.copying":      "Copie…",
 };
 
 const it: Dict = {
@@ -553,6 +573,11 @@ const it: Dict = {
   "amenitiz.success":  "Camere importate",
   "amenitiz.error":    "Importazione fallita",
   "amenitiz.drop":     "Trascina un file .xlsx qui o clicca per sfogliare",
+  "dash.checkinsToday":  "Arrivi di oggi",
+  "dash.checkoutsToday": "Camere da pulire",
+  "dash.guests":         "ospiti",
+  "matrix.copyWeek":     "Copia alla settimana successiva →",
+  "matrix.copying":      "Copia…",
 };
 
 const dicts: Record<Lang, Dict> = { en, es, pt, fr, it };
