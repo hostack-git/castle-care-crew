@@ -1,7 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { hostackSupabase, TORRIDONIA_PROPERTY_ID } from "@/integrations/hostack/client";
 import { SOPS } from "@/lib/sops";
 import { useI18n } from "@/lib/i18n";
 import { Input } from "@/components/ui/input";
@@ -68,35 +67,8 @@ function GuidebookPage() {
   const [active, setActive] = useState<Playbook | null>(null);
 
   useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const { data, error } = await hostackSupabase
-          .from("playbooks")
-          .select("id, title, category, description, content_type, content_text, file_url, order_index")
-          .eq("property_id", TORRIDONIA_PROPERTY_ID)
-          .eq("is_archived", false)
-          .order("order_index", { ascending: true });
-        if (!mounted) return;
-        if (error) {
-          console.error("Failed to load playbooks", error);
-          setPlaybooks(LOCAL_PLAYBOOKS);
-        } else {
-          const remote = ((data as Playbook[]) ?? []).filter(
-            (p) => !LOCAL_PLAYBOOKS.some((local) => local.title === p.title)
-          );
-          setPlaybooks([...LOCAL_PLAYBOOKS, ...remote]);
-        }
-      } catch (err) {
-        console.error("Failed to load SOPs", err);
-        if (mounted) setPlaybooks(LOCAL_PLAYBOOKS);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
+    setPlaybooks(LOCAL_PLAYBOOKS);
+    setLoading(false);
   }, []);
 
   const filtered = playbooks.filter((p) => {
