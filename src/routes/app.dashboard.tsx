@@ -314,7 +314,7 @@ type MatrixShift = {
 };
 
 type VolunteerRow = { id: string; name: string; role_type?: string | null };
-type TemplateRow  = { id: string; name: string };
+type TemplateRow  = { id: string; name: string; start_time: string | null; end_time: string | null };
 
 const TASK_ORDER = [
   "Breakfast", "Housekeeping", "Laundry", "Cottages",
@@ -395,7 +395,7 @@ function AdminMatrix() {
         .order("name"),
       hostackSupabase
         .from("shift_templates")
-        .select("id, name")
+        .select("id, name, start_time, end_time")
         .eq("property_id", TORRIDONIA_PROPERTY_ID)
         .order("name"),
     ]);
@@ -434,6 +434,8 @@ function AdminMatrix() {
       shift_date: date,
       volunteer_id: volId,
       shift_template_id: tpl.id,
+      start_time: tpl.start_time ?? "09:00",
+      end_time:   tpl.end_time   ?? "17:00",
       status: "scheduled",
     };
     const { error } = await hostackSupabase.from("shifts").insert(payload);
@@ -474,17 +476,21 @@ function AdminMatrix() {
       (existing ?? []).map((s) => `${s.shift_date}__${s.volunteer_id}__${s.shift_template_id}`)
     );
 
+    const tplMap = new Map(templates.map((t) => [t.id, t]));
     const toInsert = shifts
       .filter((s) => s.volunteer_id && s.shift_template_id)
       .map((s) => {
         const newDate = addDaysUTC(s.shift_date, 7);
         const key = `${newDate}__${s.volunteer_id}__${s.shift_template_id}`;
         if (existingSet.has(key)) return null;
+        const srcTpl = tplMap.get(s.shift_template_id ?? "");
         return {
           property_id: TORRIDONIA_PROPERTY_ID,
           shift_date: newDate,
           volunteer_id: s.volunteer_id,
           shift_template_id: s.shift_template_id,
+          start_time: srcTpl?.start_time ?? "09:00",
+          end_time:   srcTpl?.end_time   ?? "17:00",
           status: "scheduled",
         };
       })
@@ -728,7 +734,7 @@ function TodayRooms() {
             {checkouts.map((r, i) => (
               <div key={i} className="rounded-xl bg-white/70 border border-red-100 px-3 py-2">
                 <p className="font-semibold text-sm text-red-900 leading-tight">{r.room}</p>
-                {r.type && <p className="text-xs text-red-600 mt-0.5">{r.type}</p>}
+                {r.guests > 0 && <p className="text-xs text-red-500 mt-0.5">{r.guests} {t("dash.guests")}</p>}
               </div>
             ))}
           </div>

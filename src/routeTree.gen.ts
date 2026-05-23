@@ -21,6 +21,7 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SopsSopSlugRouteImport } from './routes/sops.$sopSlug'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
+import { Route as AppSettingsRouteImport } from './routes/app.settings'
 import { Route as AppRoomsRouteImport } from './routes/app.rooms'
 import { Route as AppGuidebookRouteImport } from './routes/app.guidebook'
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
@@ -95,6 +96,11 @@ const InviteTokenRoute = InviteTokenRouteImport.update({
   id: '/invite/$token',
   path: '/invite/$token',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppRoomsRoute = AppRoomsRouteImport.update({
   id: '/rooms',
@@ -187,6 +193,7 @@ export interface FileRoutesByFullPath {
   '/app/dashboard': typeof AppDashboardRoute
   '/app/guidebook': typeof AppGuidebookRouteWithChildren
   '/app/rooms': typeof AppRoomsRoute
+  '/app/settings': typeof AppSettingsRoute
   '/invite/$token': typeof InviteTokenRoute
   '/sops/$sopSlug': typeof SopsSopSlugRoute
   '/app/admin/rota': typeof AppAdminRotaRoute
@@ -215,6 +222,7 @@ export interface FileRoutesByTo {
   '/app/dashboard': typeof AppDashboardRoute
   '/app/guidebook': typeof AppGuidebookRouteWithChildren
   '/app/rooms': typeof AppRoomsRoute
+  '/app/settings': typeof AppSettingsRoute
   '/invite/$token': typeof InviteTokenRoute
   '/sops/$sopSlug': typeof SopsSopSlugRoute
   '/app/admin/rota': typeof AppAdminRotaRoute
@@ -244,6 +252,7 @@ export interface FileRoutesById {
   '/app/dashboard': typeof AppDashboardRoute
   '/app/guidebook': typeof AppGuidebookRouteWithChildren
   '/app/rooms': typeof AppRoomsRoute
+  '/app/settings': typeof AppSettingsRoute
   '/invite/$token': typeof InviteTokenRoute
   '/sops/$sopSlug': typeof SopsSopSlugRoute
   '/app/admin/rota': typeof AppAdminRotaRoute
@@ -274,6 +283,7 @@ export interface FileRouteTypes {
     | '/app/dashboard'
     | '/app/guidebook'
     | '/app/rooms'
+    | '/app/settings'
     | '/invite/$token'
     | '/sops/$sopSlug'
     | '/app/admin/rota'
@@ -302,6 +312,7 @@ export interface FileRouteTypes {
     | '/app/dashboard'
     | '/app/guidebook'
     | '/app/rooms'
+    | '/app/settings'
     | '/invite/$token'
     | '/sops/$sopSlug'
     | '/app/admin/rota'
@@ -330,6 +341,7 @@ export interface FileRouteTypes {
     | '/app/dashboard'
     | '/app/guidebook'
     | '/app/rooms'
+    | '/app/settings'
     | '/invite/$token'
     | '/sops/$sopSlug'
     | '/app/admin/rota'
@@ -438,6 +450,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/invite/$token'
       preLoaderRoute: typeof InviteTokenRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/app/settings': {
+      id: '/app/settings'
+      path: '/settings'
+      fullPath: '/app/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
     }
     '/app/rooms': {
       id: '/app/rooms'
@@ -578,6 +597,7 @@ interface AppRouteChildren {
   AppDashboardRoute: typeof AppDashboardRoute
   AppGuidebookRoute: typeof AppGuidebookRouteWithChildren
   AppRoomsRoute: typeof AppRoomsRoute
+  AppSettingsRoute: typeof AppSettingsRoute
   AppTasksTaskIdRoute: typeof AppTasksTaskIdRoute
 }
 
@@ -591,6 +611,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppDashboardRoute: AppDashboardRoute,
   AppGuidebookRoute: AppGuidebookRouteWithChildren,
   AppRoomsRoute: AppRoomsRoute,
+  AppSettingsRoute: AppSettingsRoute,
   AppTasksTaskIdRoute: AppTasksTaskIdRoute,
 }
 

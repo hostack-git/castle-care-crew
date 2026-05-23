@@ -207,7 +207,7 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
   };
 
   const buildInviteUrl = (token: string) =>
-    `https://id-preview--4a1e4c77-89b3-4432-955d-de2ed62005cc.lovable.app/invite/${token}`;
+    `https://tanstack-start-app.hostack.workers.dev/invite/${token}`;
 
   const createInvitation = async (volunteerName: string, roleType: string, vWhatsapp: string) => {
     const staffId = await getCurrentStaffId();
@@ -506,7 +506,7 @@ function PendingRequests() {
 
 // =================== Welcome QR ===================
 
-const WELCOME_QR_URL = "https://id-preview--4a1e4c77-89b3-4432-955d-de2ed62005cc.lovable.app/signup?source=qr";
+const WELCOME_QR_URL = "https://tanstack-start-app.hostack.workers.dev/join?source=qr";
 
 // Inline SVG mountain logo as data URL for centering inside the QR
 const MOUNTAIN_LOGO =
