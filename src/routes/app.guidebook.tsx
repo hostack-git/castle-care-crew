@@ -83,7 +83,7 @@ function GuidebookPage() {
 
   const handleClick = (p: Playbook) => {
     if (p.local_sop_id) {
-      navigate({ to: "/sops/$sopSlug", params: { sopSlug: p.local_sop_id } });
+      navigate({ to: "/app/guidebook/sop/$sopId", params: { sopId: p.local_sop_id } });
       return;
     }
     if (p.file_url) {
