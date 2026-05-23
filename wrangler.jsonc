@@ -1,7 +1,14 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "tanstack-start-app",
+  "account_id": "c7aa30d15be3586d2e19b578c6e45624",
   "compatibility_date": "2025-09-24",
   "compatibility_flags": ["nodejs_compat"],
   "main": "@tanstack/react-start/server-entry",
+  "routes": [
+    {
+      "pattern": "torridonia.com/staffapp/*",
+      "zone_name": "torridonia.com"
+    }
+  ]
 }

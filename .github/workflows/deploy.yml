@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - claude/elegant-lamport-pcI34
+      - claude/intelligent-mayer-pSums
 
 jobs:
   deploy:
