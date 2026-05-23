@@ -456,11 +456,6 @@ function AdminMatrix() {
     }, 0);
   }, []);
 
-  const assignedOnDay = useCallback((date: string): Set<string> => {
-    const ids = new Set<string>();
-    shifts.forEach((s) => { if (s.shift_date === date && s.volunteer_id) ids.add(s.volunteer_id); });
-    return ids;
-  }, [shifts]);
 
   const copyWeekToNext = async () => {
     setCopying(true);
@@ -571,7 +566,6 @@ function AdminMatrix() {
                     const cellKey = `${task}__${d}`;
                     const cell = cellShifts(task, d);
                     const isAssigning = assigning === cellKey;
-                    const busyIds = isAssigning ? assignedOnDay(d) : new Set<string>();
                     const filtered = fieldVolunteers.filter((v) => {
                       if (!volSearch) return true;
                       return v.name.toLowerCase().includes(volSearch.toLowerCase());
@@ -635,7 +629,6 @@ function AdminMatrix() {
                                 <p className="text-xs text-muted-foreground text-center py-3">No results</p>
                               ) : (
                                 filtered.map((v) => {
-                                  const busy = busyIds.has(v.id);
                                   const alreadyHere = cell.some((s) => s.volunteer_id === v.id);
                                   if (alreadyHere) return null;
                                   const vc = volColorMap.get(v.id) ?? VOL_PALETTE[0];
@@ -643,24 +636,16 @@ function AdminMatrix() {
                                     <button
                                       key={v.id}
                                       type="button"
-                                      disabled={busy}
                                       onClick={() => assignVolunteer(task, d, v.id)}
-                                      className={`w-full text-left px-3 py-1.5 text-xs flex items-center justify-between gap-2 transition ${
-                                        busy
-                                          ? "opacity-40 cursor-not-allowed"
-                                          : "hover:bg-secondary/60 cursor-pointer"
-                                      }`}
+                                      className="w-full text-left px-3 py-1.5 text-xs flex items-center gap-2 transition hover:bg-secondary/60 cursor-pointer"
                                     >
-                                      <div className="flex items-center gap-2 min-w-0">
-                                        <span className={`inline-block w-2 h-2 rounded-full shrink-0 ${vc.dot}`} />
-                                        <div className="min-w-0">
-                                          <div className="font-medium truncate">{v.name}</div>
-                                          {v.role_type && (
-                                            <div className="text-[10px] text-muted-foreground">{v.role_type}</div>
-                                          )}
-                                        </div>
+                                      <span className={`inline-block w-2 h-2 rounded-full shrink-0 ${vc.dot}`} />
+                                      <div className="min-w-0">
+                                        <div className="font-medium truncate">{v.name}</div>
+                                        {v.role_type && (
+                                          <div className="text-[10px] text-muted-foreground">{v.role_type}</div>
+                                        )}
                                       </div>
-                                      {busy && <span className="text-[10px] text-muted-foreground shrink-0">busy</span>}
                                     </button>
                                   );
                                 })
@@ -696,7 +681,7 @@ function TodayRooms() {
       .catch(() => { setRooms(null); setLoading(false); });
   }, []);
 
-  if (loading) return <div className="h-16 rounded-2xl bg-secondary/40 animate-pulse" />;
+  if (loading) return <div className="h-28 rounded-2xl bg-secondary/40 animate-pulse" />;
   if (!rooms || rooms.length === 0) return (
     <div className="rounded-2xl border border-dashed bg-secondary/30 p-6 text-center text-muted-foreground">
       <Calendar className="h-6 w-6 mx-auto mb-2" />
@@ -705,45 +690,50 @@ function TodayRooms() {
   );
 
   const checkins  = rooms.filter((r) => r.checkin);
-  const checkouts = rooms.filter((r) => r.checkout && !r.checkin);
+  const checkouts = rooms.filter((r) => r.checkout);
 
   return (
-    <div className="space-y-4">
-      {checkins.length > 0 && (
-        <div className="space-y-2">
-          <h3 className="text-sm font-semibold flex items-center gap-2 text-emerald-700">
-            <LogIn className="h-4 w-4" /> {t("dash.checkinsToday")}
-          </h3>
-          <div className="space-y-1.5">
+    <div className="grid grid-cols-2 gap-4">
+      {/* Arrivals — green */}
+      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+        <h3 className="text-sm font-semibold flex items-center gap-1.5 text-emerald-800 mb-3">
+          <LogIn className="h-4 w-4" /> {t("dash.checkinsToday")}
+        </h3>
+        {checkins.length === 0 ? (
+          <p className="text-xs text-emerald-600/60">—</p>
+        ) : (
+          <div className="space-y-2">
             {checkins.map((r, i) => (
-              <div key={i} className="rounded-xl border bg-emerald-50 px-4 py-2.5 flex items-center justify-between text-sm">
-                <div>
-                  <p className="font-semibold text-emerald-900">{r.guest || r.room}</p>
-                  {r.guest && <p className="text-xs text-emerald-700 mt-0.5">{r.room}</p>}
-                </div>
+              <div key={i} className="rounded-xl bg-white/70 border border-emerald-100 px-3 py-2">
+                <p className="font-semibold text-sm text-emerald-900 leading-tight">{r.guest || r.room}</p>
+                {r.guest && <p className="text-xs text-emerald-700 mt-0.5">{r.room}</p>}
                 {r.guests > 0 && (
-                  <span className="text-xs text-emerald-600 font-medium">{r.guests} {t("dash.guests")}</span>
+                  <p className="text-xs text-emerald-600 font-medium mt-1">{r.guests} {t("dash.guests")}</p>
                 )}
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      {checkouts.length > 0 && (
-        <div className="space-y-2">
-          <h3 className="text-sm font-semibold flex items-center gap-2 text-orange-700">
-            <LogOut className="h-4 w-4" /> {t("dash.checkoutsToday")}
-          </h3>
-          <div className="space-y-1.5">
+      {/* Departures — red */}
+      <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
+        <h3 className="text-sm font-semibold flex items-center gap-1.5 text-red-800 mb-3">
+          <LogOut className="h-4 w-4" /> {t("dash.checkoutsToday")}
+        </h3>
+        {checkouts.length === 0 ? (
+          <p className="text-xs text-red-400/60">—</p>
+        ) : (
+          <div className="space-y-2">
             {checkouts.map((r, i) => (
-              <div key={i} className="rounded-xl border bg-orange-50 px-4 py-2.5 text-sm">
-                <p className="font-medium text-orange-900">{r.room}</p>
+              <div key={i} className="rounded-xl bg-white/70 border border-red-100 px-3 py-2">
+                <p className="font-semibold text-sm text-red-900 leading-tight">{r.room}</p>
+                {r.type && <p className="text-xs text-red-600 mt-0.5">{r.type}</p>}
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
