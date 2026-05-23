@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
-import { LayoutDashboard, Calendar, BookOpen, Mountain as Trail, Megaphone, MessageCircle, Settings, LogOut, Home } from "lucide-react";
+import { LayoutDashboard, BookOpen, Mountain as Trail, Megaphone, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import torridoniaLogo from "@/assets/torridonia-logo.webp";
 
@@ -21,7 +21,6 @@ function AppLayout() {
     if (loading) return;
     if (!user) navigate({ to: "/login" });
     else if (!isVolunteer && profile && !profile.onboarded) navigate({ to: "/onboarding" });
-    // Block admin/rooms routes for volunteers
     if (!loading && isVolunteer && (loc.pathname.startsWith("/app/admin") || loc.pathname.startsWith("/app/rooms"))) {
       navigate({ to: "/app/dashboard" });
     }
@@ -32,14 +31,12 @@ function AppLayout() {
   }
 
   const fullNav = [
-    { to: "/app/dashboard", label: t("nav.dashboard"), icon: LayoutDashboard },
-    { to: "/app/calendar", label: t("nav.calendar"), icon: Calendar },
-    { to: "/app/guidebook", label: t("nav.guidebook"), icon: BookOpen },
-    { to: "/app/adventures", label: t("nav.adventures"), icon: Trail },
+    { to: "/app/dashboard",     label: t("nav.dashboard"),     icon: LayoutDashboard },
+    { to: "/app/guidebook",     label: t("nav.guidebook"),     icon: BookOpen },
+    { to: "/app/adventures",    label: t("nav.adventures"),    icon: Trail },
     { to: "/app/announcements", label: t("nav.announcements"), icon: Megaphone },
-    { to: "/app/chat", label: t("nav.chat"), icon: MessageCircle },
   ];
-  const nav = fullNav;
+
   const displayName = profile?.full_name || profile?.email || (user.user_metadata as { full_name?: string } | undefined)?.full_name || user.email || "Voluntario";
 
   return (
@@ -49,16 +46,14 @@ function AppLayout() {
           <img src={torridoniaLogo} alt="Torridonia" className="h-12 w-auto" />
         </Link>
         <nav className="flex-1 space-y-1">
-          {nav.map((n) => {
+          {fullNav.map((n) => {
             const active = loc.pathname.startsWith(n.to);
             return (
               <Link
                 key={n.to}
                 to={n.to}
                 className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${
-                  active
-                    ? "bg-primary text-primary-foreground"
-                    : "text-foreground hover:bg-secondary"
+                  active ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-secondary"
                 }`}
               >
                 <n.icon className="h-4 w-4" />
@@ -66,18 +61,6 @@ function AppLayout() {
               </Link>
             );
           })}
-          {(isAdmin || isRoomManager) && !isVolunteer && (
-            <Link
-              to="/app/rooms"
-              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${
-                loc.pathname.startsWith("/app/rooms")
-                  ? "bg-primary text-primary-foreground"
-                  : "text-foreground hover:bg-secondary"
-              }`}
-            >
-              <Home className="h-4 w-4" /> {t("nav.rooms")}
-            </Link>
-          )}
           {isAdmin && !isVolunteer && (
             <Link
               to="/app/admin"
@@ -88,6 +71,18 @@ function AppLayout() {
               }`}
             >
               <Settings className="h-4 w-4" /> {t("nav.admin")}
+            </Link>
+          )}
+          {isVolunteer && (
+            <Link
+              to="/app/settings"
+              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${
+                loc.pathname.startsWith("/app/settings")
+                  ? "bg-primary text-primary-foreground"
+                  : "text-foreground hover:bg-secondary"
+              }`}
+            >
+              <Settings className="h-4 w-4" /> {t("nav.settings")}
             </Link>
           )}
         </nav>
@@ -121,7 +116,7 @@ function AppLayout() {
 
         {/* Mobile bottom nav */}
         <nav className="lg:hidden fixed bottom-0 inset-x-0 z-20 bg-card border-t flex justify-around py-2">
-          {nav.slice(0, 5).map((n) => {
+          {fullNav.map((n) => {
             const active = loc.pathname.startsWith(n.to);
             return (
               <Link key={n.to} to={n.to} className={`flex flex-col items-center gap-0.5 px-2 py-1 text-[10px] ${active ? "text-primary" : "text-muted-foreground"}`}>

@@ -8,6 +8,7 @@ export interface RoomEntry {
   checkin: boolean;
   checkout: boolean;
   guests: number;
+  guest?: string;
 }
 
 export interface DailyRoomsData {
