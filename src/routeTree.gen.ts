@@ -31,6 +31,7 @@ import { Route as AppBreakfastRouteImport } from './routes/app.breakfast'
 import { Route as AppAnnouncementsRouteImport } from './routes/app.announcements'
 import { Route as AppAdventuresRouteImport } from './routes/app.adventures'
 import { Route as AppAdminRouteImport } from './routes/app.admin'
+import { Route as AppGuidebookIndexRouteImport } from './routes/app.guidebook.index'
 import { Route as AppTasksTaskIdRouteImport } from './routes/app.tasks.$taskId'
 import { Route as AppAdminTemplatesRouteImport } from './routes/app.admin.templates'
 import { Route as AppAdminStatsRouteImport } from './routes/app.admin.stats'
@@ -147,6 +148,11 @@ const AppAdminRoute = AppAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AppRoute,
 } as any)
+const AppGuidebookIndexRoute = AppGuidebookIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppGuidebookRoute,
+} as any)
 const AppTasksTaskIdRoute = AppTasksTaskIdRouteImport.update({
   id: '/tasks/$taskId',
   path: '/tasks/$taskId',
@@ -200,6 +206,7 @@ export interface FileRoutesByFullPath {
   '/app/admin/stats': typeof AppAdminStatsRoute
   '/app/admin/templates': typeof AppAdminTemplatesRoute
   '/app/tasks/$taskId': typeof AppTasksTaskIdRoute
+  '/app/guidebook/': typeof AppGuidebookIndexRoute
   '/app/guidebook/sop/$sopId': typeof AppGuidebookSopSopIdRoute
 }
 export interface FileRoutesByTo {
@@ -220,7 +227,6 @@ export interface FileRoutesByTo {
   '/app/calendar': typeof AppCalendarRoute
   '/app/chat': typeof AppChatRoute
   '/app/dashboard': typeof AppDashboardRoute
-  '/app/guidebook': typeof AppGuidebookRouteWithChildren
   '/app/rooms': typeof AppRoomsRoute
   '/app/settings': typeof AppSettingsRoute
   '/invite/$token': typeof InviteTokenRoute
@@ -229,6 +235,7 @@ export interface FileRoutesByTo {
   '/app/admin/stats': typeof AppAdminStatsRoute
   '/app/admin/templates': typeof AppAdminTemplatesRoute
   '/app/tasks/$taskId': typeof AppTasksTaskIdRoute
+  '/app/guidebook': typeof AppGuidebookIndexRoute
   '/app/guidebook/sop/$sopId': typeof AppGuidebookSopSopIdRoute
 }
 export interface FileRoutesById {
@@ -259,6 +266,7 @@ export interface FileRoutesById {
   '/app/admin/stats': typeof AppAdminStatsRoute
   '/app/admin/templates': typeof AppAdminTemplatesRoute
   '/app/tasks/$taskId': typeof AppTasksTaskIdRoute
+  '/app/guidebook/': typeof AppGuidebookIndexRoute
   '/app/guidebook/sop/$sopId': typeof AppGuidebookSopSopIdRoute
 }
 export interface FileRouteTypes {
@@ -290,6 +298,7 @@ export interface FileRouteTypes {
     | '/app/admin/stats'
     | '/app/admin/templates'
     | '/app/tasks/$taskId'
+    | '/app/guidebook/'
     | '/app/guidebook/sop/$sopId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -310,7 +319,6 @@ export interface FileRouteTypes {
     | '/app/calendar'
     | '/app/chat'
     | '/app/dashboard'
-    | '/app/guidebook'
     | '/app/rooms'
     | '/app/settings'
     | '/invite/$token'
@@ -319,6 +327,7 @@ export interface FileRouteTypes {
     | '/app/admin/stats'
     | '/app/admin/templates'
     | '/app/tasks/$taskId'
+    | '/app/guidebook'
     | '/app/guidebook/sop/$sopId'
   id:
     | '__root__'
@@ -348,6 +357,7 @@ export interface FileRouteTypes {
     | '/app/admin/stats'
     | '/app/admin/templates'
     | '/app/tasks/$taskId'
+    | '/app/guidebook/'
     | '/app/guidebook/sop/$sopId'
   fileRoutesById: FileRoutesById
 }
@@ -521,6 +531,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/guidebook/': {
+      id: '/app/guidebook/'
+      path: '/'
+      fullPath: '/app/guidebook/'
+      preLoaderRoute: typeof AppGuidebookIndexRouteImport
+      parentRoute: typeof AppGuidebookRoute
+    }
     '/app/tasks/$taskId': {
       id: '/app/tasks/$taskId'
       path: '/tasks/$taskId'
@@ -576,10 +593,12 @@ const AppAdminRouteWithChildren = AppAdminRoute._addFileChildren(
 )
 
 interface AppGuidebookRouteChildren {
+  AppGuidebookIndexRoute: typeof AppGuidebookIndexRoute
   AppGuidebookSopSopIdRoute: typeof AppGuidebookSopSopIdRoute
 }
 
 const AppGuidebookRouteChildren: AppGuidebookRouteChildren = {
+  AppGuidebookIndexRoute: AppGuidebookIndexRoute,
   AppGuidebookSopSopIdRoute: AppGuidebookSopSopIdRoute,
 }
 
