@@ -75,7 +75,7 @@ function JoinPage() {
         .maybeSingle();
 
       if (volunteer?.id) {
-        const updates: Record<string, unknown> = { whatsapp: whatsapp.trim() || null };
+        const updates: Record<string, unknown> = { whatsapp_number: whatsapp.trim() || null };
         if (!volunteer.auth_user_id) updates.auth_user_id = userId;
         const { error: volErr } = await hostackSupabase
           .from("volunteers")
