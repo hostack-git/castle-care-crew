@@ -4,9 +4,9 @@ import { hostackSupabase, TORRIDONIA_PROPERTY_ID } from "@/integrations/hostack/
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mountain } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
+import torridoniaLogo from "@/assets/torridonia-logo.svg";
 
 const searchSchema = z.object({
   name: z.string().optional(),
@@ -31,11 +31,14 @@ function JoinPage() {
   // Check if user is already authenticated (coming from volunteer-access redirect)
   useEffect(() => {
     (async () => {
-      const { data: { user } } = await hostackSupabase.auth.getUser();
+      const {
+        data: { user },
+      } = await hostackSupabase.auth.getUser();
       if (user && user.email === null) {
         // Already authenticated as anonymous volunteer
         setAlreadyAuthed(true);
-        const fullName = (user.user_metadata as { full_name?: string } | undefined)?.full_name ?? "";
+        const fullName =
+          (user.user_metadata as { full_name?: string } | undefined)?.full_name ?? "";
         setExistingUserName(fullName);
         setName(fullName);
       }
@@ -52,13 +55,15 @@ function JoinPage() {
 
       if (alreadyAuthed) {
         // Already signed in — just update profile fields
-        const { data: { user } } = await hostackSupabase.auth.getUser();
-        if (!user) throw new Error("Sesión expirada. Vuelve a entrar.");
+        const {
+          data: { user },
+        } = await hostackSupabase.auth.getUser();
+        if (!user) throw new Error("Session expired. Please sign in again.");
         userId = user.id;
       } else {
-        // New login via QR / WhatsApp link
+        // New login via QR / link
         const { data: anon, error: anonErr } = await hostackSupabase.auth.signInAnonymously();
-        if (anonErr || !anon.user) throw anonErr ?? new Error("No se pudo iniciar sesión");
+        if (anonErr || !anon.user) throw anonErr ?? new Error("Could not sign in");
         userId = anon.user.id;
         const { error: updateErr } = await hostackSupabase.auth.updateUser({
           data: { full_name: name.trim(), role: "volunteer", property_id: TORRIDONIA_PROPERTY_ID },
@@ -83,15 +88,17 @@ function JoinPage() {
           .eq("id", volunteer.id);
         if (volErr) {
           console.error("volunteer update failed:", volErr);
-          throw new Error(`No se pudo vincular tu perfil: ${volErr.message}`);
+          throw new Error(`Could not link your profile: ${volErr.message}`);
         }
       } else {
-        toast.error(`"${name.trim()}" no está en la lista de voluntarios activos. Verifica tu nombre con el manager.`);
+        toast.error(
+          `"${name.trim()}" is not on the active volunteer list. Please check your name with your manager.`,
+        );
       }
 
       navigate({ to: "/app/dashboard" });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error al entrar");
+      toast.error(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -100,7 +107,7 @@ function JoinPage() {
   if (checkingSession) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-cream-paper">
-        <p className="text-sm text-muted-foreground">Cargando…</p>
+        <p className="text-sm text-muted-foreground">Loading…</p>
       </div>
     );
   }
@@ -109,46 +116,53 @@ function JoinPage() {
     <div className="min-h-screen grid lg:grid-cols-2 bg-cream-paper">
       {/* Left panel — branding */}
       <div className="hidden lg:flex gradient-moss text-cream p-12 flex-col justify-between">
-        <div className="flex items-center gap-2 font-display text-xl">
-          <Mountain className="h-6 w-6" /> Torridonia
+        <div className="text-cream/60 text-sm font-medium tracking-widest uppercase">
+          Castle of Torridonia
         </div>
+
         <div>
-          <h2 className="font-display text-4xl leading-tight">
-            {alreadyAuthed ? `Hola, ${existingUserName}!` : "Bienvenido/a al equipo"}
+          <h2 className="font-display text-4xl leading-tight text-cream">
+            {alreadyAuthed ? `Hi, ${existingUserName}!` : "Welcome to the clan, we're happy to welcome you"}
           </h2>
-          <p className="opacity-80 mt-3">
+          <p className="opacity-80 mt-3 text-cream/80">
             {alreadyAuthed
-              ? "Completa tu perfil para recibir notificaciones de tus turnos."
-              : "Entra con el link que te envió tu manager o escanea el QR de la propiedad."}
+              ? "Add your WhatsApp so we can send you shift reminders."
+              : "Use the link your manager sent you, or scan the property QR code."}
           </p>
         </div>
-        <p className="text-xs opacity-60">Castle of Torridonia · Galicia</p>
+
+        <p className="text-xs opacity-40">Volunteer Hub · Torridonia, Scotland</p>
       </div>
 
       {/* Right panel — form */}
       <div className="flex items-center justify-center p-8">
         <form onSubmit={onSubmit} className="w-full max-w-sm space-y-5">
+          {/* Logo */}
+          <div className="flex justify-center mb-2">
+            <img src={torridoniaLogo} alt="Torridonia" className="h-24 w-auto" />
+          </div>
+
           <div>
             <h1 className="font-display text-3xl font-semibold">
-              {alreadyAuthed ? "Completa tu perfil" : "Entrar al equipo"}
+              {alreadyAuthed ? "Complete your profile" : "Join the team"}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
               {alreadyAuthed
-                ? "Añade tu WhatsApp y email para recibir tu turno."
-                : "Rellena tu nombre y datos de contacto."}
+                ? "Add your WhatsApp to receive your shift notifications."
+                : "Enter your name and contact details."}
             </p>
           </div>
 
           {!alreadyAuthed && (
             <div className="space-y-2">
-              <Label htmlFor="name">Nombre completo</Label>
+              <Label htmlFor="name">Full name</Label>
               <Input
                 id="name"
                 required
                 autoFocus={!prefilledName}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Tu nombre"
+                placeholder="Your name"
                 readOnly={!!prefilledName}
                 className={prefilledName ? "bg-secondary/40" : ""}
               />
@@ -163,12 +177,12 @@ function JoinPage() {
               autoFocus={alreadyAuthed}
               value={whatsapp}
               onChange={(e) => setWhatsapp(e.target.value)}
-              placeholder="+34 600 000 000"
+              placeholder="+44 7700 000000"
             />
           </div>
 
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Entrando…" : alreadyAuthed ? "Guardar y entrar" : "Unirse al equipo"}
+            {loading ? "Joining…" : alreadyAuthed ? "Save and enter" : "Join the team"}
           </Button>
 
           {alreadyAuthed && (
@@ -178,7 +192,7 @@ function JoinPage() {
                 className="text-sm text-muted-foreground hover:text-foreground underline"
                 onClick={() => navigate({ to: "/app/dashboard" })}
               >
-                Ahora no
+                Skip for now
               </button>
             </p>
           )}
