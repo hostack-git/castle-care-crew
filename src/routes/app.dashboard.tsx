@@ -602,7 +602,7 @@ function Dashboard() {
         .from("shifts")
         .select("id, shift_date, shift_templates(name, start_time, end_time)")
         .eq("property_id", TORRIDONIA_PROPERTY_ID)
-        .eq("staff_id", staffId)
+        .eq("volunteer_id", staffId)
         .eq("shift_date", today)
         .maybeSingle();
 

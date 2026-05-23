@@ -157,7 +157,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await hostackSupabase.auth.signOut();
-    window.location.href = "/";
+    window.location.href = "/staffapp/";
   };
 
   return (
