@@ -23,7 +23,6 @@ function JoinPage() {
 
   const [name, setName] = useState(prefilledName ?? "");
   const [whatsapp, setWhatsapp] = useState("");
-  const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
   const [alreadyAuthed, setAlreadyAuthed] = useState(false);
@@ -76,8 +75,7 @@ function JoinPage() {
         .maybeSingle();
 
       if (volunteer?.id) {
-        const updates: Record<string, unknown> = { whatsapp: whatsapp.trim() || null };
-        if (email.trim()) updates.email = email.trim();
+        const updates: Record<string, unknown> = { whatsapp_number: whatsapp.trim() || null };
         if (!volunteer.auth_user_id) updates.auth_user_id = userId;
         const { error: volErr } = await hostackSupabase
           .from("volunteers")
@@ -88,13 +86,10 @@ function JoinPage() {
           throw new Error(`No se pudo vincular tu perfil: ${volErr.message}`);
         }
       } else {
-        console.warn("no volunteer row found for name:", name.trim());
+        toast.error(`"${name.trim()}" no está en la lista de voluntarios activos. Verifica tu nombre con el manager.`);
       }
 
-      // First time? Go to onboarding. Otherwise dashboard.
-      const isFirstTime = !alreadyAuthed;
-      const onboardingDone = typeof window !== "undefined" && localStorage.getItem("onboarding_done") === "true";
-      navigate({ to: isFirstTime && !onboardingDone ? "/onboarding" : "/app/dashboard" });
+      navigate({ to: "/app/dashboard" });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al entrar");
     } finally {
@@ -169,17 +164,6 @@ function JoinPage() {
               value={whatsapp}
               onChange={(e) => setWhatsapp(e.target.value)}
               placeholder="+34 600 000 000"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="email">Email <span className="text-muted-foreground">(opcional)</span></Label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="tu@email.com"
             />
           </div>
 
