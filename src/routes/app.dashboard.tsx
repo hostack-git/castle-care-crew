@@ -164,7 +164,19 @@ function VolunteerDashboard() {
 
   const fmtTime = (v: string | null) => (v ? v.slice(0, 5) : "");
   const isCurrentWeek = ymdDate(startOfWeekMondayUTC(new Date())) === startStr;
-  const shiftByDate = new Map(shifts.map((s) => [s.shift_date, s]));
+
+  // Group shifts by date — a volunteer can have multiple shifts on one day (e.g. morning + evening)
+  const shiftsByDate = useMemo(() => {
+    const map = new Map<string, VolShift[]>();
+    for (const s of shifts) {
+      const tpl = pickTemplate(s.shift_templates);
+      // Skip placeholder "rest day" entries that have no template
+      if (!tpl?.name) continue;
+      if (!map.has(s.shift_date)) map.set(s.shift_date, []);
+      map.get(s.shift_date)!.push(s);
+    }
+    return map;
+  }, [shifts]);
 
   return (
     <div className="space-y-6">
@@ -208,39 +220,61 @@ function VolunteerDashboard() {
           <div className="space-y-2">
             {days.map((d) => {
               const dateStr = ymdDate(d);
-              const s = shiftByDate.get(dateStr);
-              const tpl = s ? pickTemplate(s.shift_templates) : null;
+              const dayShifts = shiftsByDate.get(dateStr) ?? [];
               const isToday = dateStr === ymdDate(new Date());
-              return (
-                <div
-                  key={dateStr}
-                  className={`rounded-2xl border p-3 flex items-center justify-between transition ${
-                    isToday ? "ring-2 ring-accent/40 shadow-warm" : ""
-                  } ${tpl ? shiftColor(tpl.name) : "bg-card text-card-foreground border-border"}`}
-                >
-                  <div className="flex items-center gap-3">
+
+              if (dayShifts.length === 0) {
+                return (
+                  <div
+                    key={dateStr}
+                    className={`rounded-2xl border p-3 flex items-center gap-3 bg-card text-card-foreground border-border transition ${
+                      isToday ? "ring-2 ring-accent/40 shadow-warm" : ""
+                    }`}
+                  >
                     <div className="text-center min-w-[40px]">
                       <p className="text-[10px] uppercase font-mono font-medium opacity-70">
                         {d.toLocaleDateString(locale, { weekday: "short" }).slice(0, 3).toUpperCase()}
                       </p>
                       <p className={`text-lg font-semibold leading-none ${isToday ? "text-accent" : ""}`}>{d.getUTCDate()}</p>
                     </div>
-                    <div>
-                      {tpl ? (
-                        <>
-                          <p className="font-medium text-sm">{tpl.name}</p>
-                          {(tpl.start_time || tpl.end_time) && (
+                    <p className="text-sm text-muted-foreground">{t("dash.dayOff")}</p>
+                  </div>
+                );
+              }
+
+              return (
+                <div key={dateStr} className={`rounded-2xl border overflow-hidden transition ${isToday ? "ring-2 ring-accent/40 shadow-warm" : ""}`}>
+                  {dayShifts.map((s, idx) => {
+                    const tpl = pickTemplate(s.shift_templates);
+                    return (
+                      <div
+                        key={s.id}
+                        className={`p-3 flex items-center gap-3 ${shiftColor(tpl?.name)} ${idx > 0 ? "border-t border-black/5" : ""}`}
+                      >
+                        <div className="text-center min-w-[40px]">
+                          {idx === 0 ? (
+                            <>
+                              <p className="text-[10px] uppercase font-mono font-medium opacity-70">
+                                {d.toLocaleDateString(locale, { weekday: "short" }).slice(0, 3).toUpperCase()}
+                              </p>
+                              <p className={`text-lg font-semibold leading-none ${isToday ? "text-accent" : ""}`}>{d.getUTCDate()}</p>
+                            </>
+                          ) : (
+                            <p className="text-[10px] text-muted-foreground/50">+</p>
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">{tpl?.name}</p>
+                          {(tpl?.start_time || tpl?.end_time) && (
                             <p className="text-xs opacity-70 flex items-center gap-1 mt-0.5">
                               <Clock className="h-3 w-3" />
                               {fmtTime(tpl.start_time ?? null)}{tpl.end_time ? ` – ${fmtTime(tpl.end_time)}` : ""}
                             </p>
                           )}
-                        </>
-                      ) : (
-                        <p className="text-sm text-muted-foreground">{t("dash.dayOff")}</p>
-                      )}
-                    </div>
-                  </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               );
             })}
