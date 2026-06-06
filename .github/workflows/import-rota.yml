@@ -1,0 +1,18 @@
+name: Import Rota to Supabase
+
+on:
+  workflow_dispatch:  # Botón manual en GitHub Actions
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install @supabase/supabase-js
+      - name: Run rota import
+        run: node tmp-import-rota.mjs
+        env:
+          HOSTACK_SERVICE_ROLE_KEY: ${{ secrets.HOSTACK_SERVICE_ROLE_KEY }}
