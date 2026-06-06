@@ -1,24 +1,35 @@
+/**
+ * HOSTACK — Rota Import Script
+ * Run via: Settings → Secrets → Actions (no terminal needed)
+ * To add a new week: update the TABS array below.
+ */
+
 import { createClient } from '@supabase/supabase-js';
-const HOSTACK_URL='https://yskzkobduekupiobrbxr.supabase.co';
-const PROPERTY='bf2720e8-eb8a-4c7e-9742-6b0dfe9e636a';
-const SHEET_ID='1k7SwmRTv6qKljEfyjOBVOYkfQHed263ovFrP3gevbis';
-const KEY=process.env.HOSTACK_SERVICE_ROLE_KEY?.trim();
-if(!KEY) throw new Error('missing key');
-const sb=createClient(HOSTACK_URL,KEY,{auth:{persistSession:false,autoRefreshToken:false}});
-function parseCSV(text){const rows=[];let cur=[],field='',q=false;for(let i=0;i<text.length;i++){const ch=text[i];if(q){if(ch==='"'){if(text[i+1]==='"'){field+='"';i++;}else q=false;}else field+=ch;}else{if(ch==='"')q=true;else if(ch===','){cur.push(field);field='';}else if(ch==='\n'){cur.push(field);rows.push(cur);cur=[];field='';}else if(ch==='\r'){}else field+=ch;}} if(field.length||cur.length){cur.push(field);rows.push(cur);} return rows;}
-const MONTHS={JAN:1,FEB:2,MAR:3,APR:4,MAY:5,JUN:6,JUL:7,AUG:8,SEP:9,OCT:10,NOV:11,DEC:12};
-function weekStart(tab){const m=tab.toUpperCase().match(/^(\d{1,2})\s*-\s*\d{1,2}\s+([A-Z]{3,})/);return `2026-${String(MONTHS[m[2].slice(0,3)]).padStart(2,'0')}-${String(+m[1]).padStart(2,'0')}`;}
-function addDays(ymd,n){const d=new Date(ymd+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)}
-function normCell(raw){const v=(raw??'').trim(); if(!v) return {kind:'empty'}; if(/^departure/i.test(v)) return {kind:'empty'}; if(/^off(\s|\d|$)/i.test(v)) return {kind:'off'}; const stripped=v.replace(/\s+\d+$/,'').trim(); return {kind:'shift', name:stripped.split(/\s+/).map(w=>w[0].toUpperCase()+w.slice(1).toLowerCase()).join(' ')};}
-function dominant(cells){const c={}; for(const x of cells){const n=normCell(x); if(n.kind==='shift') c[n.name]=(c[n.name]??0)+1;} return Object.entries(c).sort((a,b)=>b[1]-a[1])[0]?.[0] ?? 'Housekeeping';}
-function parseRota(csv){const rows=parseCSV(csv); const idx=[]; rows.forEach((r,i)=>{ if((r[0]??'').trim().toLowerCase()==='name') idx.push(i)}); const start=(idx[1]??idx[0])+1; const rota={}; for(let i=start;i<rows.length;i++){const r=rows[i]; const name=(r[0]??'').trim(); if(!name) break; const lower=name.toLowerCase(); if(lower==='family dinner'||lower==='activity') break; rota[name]=[1,2,3,4,5,6,7].map(j=>(r[j]??'').toString());} return rota;}
-const TIMES={Breakfast:['07:00','12:00'],Housekeeping:['09:00','15:00'],Laundry:['09:00','15:00'],Cottages:['09:00','15:00'],Maintenance:['09:00','17:00'],'Special Task':['09:00','15:00'],Onboarding:['09:00','17:00'],Arrive:['09:00','17:00'],'Deep Cleaning':['09:00','15:00']};
-async function main(){const tabs=['18-24 MAY']; let total=0, volsCreated=0, volsReactivated=0, tplsCreated=0;
- const [{data:vols,error:ve},{data:tpls,error:te}]=await Promise.all([sb.from('volunteers').select('id,name,status').eq('property_id',PROPERTY),sb.from('shift_templates').select('id,name,start_time,end_time').eq('property_id',PROPERTY)]); if(ve) throw ve; if(te) throw te;
- const lc=s=>s.trim().toLowerCase(); const volBy=new Map((vols??[]).map(v=>[lc(v.name),v])); const tplBy=new Map((tpls??[]).map(t=>[lc(t.name),t]));
- async function ensureVol(name,cells){let v=volBy.get(lc(name)); if(v){ if(v.status!=='active'){const {error}=await sb.from('volunteers').update({status:'active'}).eq('id',v.id); if(error) throw error; volsReactivated++;} return v.id;} const {data,error}=await sb.from('volunteers').insert({property_id:PROPERTY,name,status:'active',role_type:dominant(cells),start_date:'2026-05-18',end_date:'2026-12-31'}).select('id,name,status').single(); if(error) throw error; volsCreated++; volBy.set(lc(name),data); return data.id;}
- async function ensureTpl(name){let t=tplBy.get(lc(name)); if(t) return t; const [start,end]=TIMES[name]??['09:00','17:00']; const {data,error}=await sb.from('shift_templates').insert({property_id:PROPERTY,name,start_time:start,end_time:end}).select('id,name,start_time,end_time').single(); if(error) throw error; tplsCreated++; tplBy.set(lc(name),data); return data;}
- for(const tab of tabs){const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tab)}&headers=0`; const csv=await (await fetch(url)).text(); const rota=parseRota(csv); const ws=weekStart(tab); const days=Array.from({length:7},(_,i)=>addDays(ws,i)); const {data:ex,error:ee}=await sb.from('shifts').select('id,volunteer_id,shift_date').eq('property_id',PROPERTY).gte('shift_date',days[0]).lte('shift_date',days[6]); if(ee) throw ee; const existing=new Map((ex??[]).map(s=>[`${s.volunteer_id}__${s.shift_date}`,s.id])); const rows=[]; for(const [name,cells] of Object.entries(rota)){const vid=await ensureVol(name,cells); for(let i=0;i<7;i++){const n=normCell(cells[i]); if(n.kind==='empty') continue; const id=existing.get(`${vid}__${days[i]}`); if(n.kind==='off'){rows.push({...(id?{id}:{}),property_id:PROPERTY,volunteer_id:vid,shift_date:days[i],shift_template_id:null,start_time:'00:00',end_time:'00:00',status:'scheduled'});} else {const tpl=await ensureTpl(n.name); rows.push({...(id?{id}:{}),property_id:PROPERTY,volunteer_id:vid,shift_date:days[i],shift_template_id:tpl.id,start_time:tpl.start_time,end_time:tpl.end_time,status:'scheduled'});} total++;}}
- if(rows.length){const {error}=await sb.from('shifts').upsert(rows); if(error) throw error;} console.log(JSON.stringify({tab,weekStart:ws,volunteers:Object.keys(rota).length,shifts:total,volsCreated,volsReactivated,tplsCreated},null,2));}
-}
-main().catch(e=>{console.error(e); process.exit(1)});
+
+const HOSTACK_URL = 'https://yskzkobduekupiobrbxr.supabase.co';
+const PROPERTY    = 'bf2720e8-eb8a-4c7e-9742-6b0dfe9e636a';
+const SHEET_ID    = '1k7SwmRTv6qKljEfyjOBVOYkfQHed263ovFrP3gevbis';
+const KEY         = process.env.HOSTACK_SERVICE_ROLE_KEY?.trim();
+
+if (!KEY) { console.error('Missing HOSTACK_SERVICE_ROLE_KEY'); process.exit(1); }
+
+// ── ADD NEW WEEKS HERE ──────────────────────────────────────────────────────
+const TABS = ['1-7 JUN', '8-14 JUN'];
+// ───────────────────────────────────────────────────────────────────────────
+
+const sb = createClient(HOSTACK_URL, KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+
+const LANG_MAP = { pepe:'es', miguel:'es', roxana:'es', jorge:'es', mike:'fr', blanche:'fr' };
+const TIMES = {
+  'Breakfast':['07:00','12:00'], 'Housekeeping':['09:00','15:00'],
+  'Laundry':['09:00','15:00'],   'Cottages':['09:00','15:00'],
+  'Maintenance':['09:00','17:00'],'Special Task':['09:00','15:00'],
+  'Onboarding':['09:00','17:00'],'Deep Cleaning':['09:00','15:00'],
+};
+const MONTHS = {JAN:1,FEB:2,MAR:3,APR:4,MAY:5,JUN:6,JUL:7,AUG:8,SEP:9,OCT:10,NOV:11,DEC:12};
+
+function parseCSV(text) {
+  const rows=[]; let cur=[],field='',q=false;
+  for(let i=0;i<text.length;i++){const ch=text[i];
+    if(q){if(ch==='"'){if(text[i+1]==='"'){field+='"';i++;}else q=false;}else field+=ch;}
+    else{if(ch==='"')q=true;else if(ch===','){cur.push(f
