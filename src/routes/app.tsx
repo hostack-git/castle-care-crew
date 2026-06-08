@@ -37,7 +37,7 @@ function AppLayout() {
     { to: "/app/announcements", label: t("nav.announcements"), icon: Megaphone },
   ];
 
-  const displayName = profile?.full_name || profile?.email || (user.user_metadata as { full_name?: string } | undefined)?.full_name || user.email || "Voluntario";
+  const displayName = profile?.full_name || profile?.email || (user.user_metadata as { full_name?: string } | undefined)?.full_name || user.email || "Volunteer";
 
   return (
     <div className="min-h-screen bg-cream-paper">
