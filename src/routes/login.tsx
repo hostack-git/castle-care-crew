@@ -68,7 +68,7 @@ function Login() {
           </Button>
           <p className="text-center text-sm">
             <Link to="/forgot-password" className="text-accent hover:underline">
-              ¿Olvidaste tu contraseña?
+              Forgot your password?
             </Link>
           </p>
 
@@ -84,7 +84,7 @@ function Login() {
             className="flex items-center justify-center gap-2 w-full rounded-md border-2 border-accent bg-accent/5 hover:bg-accent/10 text-accent font-medium py-3 transition"
           >
             <QrCode className="h-5 w-5" />
-            Soy voluntario → Acceder con link o QR
+            I'm volunteer → Access with link or QR code
           </Link>
         </form>
       </div>
