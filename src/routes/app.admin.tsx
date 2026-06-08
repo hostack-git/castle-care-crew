@@ -597,13 +597,6 @@ function PendingRequests() {
 
 const WELCOME_QR_URL = "https://torridonia.com/staffapp/join?source=qr";
 
-// Inline SVG mountain logo as data URL for centering inside the QR
-const MOUNTAIN_LOGO =
-  "data:image/svg+xml;utf8," +
-  encodeURIComponent(
-    `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='hsl(20 80% 40%)' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><rect width='24' height='24' rx='4' fill='white'/><path d='m8 3 4 8 5-5 5 15H2L8 3z' transform='translate(0 -1)'/></svg>`,
-  );
-
 function WelcomeQR() {
   const wrapperRef = useRef<HTMLDivElement | null>(null);
 
@@ -651,11 +644,11 @@ function WelcomeQR() {
       <div className="rounded-2xl border bg-card p-6 shadow-soft space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-xl font-semibold flex items-center gap-2">
-            <QrCode className="h-4 w-4 text-accent" /> QR de bienvenida
+            <QrCode className="h-4 w-4 text-accent" /> Welcome QR
           </h2>
         </div>
         <p className="text-sm text-muted-foreground">
-          Los voluntarios escanean este QR al llegar para solicitar acceso al equipo.
+          Volunteers scan this QR on arrival to request access to the team app.
         </p>
 
         <div className="print-qr flex flex-col items-center gap-4 py-4">
@@ -664,7 +657,6 @@ function WelcomeQR() {
               value={WELCOME_QR_URL}
               size={250}
               level="H"
-              imageSettings={{ src: MOUNTAIN_LOGO, height: 48, width: 48, excavate: true }}
             />
           </div>
           <p className="text-xs text-muted-foreground font-mono break-all max-w-md text-center">{WELCOME_QR_URL}</p>
@@ -674,17 +666,17 @@ function WelcomeQR() {
           <p className="text-xs font-mono text-muted-foreground flex-1 truncate">{WELCOME_QR_URL}</p>
           <Button
             type="button" variant="outline" size="sm" className="gap-1.5 shrink-0"
-            onClick={() => { navigator.clipboard.writeText(WELCOME_QR_URL); toast.success("Link copiado"); }}
+            onClick={() => { navigator.clipboard.writeText(WELCOME_QR_URL); toast.success("Link copied"); }}
           >
-            <Copy className="h-3.5 w-3.5" /> Copiar link
+            <Copy className="h-3.5 w-3.5" /> Copy link
           </Button>
         </div>
         <div className="flex gap-2 flex-wrap">
           <Button onClick={download} variant="outline" className="gap-2">
-            <Download className="h-4 w-4" /> Descargar QR
+            <Download className="h-4 w-4" /> Download QR
           </Button>
           <Button onClick={print} variant="outline" className="gap-2">
-            <Printer className="h-4 w-4" /> Imprimir
+            <Printer className="h-4 w-4" /> Print
           </Button>
         </div>
       </div>
