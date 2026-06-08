@@ -1,7 +1,7 @@
 name: Import Rota to Supabase
 
 on:
-  workflow_dispatch:  # Botón manual en GitHub Actions
+  workflow_dispatch:
 
 jobs:
   import:
@@ -10,8 +10,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-      - run: npm install @supabase/supabase-js
+          node-version: '22'
+      - run: npm install @supabase/supabase-js ws
       - name: Run rota import
         run: node tmp-import-rota.mjs
         env:
