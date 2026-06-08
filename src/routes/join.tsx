@@ -53,12 +53,12 @@ function JoinPage() {
       if (alreadyAuthed) {
         // Already signed in — just update profile fields
         const { data: { user } } = await hostackSupabase.auth.getUser();
-        if (!user) throw new Error("Sesión expirada. Vuelve a entrar.");
+        if (!user) throw new Error("Session expired. Please log in again.");
         userId = user.id;
       } else {
         // New login via QR / WhatsApp link
         const { data: anon, error: anonErr } = await hostackSupabase.auth.signInAnonymously();
-        if (anonErr || !anon.user) throw anonErr ?? new Error("No se pudo iniciar sesión");
+        if (anonErr || !anon.user) throw anonErr ?? new Error("Login fail");
         userId = anon.user.id;
         const { error: updateErr } = await hostackSupabase.auth.updateUser({
           data: { full_name: name.trim(), role: "volunteer", property_id: TORRIDONIA_PROPERTY_ID },
@@ -83,15 +83,15 @@ function JoinPage() {
           .eq("id", volunteer.id);
         if (volErr) {
           console.error("volunteer update failed:", volErr);
-          throw new Error(`No se pudo vincular tu perfil: ${volErr.message}`);
+          throw new Error(`Link profile failed: ${volErr.message}`);
         }
       } else {
-        toast.error(`"${name.trim()}" no está en la lista de voluntarios activos. Verifica tu nombre con el manager.`);
+        toast.error(`"${name.trim()}" Not on the active volunteer list. Please verify your name with the manager.`);
       }
 
       navigate({ to: "/app/dashboard" });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error al entrar");
+      toast.error(err instanceof Error ? err.message : "Login Error");
     } finally {
       setLoading(false);
     }
@@ -114,15 +114,15 @@ function JoinPage() {
         </div>
         <div>
           <h2 className="font-display text-4xl leading-tight">
-            {alreadyAuthed ? `Hola, ${existingUserName}!` : "Bienvenido/a al equipo"}
+            {alreadyAuthed ? `Aye ! ${existingUserName}!` : "Welcome to the clan"}
           </h2>
           <p className="opacity-80 mt-3">
             {alreadyAuthed
-              ? "Completa tu perfil para recibir notificaciones de tus turnos."
-              : "Entra con el link que te envió tu manager o escanea el QR de la propiedad."}
+              ? "Complete your profile to receive shift notifications.."
+              : "Log in using the link sent by your manager or scan the property QR code.."}
           </p>
         </div>
-        <p className="text-xs opacity-60">Castle of Torridonia · Galicia</p>
+        <p className="text-xs opacity-60">Torridon Estate</p>
       </div>
 
       {/* Right panel — form */}
@@ -130,25 +130,25 @@ function JoinPage() {
         <form onSubmit={onSubmit} className="w-full max-w-sm space-y-5">
           <div>
             <h1 className="font-display text-3xl font-semibold">
-              {alreadyAuthed ? "Completa tu perfil" : "Entrar al equipo"}
+              {alreadyAuthed ? "Complete your profile" : "Join the Clan"}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
               {alreadyAuthed
-                ? "Añade tu WhatsApp y email para recibir tu turno."
-                : "Rellena tu nombre y datos de contacto."}
+                ? "Add your WhatsApp and email to get your shift."
+                : "Fill your name and contact details."}
             </p>
           </div>
 
           {!alreadyAuthed && (
             <div className="space-y-2">
-              <Label htmlFor="name">Nombre completo</Label>
+              <Label htmlFor="name">Full name</Label>
               <Input
                 id="name"
                 required
                 autoFocus={!prefilledName}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Tu nombre"
+                placeholder="Your name"
                 readOnly={!!prefilledName}
                 className={prefilledName ? "bg-secondary/40" : ""}
               />
@@ -168,7 +168,7 @@ function JoinPage() {
           </div>
 
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Entrando…" : alreadyAuthed ? "Guardar y entrar" : "Unirse al equipo"}
+            {loading ? "Loging…" : alreadyAuthed ? "Save and enter" : "Join the clan"}
           </Button>
 
           {alreadyAuthed && (
@@ -178,7 +178,7 @@ function JoinPage() {
                 className="text-sm text-muted-foreground hover:text-foreground underline"
                 onClick={() => navigate({ to: "/app/dashboard" })}
               >
-                Ahora no
+                Not now
               </button>
             </p>
           )}
