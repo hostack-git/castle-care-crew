@@ -20,7 +20,7 @@ function VolunteerAccess() {
     setLoading(true);
     try {
       const { data: anon, error: anonErr } = await hostackSupabase.auth.signInAnonymously();
-      if (anonErr || !anon.user) throw anonErr ?? new Error("No se pudo iniciar sesión");
+      if (anonErr || !anon.user) throw anonErr ?? new Error("Login Error");
 
       await hostackSupabase.auth.updateUser({
         data: {
@@ -61,7 +61,7 @@ function VolunteerAccess() {
         navigate({ to: onboardingDone ? "/app/dashboard" : "/onboarding" });
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error al entrar");
+      toast.error(err instanceof Error ? err.message : "Access Error");
     } finally {
       setLoading(false);
     }
@@ -74,38 +74,38 @@ function VolunteerAccess() {
           <Mountain className="h-6 w-6" /> Torridonia
         </div>
         <div>
-          <h2 className="font-display text-4xl leading-tight">Bienvenido/a, voluntario/a</h2>
-          <p className="opacity-80 mt-3">Entra al equipo en segundos. Sin email, sin contraseña.</p>
+          <h2 className="font-display text-4xl leading-tight">Welcome </h2>
+          <p className="opacity-80 mt-3">Join the clan. No email, no password.</p>
         </div>
-        <p className="text-xs opacity-60">Castle of Torridonia · Galicia</p>
+        <p className="text-xs opacity-60">Torridon Estate</p>
       </div>
 
       <div className="flex items-center justify-center p-8">
         <form onSubmit={onSubmit} className="w-full max-w-sm space-y-6">
           <div>
-            <h1 className="font-display text-3xl font-semibold">Acceder como voluntario</h1>
+            <h1 className="font-display text-3xl font-semibold">Login as Volunteer</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Usa el link que te envió tu manager o escanea el QR de la propiedad.
+              Click on the link send by your manager, or scan the QR code in the property.
             </p>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="name">¿Cuál es tu nombre?</Label>
+            <Label htmlFor="name">What is your name?</Label>
             <Input
               id="name"
               required
               autoFocus
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Tu nombre"
+              placeholder="Your Name"
             />
           </div>
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Entrando…" : "Entrar"}
+            {loading ? "Loading…" : "Enter"}
           </Button>
           <p className="text-center text-sm text-muted-foreground">
-            ¿Eres manager?{" "}
+            You are manager?{" "}
             <Link to="/login" className="text-accent font-medium hover:underline">
-              Inicia sesión
+              Login
             </Link>
           </p>
         </form>
