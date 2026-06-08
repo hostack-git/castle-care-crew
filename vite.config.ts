@@ -1,16 +1,7 @@
-import { defineConfig } from 'vite';
-import tailwindcss from '@tailwindcss/vite';
-import { tanstackStart } from '@tanstack/react-start/plugin/vite';
-import tsconfigPaths from 'vite-tsconfig-paths';
+import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 export default defineConfig({
-  base: '/staffapp/',
-  plugins: [
-    tanstackStart({
-      routesDirectory: './src/routes',
-      generatedRouteTree: './src/routeTree.gen.ts',
-    }),
-    tailwindcss(),
-    tsconfigPaths(),
-  ],
+  vite: {
+    base: '/staffapp/',
+  }
 });
