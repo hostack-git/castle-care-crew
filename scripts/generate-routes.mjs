@@ -23,6 +23,7 @@ const config = {
   addExtensions: false,
   enableRouteGeneration: true,
   autoCodeSplitting: true,
+  target: 'react',
 };
 
 console.log('Generating route tree...');
@@ -37,5 +38,5 @@ try {
 } catch (err) {
   console.error('Route generation failed:', err.message);
   console.log('Continuing with existing routeTree.gen.ts...');
-  process.exit(0); // Don't fail CI — use existing file
+  // Don't exit — build will use the committed routeTree.gen.ts
 }
