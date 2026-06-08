@@ -42,7 +42,7 @@ function InvitePage() {
     setSubmitting(true);
     try {
       const { data: anon, error: anonErr } = await hostackSupabase.auth.signInAnonymously();
-      if (anonErr || !anon.user) throw anonErr ?? new Error("No se pudo entrar");
+      if (anonErr || !anon.user) throw anonErr ?? new Error("Login failed");
 
       await hostackSupabase.auth.updateUser({
         data: { full_name: invitation.name, role: "volunteer", property_id: TORRIDONIA_PROPERTY_ID },
@@ -62,7 +62,7 @@ function InvitePage() {
 
       navigate({ to: "/onboarding" });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error al entrar");
+      toast.error(err instanceof Error ? err.message : "Login failed");
       setSubmitting(false);
     }
   };
@@ -74,23 +74,23 @@ function InvitePage() {
           <Mountain className="h-6 w-6" /> Torridonia
         </div>
         <div>
-          <h2 className="font-display text-4xl leading-tight">Bienvenido/a al equipo</h2>
-          <p className="opacity-80 mt-3">Un solo click y estás dentro.</p>
+          <h2 className="font-display text-4xl leading-tight">Welcome to the clan</h2>
+          <p className="opacity-80 mt-3">Just one click and you are in.</p>
         </div>
-        <p className="text-xs opacity-60">Castle of Torridonia · Galicia</p>
+        <p className="text-xs opacity-60">Torridon Estate</p>
       </div>
 
       <div className="flex items-center justify-center p-6 sm:p-12">
         <div className="w-full max-w-md">
           {loading ? (
             <div className="flex items-center gap-2 text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" /> Validando invitación…
+              <Loader2 className="h-4 w-4 animate-spin" /> Validating…
             </div>
           ) : !invitation ? (
             <div className="space-y-3">
-              <h1 className="font-display text-2xl font-semibold">Link no válido</h1>
+              <h1 className="font-display text-2xl font-semibold">Invalid Link</h1>
               <p className="text-sm text-muted-foreground">
-                Este link ya fue usado o expiró. Contacta a tu manager para recibir uno nuevo.
+                This link has already been used or has expired. Contact your manager to receive a new one.
               </p>
             </div>
           ) : (
@@ -99,14 +99,14 @@ function InvitePage() {
                 Hola {invitation.name}! 👋
               </h1>
               <p className="text-base text-muted-foreground">
-                Tu manager te invita a Torridonia 🏡
+                Your manager invites you to Torridonia
               </p>
               <Button
                 onClick={enter}
                 disabled={submitting}
                 className="w-full bg-accent text-accent-foreground hover:bg-accent/90 h-12 text-base"
               >
-                {submitting ? "Entrando…" : "Entrar a la app"}
+                {submitting ? "Logging in...…" : "Log in to the app..."}
               </Button>
             </div>
           )}
