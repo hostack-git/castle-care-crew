@@ -34,11 +34,10 @@ function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-cream-paper grid lg:grid-cols-2">
-      <div className="hidden lg:flex flex-col justify-between p-12 gradient-moss text-cream">
+    <div className="min-h-screen grid lg:grid-cols-2">
+      <div className="hidden lg:flex flex-col justify-between p-12 bg-cream-paper text-foreground">
         <div className="flex items-center gap-2">
-          <img src="/staffapp/torridonia-logo.png" alt="Torridonia" className="h-16 w-auto" />
-          <span className="font-display text-xl font-semibold">Torridon</span>
+          <img src="/staffapp/torridonia-logo.png" alt="Torridonia" className="h-20 w-auto mix-blend-multiply" />
         </div>
         <div>
           <h2 className="font-display text-4xl font-semibold leading-tight max-w-md">
