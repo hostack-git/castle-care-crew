@@ -339,7 +339,7 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
       return toast.error(error.message);
     }
     await createInvitation(name, role, whatsapp);
-    toast.success("Voluntario añadido");
+    toast.success("Volunteer added");
     setName(""); setStartDate(""); setEndDate(""); setWhatsapp(""); setRole("Housekeeping");
     await reload();
     setSubmitting(false);
@@ -369,11 +369,11 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
             <table className="w-full text-sm">
               <thead className="text-left text-xs text-muted-foreground border-b">
                 <tr>
-                  <th className="py-2 pr-3">Nombre</th>
-                  <th className="py-2 pr-3">Rol</th>
-                  <th className="py-2 pr-3">Inicio</th>
-                  <th className="py-2 pr-3">Fin</th>
-                  <th className="py-2 pr-3">Estado</th>
+                  <th className="py-2 pr-3">Name</th>
+                  <th className="py-2 pr-3">Role</th>
+                  <th className="py-2 pr-3">Start</th>
+                  <th className="py-2 pr-3">End</th>
+                  <th className="py-2 pr-3">Status</th>
                   <th className="py-2"></th>
                 </tr>
               </thead>
@@ -386,9 +386,9 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
                     <td className="py-2 pr-3">{v.end_date || "—"}</td>
                     <td className="py-2 pr-3">
                       {v.auth_user_id ? (
-                        <Badge className="bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/20">Activo</Badge>
+                        <Badge className="bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/20">Active</Badge>
                       ) : (
-                        <Badge variant="secondary">Sin registrar</Badge>
+                        <Badge variant="secondary">Not registered</Badge>
                       )}
                     </td>
                     <td className="py-2 text-right">
@@ -408,10 +408,10 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
 
       <div className="rounded-2xl border bg-card p-6 shadow-soft space-y-4">
         <h2 className="font-display text-xl font-semibold flex items-center gap-2">
-          <Plus className="h-4 w-4 text-accent" /> Añadir voluntario
+          <Plus className="h-4 w-4 text-accent" /> Add volunteer
         </h2>
         <div className="grid sm:grid-cols-2 gap-3">
-          <Input placeholder="Nombre" value={name} onChange={(e) => setName(e.target.value)} />
+          <Input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
           <Select value={role} onValueChange={(v) => setRole(v as typeof VOLUNTEER_ROLES[number])}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -419,17 +419,17 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
             </SelectContent>
           </Select>
           <div>
-            <label className="text-xs text-muted-foreground">Fecha inicio</label>
+            <label className="text-xs text-muted-foreground">Start date</label>
             <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground">Fecha salida</label>
+            <label className="text-xs text-muted-foreground">End date</label>
             <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
           </div>
-          <Input placeholder="WhatsApp (opcional)" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} />
+          <Input placeholder="WhatsApp (optional)" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} />
         </div>
         <Button onClick={submit} disabled={!name || !startDate || !endDate || submitting} className="bg-accent text-accent-foreground hover:bg-accent/90">
-          {submitting ? "Creando…" : "Crear voluntario"}
+          {submitting ? "Creating…" : "Create volunteer"}
         </Button>
       </div>
 
@@ -442,20 +442,20 @@ function InviteDialog({ invite, onClose }: { invite: { url: string; name: string
   const copy = () => {
     if (!invite) return;
     navigator.clipboard.writeText(invite.url);
-    toast.success("Link copiado");
+    toast.success("Link copied");
   };
   const openWhatsapp = () => {
     if (!invite) return;
     const phone = invite.whatsapp.replace(/[^\d]/g, "");
-    const text = encodeURIComponent(`Hola ${invite.name}! Únete a la app de Torridonia: ${invite.url}`);
+    const text = encodeURIComponent(`Hi ${invite.name}! Join the Torridonia app: ${invite.url}`);
     window.open(`https://wa.me/${phone}?text=${text}`, "_blank");
   };
   return (
     <Dialog open={!!invite} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Invitación creada</DialogTitle>
-          <DialogDescription>Comparte este link con {invite?.name}</DialogDescription>
+          <DialogTitle>Invitation created</DialogTitle>
+          <DialogDescription>Share this link with {invite?.name}</DialogDescription>
         </DialogHeader>
         {invite && (
           <div className="space-y-4">
@@ -468,7 +468,7 @@ function InviteDialog({ invite, onClose }: { invite: { url: string; name: string
             </div>
             {invite.whatsapp && (
               <Button onClick={openWhatsapp} className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700 text-white">
-                <MessageCircle className="h-4 w-4" /> Enviar por WhatsApp
+                <MessageCircle className="h-4 w-4" /> Send on WhatsApp
               </Button>
             )}
           </div>
@@ -562,7 +562,7 @@ function PendingRequests() {
       {loading ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
       ) : requests.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No hay solicitudes pendientes.</p>
+          <p className="text-sm text-muted-foreground">No pending requests.</p>
       ) : (
         <ul className="divide-y">
           {requests.map((r) => (
@@ -579,10 +579,10 @@ function PendingRequests() {
               </div>
               <div className="flex gap-2 shrink-0">
                 <Button size="sm" variant="outline" disabled={busyId === r.id} onClick={() => reject(r)} className="gap-1.5">
-                  <UserX className="h-3.5 w-3.5" /> Rechazar
+                  <UserX className="h-3.5 w-3.5" /> Reject
                 </Button>
                 <Button size="sm" disabled={busyId === r.id} onClick={() => approve(r)} className="gap-1.5 bg-accent text-accent-foreground hover:bg-accent/90">
-                  <UserCheck className="h-3.5 w-3.5" /> Aprobar
+                  <UserCheck className="h-3.5 w-3.5" /> Approve
                 </Button>
               </div>
             </li>
