@@ -5,7 +5,7 @@ import { useI18n } from "@/lib/i18n";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { LayoutDashboard, BookOpen, Mountain as Trail, Megaphone, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
-const torridoniaLogo = "/staffapp/torridonia-logo.PNG";
+const torridoniaLogo = "/staffapp/torridonia-logo.png";
 
 export const Route = createFileRoute("/app")({
   component: AppLayout,
