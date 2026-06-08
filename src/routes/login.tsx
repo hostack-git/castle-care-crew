@@ -43,10 +43,9 @@ function Login() {
           <h2 className="font-display text-4xl font-semibold leading-tight max-w-md">
             “We were born wild, don't let them tame you.”
           </h2>
-          <p className="mt-4 text-cream/80">— @dirty_highlander</p>
+          <p className="mt-4 font-display text-lg text-muted-foreground">— @dirty_highlander</p>
         </div>
-        <p className="text-xs text-cream/60">Volunteer App · Torridonia, Scotland · Powered by Hostack</p>
-      </div>
+        <p className="text-xs text-muted-foreground/60">Volunteer App · Torridonia, Scotland · Powered by Hostack</p>
 
       <div className="flex items-center justify-center p-8 relative">
         <div className="absolute top-4 right-4"><LanguageSwitcher compact /></div>
