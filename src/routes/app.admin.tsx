@@ -15,7 +15,7 @@ import { TASK_TYPES, TASK_TYPE_LABELS, TASK_TYPE_DOT, type TaskType } from "@/li
 import { CHECKLIST_PRESETS } from "@/lib/checklist-presets";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
-import { Settings, Plus, BarChart3, X, Home, Sparkles, Settings2, UserCheck, UserX, Inbox, Users, Send, Copy, MessageCircle, Download, Printer, QrCode } from "lucide-react";
+import { Settings, Plus, BarChart3, X, Home, Sparkles, Settings2, UserCheck, UserX, Inbox, Users, Send, Copy, MessageCircle, Download, Printer, QrCode, Clock, TrendingUp, CalendarCheck, UserPlus } from "lucide-react";
 
 export const Route = createFileRoute("/app/admin")({ component: AdminPage });
 
@@ -101,11 +101,17 @@ function AdminPage() {
         </div>
       </header>
 
-      <Tabs defaultValue="tasks" className="space-y-4">
+      <Tabs defaultValue="overview" className="space-y-4">
         <TabsList>
+          <TabsTrigger value="overview" className="gap-1.5"><TrendingUp className="h-3.5 w-3.5" /> Overview</TabsTrigger>
           <TabsTrigger value="tasks" className="gap-1.5"><Plus className="h-3.5 w-3.5" /> Tareas</TabsTrigger>
           <TabsTrigger value="volunteers" className="gap-1.5"><Users className="h-3.5 w-3.5" /> Voluntarios</TabsTrigger>
+          <TabsTrigger value="onboarding" className="gap-1.5"><QrCode className="h-3.5 w-3.5" /> Onboarding</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="overview" className="space-y-4">
+          <OverviewSection />
+        </TabsContent>
 
         <TabsContent value="tasks" className="space-y-6">
           <div className="rounded-2xl border bg-card p-6 shadow-soft space-y-4">
@@ -154,6 +160,9 @@ function AdminPage() {
         <TabsContent value="volunteers" className="space-y-6">
           <VolunteersSection currentAuthUserId={user?.id ?? null} />
           <PendingRequests />
+        </TabsContent>
+
+        <TabsContent value="onboarding" className="space-y-6">
           <WelcomeQR />
         </TabsContent>
       </Tabs>
@@ -161,6 +170,147 @@ function AdminPage() {
   );
 }
 
+// =================== Overview section ===================
+
+function OverviewSection() {
+  const [stats, setStats] = useState<{
+    activeVolunteers: number;
+    shiftsToday: number;
+    shiftsThisWeek: number;
+    upcomingDepartures: { name: string; end_date: string }[];
+    upcomingArrivals: { name: string; start_date: string }[];
+  } | null>(null);
+
+  useEffect(() => {
+    const load = async () => {
+      const today = new Date().toISOString().split("T")[0];
+      const weekEnd = new Date();
+      weekEnd.setDate(weekEnd.getDate() + 7);
+      const weekEndStr = weekEnd.toISOString().split("T")[0];
+
+      const [volRes, shiftsTodayRes, shiftsWeekRes, depsRes, arrivalsRes] = await Promise.all([
+        hostackSupabase.from("volunteers").select("id", { count: "exact" })
+          .eq("property_id", TORRIDONIA_PROPERTY_ID).eq("status", "active"),
+        hostackSupabase.from("shifts").select("id", { count: "exact" })
+          .eq("property_id", TORRIDONIA_PROPERTY_ID).eq("shift_date", today).eq("status", "scheduled"),
+        hostackSupabase.from("shifts").select("id", { count: "exact" })
+          .eq("property_id", TORRIDONIA_PROPERTY_ID).eq("status", "scheduled")
+          .gte("shift_date", today).lte("shift_date", weekEndStr),
+        hostackSupabase.from("volunteers").select("name, end_date")
+          .eq("property_id", TORRIDONIA_PROPERTY_ID).eq("status", "active")
+          .gte("end_date", today).lte("end_date", weekEndStr)
+          .order("end_date", { ascending: true }),
+        hostackSupabase.from("volunteers").select("name, start_date")
+          .eq("property_id", TORRIDONIA_PROPERTY_ID).eq("status", "active")
+          .gte("start_date", today).lte("start_date", weekEndStr)
+          .order("start_date", { ascending: true }),
+      ]);
+
+      setStats({
+        activeVolunteers: volRes.count ?? 0,
+        shiftsToday: shiftsTodayRes.count ?? 0,
+        shiftsThisWeek: shiftsWeekRes.count ?? 0,
+        upcomingDepartures: (depsRes.data ?? []) as { name: string; end_date: string }[],
+        upcomingArrivals: (arrivalsRes.data ?? []) as { name: string; start_date: string }[],
+      });
+    };
+    load();
+  }, []);
+
+  const minutesSavedToday = (stats?.shiftsToday ?? 0) * 2;
+  const minutesSavedMonth = minutesSavedToday * 20;
+  const hoursSavedMonth = (minutesSavedMonth / 60).toFixed(1);
+
+  const formatDate = (d: string) =>
+    new Date(d + "T00:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+
+  if (!stats) return <p className="text-sm text-muted-foreground">Loading overview…</p>;
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="rounded-xl bg-secondary/40 p-4 space-y-1">
+          <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Users className="h-3.5 w-3.5" /> Active volunteers</p>
+          <p className="text-2xl font-semibold">{stats.activeVolunteers}</p>
+          <p className="text-xs text-muted-foreground">on property</p>
+        </div>
+        <div className="rounded-xl bg-secondary/40 p-4 space-y-1">
+          <p className="text-xs text-muted-foreground flex items-center gap-1.5"><CalendarCheck className="h-3.5 w-3.5" /> Shifts today</p>
+          <p className="text-2xl font-semibold">{stats.shiftsToday}</p>
+          <p className="text-xs text-muted-foreground">scheduled</p>
+        </div>
+        <div className="rounded-xl bg-secondary/40 p-4 space-y-1">
+          <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> Time saved today</p>
+          <p className="text-2xl font-semibold">{minutesSavedToday} min</p>
+          <p className="text-xs text-muted-foreground">vs. manual briefing</p>
+        </div>
+        <div className="rounded-xl bg-secondary/40 p-4 space-y-1">
+          <p className="text-xs text-muted-foreground flex items-center gap-1.5"><TrendingUp className="h-3.5 w-3.5" /> Saved this month</p>
+          <p className="text-2xl font-semibold">{hoursSavedMonth} hrs</p>
+          <p className="text-xs text-muted-foreground">estimated</p>
+        </div>
+      </div>
+
+      <div className="grid sm:grid-cols-2 gap-4">
+        <div className="rounded-2xl border bg-card p-5 shadow-soft space-y-3">
+          <h3 className="font-medium text-sm flex items-center gap-2"><UserX className="h-4 w-4 text-amber-500" /> Departures this week</h3>
+          {stats.upcomingDepartures.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No departures this week.</p>
+          ) : (
+            <ul className="divide-y">
+              {stats.upcomingDepartures.map((v) => (
+                <li key={v.name} className="py-2 flex items-center justify-between text-sm">
+                  <span className="font-medium">{v.name}</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700">{formatDate(v.end_date)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="rounded-2xl border bg-card p-5 shadow-soft space-y-3">
+          <h3 className="font-medium text-sm flex items-center gap-2"><UserPlus className="h-4 w-4 text-emerald-500" /> Arrivals this week</h3>
+          {stats.upcomingArrivals.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No arrivals this week.</p>
+          ) : (
+            <ul className="divide-y">
+              {stats.upcomingArrivals.map((v) => (
+                <li key={v.name} className="py-2 flex items-center justify-between text-sm">
+                  <span className="font-medium">{v.name}</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700">{formatDate(v.start_date)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+
+      <div className="rounded-2xl border bg-card p-5 shadow-soft">
+        <h3 className="font-medium text-sm mb-3 flex items-center gap-2"><Clock className="h-4 w-4 text-accent" /> Time saved by Hostack</h3>
+        <div className="grid grid-cols-3 gap-4 text-center">
+          <div>
+            <p className="text-xs text-muted-foreground mb-1">Per briefing</p>
+            <p className="text-lg font-semibold">2 min</p>
+            <p className="text-xs text-muted-foreground">per volunteer</p>
+          </div>
+          <div className="border-x">
+            <p className="text-xs text-muted-foreground mb-1">Today total</p>
+            <p className="text-lg font-semibold">{minutesSavedToday} min</p>
+            <p className="text-xs text-muted-foreground">{stats.shiftsToday} volunteers</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground mb-1">This month</p>
+            <p className="text-lg font-semibold">~{hoursSavedMonth} hrs</p>
+            <p className="text-xs text-muted-foreground">manager time</p>
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground mt-3 pt-3 border-t">
+          Baseline: 2 min/volunteer briefing saved vs. manual WhatsApp coordination (previous method: 2–4 min each).
+        </p>
+      </div>
+    </div>
+  );
+}
 // =================== Volunteers section ===================
 
 type Volunteer = {
@@ -581,6 +731,15 @@ function WelcomeQR() {
           <p className="text-xs text-muted-foreground font-mono break-all max-w-md text-center">{WELCOME_QR_URL}</p>
         </div>
 
+        <div className="rounded-xl border bg-secondary/30 p-3 flex items-center gap-2">
+          <p className="text-xs font-mono text-muted-foreground flex-1 truncate">{WELCOME_QR_URL}</p>
+          <Button
+            type="button" variant="outline" size="sm" className="gap-1.5 shrink-0"
+            onClick={() => { navigator.clipboard.writeText(WELCOME_QR_URL); toast.success("Link copiado"); }}
+          >
+            <Copy className="h-3.5 w-3.5" /> Copiar link
+          </Button>
+        </div>
         <div className="flex gap-2 flex-wrap">
           <Button onClick={download} variant="outline" className="gap-2">
             <Download className="h-4 w-4" /> Descargar QR
