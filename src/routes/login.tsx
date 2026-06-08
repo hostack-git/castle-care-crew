@@ -6,7 +6,7 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mountain, QrCode } from "lucide-react";
+import { QrCode } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/login")({
@@ -37,16 +37,16 @@ function Login() {
     <div className="min-h-screen bg-cream-paper grid lg:grid-cols-2">
       <div className="hidden lg:flex flex-col justify-between p-12 gradient-moss text-cream">
         <div className="flex items-center gap-2">
-          <Mountain className="h-6 w-6" />
+          <img src="/staffapp/torridonia-logo.png" alt="Torridonia" className="h-16 w-auto" />
           <span className="font-display text-xl font-semibold">Torridon</span>
         </div>
         <div>
           <h2 className="font-display text-4xl font-semibold leading-tight max-w-md">
-            “The mountains are calling and I must go.”
+            “We were born wild, don't let them tame you.”
           </h2>
-          <p className="mt-4 text-cream/80">— John Muir</p>
+          <p className="mt-4 text-cream/80">— @dirty_highlander</p>
         </div>
-        <p className="text-xs text-cream/60">Volunteer Hub · Torridon House, Scotland</p>
+        <p className="text-xs text-cream/60">Volunteer App · Torridonia, Scotland · Powered by Hostack</p>
       </div>
 
       <div className="flex items-center justify-center p-8 relative">
