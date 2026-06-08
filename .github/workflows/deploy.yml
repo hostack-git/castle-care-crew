@@ -19,20 +19,10 @@ jobs:
           cache: 'npm'
       - name: Install dependencies
         run: npm ci
-      - name: Regenerate route tree
-        run: |
-          node -e "
-          const fs = require('fs');
-          const path = require('path');
-          const routesDir = './src/routes';
-          const files = fs.readdirSync(routesDir).filter(f => f.endsWith('.tsx') || f.endsWith('.ts'));
-          console.log('Routes found:', files.join(', '));
-          " || echo "Route scan complete"
-        continue-on-error: true
+      - name: Pre-generate route tree
+        run: node scripts/generate-routes.mjs
       - name: Build
         run: npm run build
-        env:
-          TANSTACK_ROUTER_CODEGEN: "false"
       - name: Deploy to Cloudflare Workers
         run: npx wrangler deploy --config dist/server/wrangler.json
         env:
