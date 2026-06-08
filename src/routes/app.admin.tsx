@@ -296,7 +296,7 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
   };
 
   const buildInviteUrl = (token: string) =>
-    `https://tanstack-start-app.hostack.workers.dev/invite/${token}`;
+    `https://torridonia.com/staffapp/invite/${token}`;
 
   const createInvitation = async (volunteerName: string, roleType: string, vWhatsapp: string) => {
     const staffId = await getCurrentStaffId();
@@ -595,7 +595,7 @@ function PendingRequests() {
 
 // =================== Welcome QR ===================
 
-const WELCOME_QR_URL = "https://tanstack-start-app.hostack.workers.dev/join?source=qr";
+const WELCOME_QR_URL = "https://torridonia.com/staffapp/join?source=qr";
 
 // Inline SVG mountain logo as data URL for centering inside the QR
 const MOUNTAIN_LOGO =
