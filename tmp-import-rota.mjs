@@ -11,7 +11,7 @@ if (!KEY) {
 }
 
 // ADD NEW WEEKS HERE — format must match the Sheet tab name exactly
-const TABS = ['1-7 JUN', '8-14 JUN'];
+const TABS = ['8-14 JUN'];
 
 const sb = createClient(HOSTACK_URL, KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
@@ -316,7 +316,7 @@ async function main() {
             shift_template_id: null,
             start_time: '00:00',
             end_time: '00:00',
-            status: 'off',
+            status: 'cancelled',
           });
         } else {
           const tpl = await ensureTemplate(sb, tplBy, n.name);
