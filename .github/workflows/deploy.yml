@@ -6,6 +6,7 @@ on:
       - main
       - claude/elegant-lamport-pcI34
       - claude/intelligent-mayer-pSums
+      - claude/practical-darwin-kw4qyg
 
 jobs:
   deploy:

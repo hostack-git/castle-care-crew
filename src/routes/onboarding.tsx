@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { hostackSupabase, TORRIDONIA_PROPERTY_ID } from "@/integrations/hostack/client";
 import { SOPS } from "@/lib/sops";
+import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Calendar, BookOpen, Megaphone, ArrowRight, Sparkles } from "lucide-react";
 
@@ -34,6 +35,7 @@ const LOCAL_PLAYBOOKS: Playbook[] = SOPS.slice(0, 5).map((sop) => ({
 
 function Onboarding() {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [step, setStep] = useState(1);
   const [playbooks, setPlaybooks] = useState<Playbook[]>([]);
 
@@ -81,7 +83,7 @@ function Onboarding() {
       <div className="w-full max-w-2xl space-y-6">
         <div>
           <div className="flex justify-between text-xs text-muted-foreground mb-2">
-            <span>Paso {step} de 3</span>
+            <span>{t("onb.stepOf").replace("{step}", String(step))}</span>
             <span>{Math.round(progress)}%</span>
           </div>
           <div className="h-2 bg-secondary rounded-full overflow-hidden">
@@ -93,12 +95,12 @@ function Onboarding() {
           {step === 1 && (
             <div className="space-y-5">
               <div>
-                <h1 className="font-display text-3xl font-semibold">¡Bienvenido/a a Torridonia! 🏡</h1>
-                <p className="text-muted-foreground mt-2">Estas son las primeras guías para conocer el lugar.</p>
+                <h1 className="font-display text-3xl font-semibold">{t("onb.title")}</h1>
+                <p className="text-muted-foreground mt-2">{t("onb.subtitle")}</p>
               </div>
               <div className="grid sm:grid-cols-2 gap-3">
                 {playbooks.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No hay guías disponibles aún.</p>
+                  <p className="text-sm text-muted-foreground">{t("onb.noGuides")}</p>
                 ) : (
                   playbooks.map((p) => (
                     <div key={p.id} className="rounded-xl border bg-secondary/30 p-4">
@@ -111,7 +113,7 @@ function Onboarding() {
               </div>
               <div className="flex justify-end">
                 <Button onClick={() => setStep(2)} className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90">
-                  Siguiente <ArrowRight className="h-4 w-4" />
+                  {t("common.next")} <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>
             </div>
@@ -120,18 +122,18 @@ function Onboarding() {
           {step === 2 && (
             <div className="space-y-5">
               <div>
-                <h2 className="font-display text-2xl font-semibold">Cómo usar la app</h2>
-                <p className="text-muted-foreground mt-2">Tres lugares clave en tu día a día.</p>
+                <h2 className="font-display text-2xl font-semibold">{t("onb.howTitle")}</h2>
+                <p className="text-muted-foreground mt-2">{t("onb.howSub")}</p>
               </div>
               <div className="grid gap-3">
-                <InfoCard icon={<Calendar className="h-5 w-5" />} emoji="📅" title="Turnos" text="Consulta tu turno del día en el Dashboard" />
-                <InfoCard icon={<BookOpen className="h-5 w-5" />} emoji="📖" title="Guías" text="Accede a los SOPs de cada área en Guidebook" />
-                <InfoCard icon={<Megaphone className="h-5 w-5" />} emoji="📣" title="Eventos" text="Ve el calendario del equipo en Calendar" />
+                <InfoCard icon={<Calendar className="h-5 w-5" />} emoji="📅" title={t("onb.card1Title")} text={t("onb.card1Text")} />
+                <InfoCard icon={<BookOpen className="h-5 w-5" />} emoji="📖" title={t("onb.card2Title")} text={t("onb.card2Text")} />
+                <InfoCard icon={<Megaphone className="h-5 w-5" />} emoji="📣" title={t("onb.card3Title")} text={t("onb.card3Text")} />
               </div>
               <div className="flex justify-between">
-                <Button variant="ghost" onClick={() => setStep(1)}>Atrás</Button>
+                <Button variant="ghost" onClick={() => setStep(1)}>{t("common.back")}</Button>
                 <Button onClick={() => setStep(3)} className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90">
-                  Siguiente <ArrowRight className="h-4 w-4" />
+                  {t("common.next")} <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>
             </div>
@@ -143,11 +145,11 @@ function Onboarding() {
                 <Sparkles className="h-8 w-8" />
               </div>
               <div>
-                <h2 className="font-display text-3xl font-semibold">Ya estás dentro 🎉</h2>
-                <p className="text-muted-foreground mt-2">Bienvenido/a al equipo de Torridonia.</p>
+                <h2 className="font-display text-3xl font-semibold">{t("onb.doneTitle")}</h2>
+                <p className="text-muted-foreground mt-2">{t("onb.doneSub")}</p>
               </div>
               <Button onClick={finish} size="lg" className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90">
-                Ver mi turno de hoy <ArrowRight className="h-5 w-5" />
+                {t("onb.viewShift")} <ArrowRight className="h-5 w-5" />
               </Button>
             </div>
           )}

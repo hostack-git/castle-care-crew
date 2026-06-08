@@ -46,6 +46,7 @@ function Login() {
           <p className="mt-4 font-display text-lg text-muted-foreground">— @dirty_highlander</p>
         </div>
         <p className="text-xs text-muted-foreground/60">Volunteer App · Torridonia, Scotland · Powered by Hostack</p>
+      </div>
 
       <div className="flex items-center justify-center p-8 relative">
         <div className="absolute top-4 right-4"><LanguageSwitcher compact /></div>
