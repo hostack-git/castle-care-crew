@@ -4,7 +4,6 @@ import { hostackSupabase, TORRIDONIA_PROPERTY_ID } from "@/integrations/hostack/
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mountain } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -100,7 +99,7 @@ function JoinPage() {
   if (checkingSession) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-cream-paper">
-        <p className="text-sm text-muted-foreground">Cargando…</p>
+        <p className="text-sm text-muted-foreground">Loading…</p>
       </div>
     );
   }
@@ -108,26 +107,27 @@ function JoinPage() {
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-cream-paper">
       {/* Left panel — branding */}
-      <div className="hidden lg:flex gradient-moss text-cream p-12 flex-col justify-between">
-        <div className="flex items-center gap-2 font-display text-xl">
-          <Mountain className="h-6 w-6" /> Torridonia
-        </div>
+      <div className="hidden lg:flex bg-cream-paper p-12 flex-col justify-between">
+        <img src="/staffapp/torridonia-logo.png" alt="Torridonia" className="h-20 w-auto mix-blend-multiply" />
         <div>
-          <h2 className="font-display text-4xl leading-tight">
-            {alreadyAuthed ? `Aye ! ${existingUserName}!` : "Welcome to the clan"}
+          <h2 className="font-display text-4xl leading-tight text-foreground">
+            {alreadyAuthed ? `Welcome back, ${existingUserName}!` : "Welcome to the clan"}
           </h2>
-          <p className="opacity-80 mt-3">
+          <p className="text-muted-foreground mt-3">
             {alreadyAuthed
-              ? "Complete your profile to receive shift notifications.."
-              : "Log in using the link sent by your manager or scan the property QR code.."}
+              ? "Complete your profile to receive shift notifications."
+              : "Log in using the link sent by your manager or scan the QR code on the property."}
           </p>
         </div>
-        <p className="text-xs opacity-60">Torridon Estate</p>
+        <p className="text-xs text-muted-foreground/60">Volunteer App · Torridonia, Scotland · Powered by Hostack</p>
       </div>
 
       {/* Right panel — form */}
       <div className="flex items-center justify-center p-8">
         <form onSubmit={onSubmit} className="w-full max-w-sm space-y-5">
+          <div className="flex flex-col items-center mb-2 lg:hidden">
+            <img src="/staffapp/torridonia-logo.png" alt="Torridonia" className="h-16 w-auto mix-blend-multiply mb-4" />
+          </div>
           <div>
             <h1 className="font-display text-3xl font-semibold">
               {alreadyAuthed ? "Complete your profile" : "Join the Clan"}
@@ -168,7 +168,7 @@ function JoinPage() {
           </div>
 
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Loging…" : alreadyAuthed ? "Save and enter" : "Join the clan"}
+            {loading ? "Loading…" : alreadyAuthed ? "Save and continue" : "Join the clan"}
           </Button>
 
           {alreadyAuthed && (
