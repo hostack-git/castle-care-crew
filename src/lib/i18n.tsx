@@ -601,8 +601,6 @@ function detect(): Lang {
   if (typeof window === "undefined") return "en";
   const saved = window.localStorage.getItem(STORAGE_KEY) as Lang | null;
   if (saved && dicts[saved]) return saved;
-  const nav = window.navigator?.language?.slice(0, 2).toLowerCase();
-  if (nav && (dicts as Record<string, Dict>)[nav]) return nav as Lang;
   return "en";
 }
 
