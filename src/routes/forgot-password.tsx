@@ -43,19 +43,19 @@ function ForgotPassword() {
       <div className="flex items-center justify-center p-8">
         <div className="w-full max-w-sm space-y-6">
           <div>
-            <h1 className="font-display text-3xl font-semibold">Recuperar contraseña</h1>
+            <h1 className="font-display text-3xl font-semibold">Recover password</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Te enviaremos un email con instrucciones.
+              We will send you an email with instructions.
             </p>
           </div>
 
           {sent ? (
             <div className="space-y-4">
               <div className="rounded-md border bg-muted/40 p-4 text-sm">
-                Revisa tu email para restablecer tu contraseña.
+                Check your email to reset your password.
               </div>
               <Link to="/login" className="text-accent text-sm hover:underline">
-                ← Volver al login
+                ← Back to login
               </Link>
             </div>
           ) : (
@@ -71,11 +71,11 @@ function ForgotPassword() {
                 />
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Enviando..." : "Enviar enlace"}
+                {loading ? "Sending..." : "Send link"}
               </Button>
               <p className="text-center text-sm">
                 <Link to="/login" className="text-accent hover:underline">
-                  ← Volver al login
+                  ← Back to login
                 </Link>
               </p>
             </form>
