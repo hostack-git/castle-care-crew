@@ -78,83 +78,22 @@ function AdminPage() {
 
   return (
     <div className="space-y-6">
-      <header className="flex items-start justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="font-display text-3xl font-semibold flex items-center gap-2">
-            <Settings className="h-6 w-6 text-accent" /> {t("admin.title")}
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">{t("admin.sub")}</p>
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <Link to="/app/admin/rota">
-            <Button className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90"><Sparkles className="h-4 w-4" /> Weekly Rota Builder</Button>
-          </Link>
-          <Link to="/app/rooms">
-            <Button variant="outline" className="gap-2"><Home className="h-4 w-4" /> Rooms & Cottages</Button>
-          </Link>
-          <Link to="/app/admin/templates">
-            <Button variant="outline" className="gap-2"><Settings2 className="h-4 w-4" /> Checklists</Button>
-          </Link>
-          <Link to="/app/admin/stats">
-            <Button variant="outline" className="gap-2"><BarChart3 className="h-4 w-4" /> Volunteer stats</Button>
-          </Link>
-        </div>
+      <header>
+        <h1 className="font-display text-3xl font-semibold flex items-center gap-2">
+          <Settings className="h-6 w-6 text-accent" /> {t("admin.title")}
+        </h1>
+        <p className="text-muted-foreground text-sm mt-1">{t("admin.sub")}</p>
       </header>
 
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList>
+       <TabsList>
           <TabsTrigger value="overview" className="gap-1.5"><TrendingUp className="h-3.5 w-3.5" /> Overview</TabsTrigger>
-          <TabsTrigger value="tasks" className="gap-1.5"><Plus className="h-3.5 w-3.5" /> Tareas</TabsTrigger>
           <TabsTrigger value="volunteers" className="gap-1.5"><Users className="h-3.5 w-3.5" /> Voluntarios</TabsTrigger>
           <TabsTrigger value="onboarding" className="gap-1.5"><QrCode className="h-3.5 w-3.5" /> Onboarding</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
           <OverviewSection />
-        </TabsContent>
-
-        <TabsContent value="tasks" className="space-y-6">
-          <div className="rounded-2xl border bg-card p-6 shadow-soft space-y-4">
-            <h2 className="font-display text-xl font-semibold flex items-center gap-2"><Plus className="h-4 w-4" /> {t("admin.assign")}</h2>
-            <div className="grid sm:grid-cols-2 gap-3">
-              <Input placeholder={t("admin.titlePh")} value={title} onChange={(e) => setTitle(e.target.value)} />
-              <Select value={type} onValueChange={(v) => setType(v as TaskType)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{TASK_TYPES.map((tt) => <SelectItem key={tt} value={tt}>{TASK_TYPE_LABELS[tt]}</SelectItem>)}</SelectContent>
-              </Select>
-              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-              <Input type="time" value={start} onChange={(e) => setStart(e.target.value)} />
-              <Select value={assignee} onValueChange={setAssignee}>
-                <SelectTrigger><SelectValue placeholder={t("admin.assignTo")} /></SelectTrigger>
-                <SelectContent>{volunteers.map((v) => <SelectItem key={v.id} value={v.id}>{v.full_name || v.email}</SelectItem>)}</SelectContent>
-              </Select>
-              <Input placeholder={t("admin.locationPh")} value={location} onChange={(e) => setLocation(e.target.value)} />
-            </div>
-            <Textarea placeholder={t("admin.notesPh")} value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
-
-            <div className="rounded-xl border bg-secondary/30 p-4 space-y-2">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-medium flex items-center gap-2">
-                  <span className={`h-2 w-2 rounded-full ${TASK_TYPE_DOT[type]}`} />
-                  Checklist for {TASK_TYPE_LABELS[type]}
-                </p>
-                <Button type="button" variant="ghost" size="sm" onClick={addItem}><Plus className="h-3 w-3 mr-1" /> Add step</Button>
-              </div>
-              <div className="space-y-2">
-                {checklist.map((item, i) => (
-                  <div key={i} className="flex gap-2">
-                    <Input value={item} onChange={(e) => updateItem(i, e.target.value)} placeholder="Step description" />
-                    <Button type="button" variant="ghost" size="icon" onClick={() => removeItem(i)}><X className="h-4 w-4" /></Button>
-                  </div>
-                ))}
-                {checklist.length === 0 && <p className="text-xs text-muted-foreground">No steps — the volunteer will only see the task title.</p>}
-              </div>
-            </div>
-
-            <Button onClick={create} disabled={!title || !date || submitting} className="bg-accent text-accent-foreground hover:bg-accent/90">
-              {submitting ? "Creating…" : t("admin.create")}
-            </Button>
-          </div>
         </TabsContent>
 
         <TabsContent value="volunteers" className="space-y-6">
