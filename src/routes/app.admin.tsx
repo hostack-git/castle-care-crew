@@ -111,7 +111,7 @@ function AdminPage() {
 
 // =================== Overview section ===================
 
-type VolDetail = { id: string; name: string | null; role_type: string | null; start_date: string | null; end_date: string | null; whatsapp: string | null };
+type VolDetail = { id: string; name: string | null; role_type: string | null; start_date: string | null; end_date: string | null; room: string | null; whatsapp: string | null };
 type ShiftDetail = { id: string; volunteer_id: string | null; volunteers: { name: string | null; whatsapp: string | null } | null; shift_templates: { name: string | null; start_time: string | null; end_time: string | null } | null };
 
 function OverviewSection() {
@@ -137,7 +137,7 @@ function OverviewSection() {
     setLoadingVols(true);
     hostackSupabase
       .from("volunteers")
-      .select("id, name, role_type, start_date, end_date, whatsapp")
+      .select("id, name, role_type, start_date, end_date, room, whatsapp")
       .eq("property_id", TORRIDONIA_PROPERTY_ID)
       .eq("status", "active")
       .order("name", { ascending: true })
@@ -323,6 +323,7 @@ function OverviewSection() {
                     <p className="font-medium text-sm">{v.name ?? "—"}</p>
                     <p className="text-xs text-muted-foreground">
                       {v.role_type} · {v.start_date} → {v.end_date}
+                      {v.room ? ` · Room ${v.room}` : ""}
                     </p>
                   </div>
                   {v.whatsapp && (
