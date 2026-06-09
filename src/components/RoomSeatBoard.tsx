@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { hostackSupabase } from "@/integrations/hostack/client";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -156,7 +156,7 @@ export function RoomSeat({
   }, [room.guest_name, room.check_in_date, room.check_out_date]);
 
   const update = async (status: RoomStatus) => {
-    const { error } = await supabase
+    const { error } = await hostackSupabase
       .from("rooms")
       .update({ status, updated_by: userId })
       .eq("id", room.id);
@@ -165,7 +165,7 @@ export function RoomSeat({
   };
 
   const saveGuest = async () => {
-    const { error } = await supabase
+    const { error } = await hostackSupabase
       .from("rooms")
       .update({
         guest_name: guest.trim() ? guest.trim() : null,

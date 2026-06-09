@@ -80,15 +80,29 @@ function JoinPage() {
           .from("volunteers")
           .update(updates)
           .eq("id", volunteer.id);
-        if (volErr) {
-          console.error("volunteer update failed:", volErr);
-          throw new Error(`Link profile failed: ${volErr.message}`);
-        }
+        if (volErr) throw new Error(`Link profile failed: ${volErr.message}`);
       } else {
-        toast.error(`"${name.trim()}" Not on the active volunteer list. Please verify your name with the manager.`);
+        // Inverted flow: volunteer not pre-registered → create pending record + notify admin
+        await hostackSupabase.from("volunteers").insert({
+          property_id: TORRIDONIA_PROPERTY_ID,
+          name: name.trim(),
+          auth_user_id: userId,
+          whatsapp_number: whatsapp.trim() || null,
+          status: "pending",
+          role_type: "Volunteer",
+        });
+        await hostackSupabase.from("staff_access_requests").insert({
+          property_id: TORRIDONIA_PROPERTY_ID,
+          name: name.trim(),
+          whatsapp: whatsapp.trim() || null,
+          auth_user_id: userId,
+          status: "pending",
+        });
+        toast.info("Profile created! Your manager will assign your shifts shortly.");
       }
 
-      navigate({ to: "/app/dashboard" });
+      const onboardingDone = typeof window !== "undefined" && localStorage.getItem("onboarding_done") === "true";
+      navigate({ to: onboardingDone ? "/app/dashboard" : "/onboarding" });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Login Error");
     } finally {

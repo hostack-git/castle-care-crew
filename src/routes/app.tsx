@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
-import { LayoutDashboard, BookOpen, Mountain as Trail, Megaphone, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, BookOpen, Mountain as Trail, Megaphone, Settings, LogOut, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 const torridoniaLogo = "/staffapp/torridonia-logo.png";
 
@@ -36,6 +36,15 @@ function AppLayout() {
     { to: "/app/adventures",    label: t("nav.adventures"),    icon: Trail },
     { to: "/app/announcements", label: t("nav.announcements"), icon: Megaphone },
   ];
+
+  const mobileNav = isAdmin && !isVolunteer
+    ? [
+        { to: "/app/dashboard",     label: t("nav.dashboard"),     icon: LayoutDashboard },
+        { to: "/app/admin",         label: t("nav.admin"),         icon: ShieldCheck },
+        { to: "/app/guidebook",     label: t("nav.guidebook"),     icon: BookOpen },
+        { to: "/app/announcements", label: t("nav.announcements"), icon: Megaphone },
+      ]
+    : fullNav;
 
   const displayName = profile?.full_name || profile?.email || (user.user_metadata as { full_name?: string } | undefined)?.full_name || user.email || "Volunteer";
 
@@ -116,7 +125,7 @@ function AppLayout() {
 
         {/* Mobile bottom nav */}
         <nav className="lg:hidden fixed bottom-0 inset-x-0 z-20 bg-card border-t flex justify-around py-2">
-          {fullNav.map((n) => {
+          {mobileNav.map((n) => {
             const active = loc.pathname.startsWith(n.to);
             return (
               <Link key={n.to} to={n.to} className={`flex flex-col items-center gap-0.5 px-2 py-1 text-[10px] ${active ? "text-primary" : "text-muted-foreground"}`}>

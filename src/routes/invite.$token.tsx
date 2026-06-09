@@ -52,15 +52,31 @@ function InvitePage() {
         .from("volunteers")
         .update({ auth_user_id: anon.user.id })
         .eq("name", invitation.name)
-        .eq("property_id", TORRIDONIA_PROPERTY_ID)
-        .is("auth_user_id", null);
+        .eq("property_id", TORRIDONIA_PROPERTY_ID);
 
       await hostackSupabase
         .from("staff_invitations")
         .update({ used_at: new Date().toISOString() })
         .eq("token", token);
 
-      navigate({ to: "/onboarding" });
+      // Check if volunteer already has contact info
+      const { data: vol } = await hostackSupabase
+        .from("volunteers")
+        .select("whatsapp_number")
+        .eq("property_id", TORRIDONIA_PROPERTY_ID)
+        .ilike("name", invitation.name ?? "")
+        .maybeSingle();
+
+      const hasContact = !!(vol as { whatsapp_number?: string | null } | null)?.whatsapp_number;
+      const onboardingDone = typeof window !== "undefined" && localStorage.getItem("onboarding_done") === "true";
+
+      if (!hasContact) {
+        navigate({ to: "/join" });
+      } else if (!onboardingDone) {
+        navigate({ to: "/onboarding" });
+      } else {
+        navigate({ to: "/app/dashboard" });
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Login failed");
       setSubmitting(false);

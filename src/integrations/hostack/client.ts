@@ -14,3 +14,4 @@ export const hostackSupabase = createClient(
 );
 
 export const TORRIDONIA_PROPERTY_ID = 'bf2720e8-eb8a-4c7e-9742-6b0dfe9e636a';
+export const HOSTACK_SUPABASE_URL = 'https://yskzkobduekupiobrbxr.supabase.co';

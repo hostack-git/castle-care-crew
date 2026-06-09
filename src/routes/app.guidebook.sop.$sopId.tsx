@@ -6,7 +6,7 @@ export const Route = createFileRoute("/app/guidebook/sop/$sopId")({
   component: SopPage,
 });
 
-const BASE = "https://jorgeibanezhostack.github.io/guidebookstorridon";
+const BASE = `${import.meta.env.BASE_URL}sops`;
 
 const FILE_MAP: Record<string, string> = {
   breakfast:    `${BASE}/breakfast-sop-multilang.html`,

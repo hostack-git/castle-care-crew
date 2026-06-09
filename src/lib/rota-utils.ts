@@ -7,13 +7,15 @@ import { hostackSupabase, TORRIDONIA_PROPERTY_ID } from "@/integrations/hostack/
 
 const SHEET_ID = "1k7SwmRTv6qKljEfyjOBVOYkfQHed263ovFrP3gevbis";
 
+// These must stay in sync with shift_templates rows in Supabase.
+// Source of truth: shift_templates table. This is the fallback if a template has NULL times.
 const DEFAULT_TIMES: Record<string, { start: string; end: string }> = {
   Breakfast:       { start: "07:00", end: "12:00" },
   Housekeeping:    { start: "10:00", end: "15:00" },
-  Laundry:         { start: "08:00", end: "13:00" },
+  Laundry:         { start: "10:00", end: "18:00" },
   Cottages:        { start: "10:00", end: "15:00" },
   Maintenance:     { start: "10:00", end: "15:00" },
-  "Special Task":  { start: "09:00", end: "17:00" },
+  "Special Task":  { start: "10:00", end: "17:00" },
   Onboarding:      { start: "09:00", end: "17:00" },
   Arrive:          { start: "09:00", end: "17:00" },
   "Deep Cleaning": { start: "10:00", end: "15:00" },
@@ -57,6 +59,8 @@ const MONTHS: Record<string, number> = {
 const MONTH_ABBR = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
 
 function weekStartFromTab(tab: string): string {
+  // Tab format: "MONDAY_DATE-SUNDAY_DATE MONTH_OF_MONDAY" e.g. "8-14 JUN"
+  // The first number is the Monday (week start), the month is the Monday's month.
   const m = tab.toUpperCase().match(/^(\d{1,2})\s*-\s*\d{1,2}\s+([A-Z]{3,})/);
   if (!m) throw new Error(`Unrecognized tab name: "${tab}"`);
   const day = parseInt(m[1], 10);
@@ -71,14 +75,15 @@ function addDaysStr(ymd: string, n: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-/** Generate the Google Sheet tab name for the week containing Monday `weekMon` (Date). */
+/**
+ * Generate the Google Sheet tab name for the week whose Monday is `weekMon`.
+ * Format: "MONDAY_DATE-SUNDAY_DATE MONTH_OF_MONDAY" e.g. "8-14 JUN"
+ * Cross-month example: week Mon Jun 29 → "29-5 JUN"
+ */
 export function tabNameForDate(weekMon: Date): string {
   const sun = new Date(weekMon);
   sun.setUTCDate(weekMon.getUTCDate() + 6);
-  const d = weekMon.getUTCDate();
-  const e = sun.getUTCDate();
-  const mon = MONTH_ABBR[weekMon.getUTCMonth()];
-  return `${d}-${e} ${mon}`;
+  return `${weekMon.getUTCDate()}-${sun.getUTCDate()} ${MONTH_ABBR[weekMon.getUTCMonth()]}`;
 }
 
 /** Returns Monday of the ISO week containing `d`. */
@@ -136,6 +141,62 @@ async function fetchTabCSV(tab: string): Promise<string> {
   const text = await res.text();
   if (text.trimStart().startsWith("<")) throw new Error(`Tab "${tab}" not found in the sheet`);
   return text;
+}
+
+// ---------- Room availability parsing ----------
+
+import type { RoomEntry } from "@/lib/amenitiz-parser";
+
+const BB_ROOMS: string[] = ["Suite", "East 1", "East 2", "Schoolroom", "Riverview"];
+const COTTAGE_ROOMS: string[] = ["Lochside", "Corry", "Gardeners", "Stables"];
+
+function parseRoomStatusCell(cell: string): Pick<RoomEntry, "status" | "checkout" | "checkin"> {
+  const v = cell.trim().toLowerCase();
+  if (v.includes("to clean")) return { status: "needs_cleaning", checkout: true, checkin: false };
+  if (v.includes("check in") || v.includes("checkin")) return { status: "needs_cleaning", checkout: true, checkin: true };
+  if (v.includes("staying")) return { status: "occupied", checkout: false, checkin: false };
+  return { status: "free", checkout: false, checkin: false };
+}
+
+function parseRoomsFromCSV(csv: string, dayIndex: number): RoomEntry[] {
+  // dayIndex: 0=Mon…6=Sun; col 0 = room name, col dayIndex+1 = today's status
+  const rows = parseCSV(csv);
+  const result: RoomEntry[] = [];
+  for (const row of rows) {
+    const name = (row[0] ?? "").trim();
+    if (!name) continue;
+    const isBB = BB_ROOMS.some((r) => r.toLowerCase() === name.toLowerCase());
+    const isCottage = COTTAGE_ROOMS.some((r) => r.toLowerCase() === name.toLowerCase());
+    if (!isBB && !isCottage) continue;
+    const cell = (row[dayIndex + 1] ?? "").toString();
+    const statusInfo = parseRoomStatusCell(cell);
+    result.push({ room: name, type: isCottage ? "cottages" : "housekeeping", guests: 0, ...statusInfo });
+  }
+  return result;
+}
+
+export interface RoomImportResult {
+  rooms: RoomEntry[];
+  errors: string[];
+  date: string;
+}
+
+/** Fetch today's room availability from the Rota sheet and return structured entries. */
+export async function importRoomsFromSheets(tab: string, date: string): Promise<RoomImportResult> {
+  const csv = await fetchTabCSV(tab);
+  const d = new Date(date + "T00:00:00Z");
+  const dow = d.getUTCDay(); // 0=Sun
+  const dayIndex = (dow + 6) % 7; // 0=Mon…6=Sun
+  const rooms = parseRoomsFromCSV(csv, dayIndex);
+
+  const errors: string[] = [];
+  for (const r of [...BB_ROOMS, ...COTTAGE_ROOMS]) {
+    if (!rooms.find((x) => x.room.toLowerCase() === r.toLowerCase())) {
+      errors.push(`"${r}" not found in sheet tab "${tab}"`);
+    }
+  }
+
+  return { rooms, errors, date };
 }
 
 // ---------- Main import ----------

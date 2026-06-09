@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { hostackSupabase } from "@/integrations/hostack/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
@@ -24,14 +24,14 @@ function AnnouncementsPage() {
   const [priority, setPriority] = useState("normal");
 
   const load = () =>
-    supabase.from("announcements").select("*").order("created_at", { ascending: false })
+    hostackSupabase.from("announcements").select("*").order("created_at", { ascending: false })
       .then(({ data }) => setItems((data as Ann[]) ?? []));
 
   useEffect(() => { load(); }, []);
 
   const post = async () => {
     if (!user || !title || !content) return;
-    const { error } = await supabase.from("announcements").insert({ title, content, priority, created_by: user.id });
+    const { error } = await hostackSupabase.from("announcements").insert({ title, content, priority, created_by: user.id });
     if (error) return toast.error(error.message);
     toast.success("Posted!");
     setTitle(""); setContent(""); setPriority("normal");
