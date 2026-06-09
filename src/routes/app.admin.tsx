@@ -2,7 +2,6 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
-import { supabase } from "@/integrations/supabase/client";
 import { hostackSupabase, TORRIDONIA_PROPERTY_ID } from "@/integrations/hostack/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,11 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { TASK_TYPES, TASK_TYPE_LABELS, TASK_TYPE_DOT, type TaskType } from "@/lib/constants";
-import { CHECKLIST_PRESETS } from "@/lib/checklist-presets";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
-import { Settings, Plus, BarChart3, X, Home, Sparkles, Settings2, UserCheck, UserX, Inbox, Users, Send, Copy, MessageCircle, Download, Printer, QrCode, Clock, TrendingUp, CalendarCheck, UserPlus } from "lucide-react";
+import { Settings, Plus, UserCheck, UserX, Inbox, Users, Send, Copy, MessageCircle, Download, Printer, QrCode, Clock, TrendingUp, CalendarCheck, UserPlus } from "lucide-react";
 
 export const Route = createFileRoute("/app/admin")({ component: AdminPage });
 
@@ -25,54 +22,10 @@ function AdminPage() {
   const { isAdmin, loading, user } = useAuth();
   const { t } = useI18n();
   const navigate = useNavigate();
-  const [volunteers, setVolunteers] = useState<{ id: string; full_name: string | null; email: string | null }[]>([]);
-  const [title, setTitle] = useState("");
-  const [type, setType] = useState<TaskType>("housekeeping");
-  const [date, setDate] = useState("");
-  const [start, setStart] = useState("");
-  const [assignee, setAssignee] = useState("");
-  const [location, setLocation] = useState("");
-  const [notes, setNotes] = useState("");
-  const [checklist, setChecklist] = useState<string[]>(CHECKLIST_PRESETS.housekeeping);
-  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!loading && !isAdmin) navigate({ to: "/app/dashboard" });
   }, [loading, isAdmin, navigate]);
-
-  useEffect(() => {
-    supabase.from("profiles").select("id, full_name, email").then(({ data }) => setVolunteers(data ?? []));
-  }, []);
-
-  useEffect(() => {
-    setChecklist(CHECKLIST_PRESETS[type]);
-  }, [type]);
-
-  const updateItem = (i: number, v: string) => setChecklist((c) => c.map((x, j) => (j === i ? v : x)));
-  const removeItem = (i: number) => setChecklist((c) => c.filter((_, j) => j !== i));
-  const addItem = () => setChecklist((c) => [...c, ""]);
-
-  const create = async () => {
-    if (!title || !date) return;
-    setSubmitting(true);
-    const { data: task, error } = await supabase.from("tasks").insert({
-      title, type, scheduled_date: date,
-      start_time: start || null, assigned_to: assignee || null,
-      location: location || null, notes: notes || null,
-    }).select("id").single();
-    if (error || !task) { setSubmitting(false); return toast.error(error?.message ?? "Error"); }
-
-    const items = checklist.map((label, i) => ({ task_id: task.id, label: label.trim(), order_index: i }))
-      .filter((it) => it.label.length > 0);
-    if (items.length) {
-      const { error: cErr } = await supabase.from("task_checklist_items").insert(items);
-      if (cErr) toast.error(cErr.message);
-    }
-    toast.success("Task created!");
-    setTitle(""); setDate(""); setStart(""); setAssignee(""); setLocation(""); setNotes("");
-    setChecklist(CHECKLIST_PRESETS[type]);
-    setSubmitting(false);
-  };
 
   if (!isAdmin) return null;
 

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { hostackSupabase, HOSTACK_SUPABASE_URL } from "@/integrations/hostack/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
@@ -21,9 +21,8 @@ type Adventure = {
   profiles?: { full_name: string | null; avatar_url: string | null } | null;
 };
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const publicUrl = (path: string) =>
-  `${SUPABASE_URL}/storage/v1/object/public/adventures/${path}`;
+  `${HOSTACK_SUPABASE_URL}/storage/v1/object/public/adventures/${path}`;
 
 function Adventures() {
   const { user } = useAuth();
@@ -83,12 +82,12 @@ function Adventures() {
       if (file) {
         const ext = file.name.split(".").pop() || "jpg";
         path = `${user.id}/${Date.now()}.${ext}`;
-        const { error } = await supabase.storage.from("adventures").upload(path, file, {
+        const { error } = await hostackSupabase.storage.from("adventures").upload(path, file, {
           cacheControl: "3600", upsert: false, contentType: file.type,
         });
         if (error) throw error;
       }
-      const { error } = await supabase.from("adventures").insert({
+      const { error } = await hostackSupabase.from("adventures").insert({
         user_id: user.id, title, description: desc || null, location: location || null, image_url: path,
       });
       if (error) throw error;
@@ -107,9 +106,9 @@ function Adventures() {
     const cur = likes[id] ?? { count: 0, mine: false };
     setLikes((m) => ({ ...m, [id]: { count: cur.count + (cur.mine ? -1 : 1), mine: !cur.mine } }));
     if (cur.mine) {
-      await supabase.from("adventure_likes").delete().eq("adventure_id", id).eq("user_id", user.id);
+      await hostackSupabase.from("adventure_likes").delete().eq("adventure_id", id).eq("user_id", user.id);
     } else {
-      await supabase.from("adventure_likes").insert({ adventure_id: id, user_id: user.id });
+      await hostackSupabase.from("adventure_likes").insert({ adventure_id: id, user_id: user.id });
     }
   };
 

@@ -1,4 +1,0 @@
-project_id = "jhioiwoxuafzlakwdicu"
-
-[functions.chat-torra]
-verify_jwt = false
