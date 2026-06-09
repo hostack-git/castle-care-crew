@@ -16,7 +16,7 @@ import { Settings, Plus, UserCheck, UserX, Inbox, Users, Send, Copy, MessageCirc
 
 export const Route = createFileRoute("/app/admin")({ component: AdminPage });
 
-const VOLUNTEER_ROLES = ["Housekeeping", "Maintenance", "Special Task", "Family", "Team Leader"] as const;
+const VOLUNTEER_ROLES = ["Volunteer", "Manager", "Owner"] as const;
 
 function AdminPage() {
   const { isAdmin, loading, user } = useAuth();
@@ -77,9 +77,14 @@ type Volunteer = {
   room: string | null;
 };
 
-const fmtDate = (d: string | null) => {
+const fmtDate = (d: string | null): string => {
   if (!d) return "—";
-  return new Date(d + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  const date = new Date(d + "T00:00:00");
+  const day = date.getDate();
+  const month = date.toLocaleDateString("en-GB", { month: "short" }).toUpperCase();
+  const year = date.getFullYear();
+  if (year !== new Date().getFullYear()) return `${day} ${month} ${String(year).slice(2)}`;
+  return `${day} ${month}`;
 };
 
 function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | null }) {
@@ -88,7 +93,7 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
   const [name, setName] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [role, setRole] = useState<typeof VOLUNTEER_ROLES[number]>("Housekeeping");
+  const [role, setRole] = useState<typeof VOLUNTEER_ROLES[number]>("Volunteer");
   const [whatsapp, setWhatsapp] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [invite, setInvite] = useState<{ url: string; name: string; whatsapp: string } | null>(null);
@@ -162,7 +167,7 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
     }
     await createInvitation(name, role, whatsapp);
     toast.success("Volunteer added");
-    setName(""); setStartDate(""); setEndDate(""); setWhatsapp(""); setRole("Housekeeping");
+    setName(""); setStartDate(""); setEndDate(""); setWhatsapp(""); setRole("Volunteer");
     await reload();
     setSubmitting(false);
   };
@@ -367,7 +372,7 @@ function EditVolunteerDialog({
   onSave: (updated: Volunteer) => void;
 }) {
   const [name, setName] = useState("");
-  const [role, setRole] = useState<string>("Housekeeping");
+  const [role, setRole] = useState<string>("Volunteer");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
@@ -378,7 +383,7 @@ function EditVolunteerDialog({
   useEffect(() => {
     if (volunteer) {
       setName(volunteer.name ?? "");
-      setRole(volunteer.role_type ?? "Housekeeping");
+      setRole(volunteer.role_type ?? "Volunteer");
       setStartDate(volunteer.start_date ?? "");
       setEndDate(volunteer.end_date ?? "");
       setWhatsapp(volunteer.whatsapp_number ?? "");
@@ -442,7 +447,7 @@ function EditVolunteerDialog({
           </div>
           <div>
             <label className="text-xs text-muted-foreground block mb-1">Room</label>
-            <Input value={room} onChange={(e) => setRoom(e.target.value)} placeholder="e.g. East 1" />
+            <Input value={room} onChange={(e) => setRoom(e.target.value)} placeholder="Room 7" />
           </div>
           <div>
             <label className="text-xs text-muted-foreground block mb-1">Start date</label>

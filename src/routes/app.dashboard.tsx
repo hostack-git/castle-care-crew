@@ -944,8 +944,14 @@ function OverviewSection() {
     toast.success("Volunteer removed from active roster");
   };
 
-  const fmtDate = (d: string) =>
-    new Date(d + "T00:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+  const fmtDate = (d: string): string => {
+    const date = new Date(d + "T00:00:00");
+    const day = date.getDate();
+    const month = date.toLocaleDateString("en-GB", { month: "short" }).toUpperCase();
+    const year = date.getFullYear();
+    if (year !== new Date().getFullYear()) return `${day} ${month} ${String(year).slice(2)}`;
+    return `${day} ${month}`;
+  };
 
   if (!stats) return <div className="h-28 rounded-xl bg-secondary/30 animate-pulse" />;
 
@@ -1065,7 +1071,7 @@ function OverviewSection() {
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm">{v.name ?? "—"}</p>
                     <p className="text-xs text-muted-foreground">
-                      {v.role_type}{v.start_date ? ` · ${v.start_date} → ${v.end_date}` : ""}
+                      {v.role_type}{v.start_date ? ` · ${fmtDate(v.start_date)} → ${v.end_date ? fmtDate(v.end_date) : ""}` : ""}
                     </p>
                   </div>
                   {v.whatsapp_number && (
