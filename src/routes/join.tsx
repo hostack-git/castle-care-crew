@@ -70,7 +70,7 @@ function JoinPage() {
         .from("volunteers")
         .select("id, auth_user_id")
         .eq("property_id", TORRIDONIA_PROPERTY_ID)
-        .ilike("name", name.trim())
+        .ilike("name", `${name.trim()}%`)
         .maybeSingle();
 
       if (volunteer?.id) {
@@ -139,30 +139,30 @@ function JoinPage() {
       {/* Right panel — form */}
       <div className="flex items-center justify-center p-8">
         <form onSubmit={onSubmit} className="w-full max-w-sm space-y-5">
-          <div className="flex flex-col items-center mb-2 lg:hidden">
-            <img src="/staffapp/torridonia-logo.png" alt="Torridonia" className="h-16 w-auto mix-blend-multiply mb-4" />
+          <div className="flex flex-col items-center mb-4 lg:hidden">
+            <img src="/staffapp/torridonia-logo.png" alt="Torridonia" className="h-40 w-auto mix-blend-multiply mb-5" />
+            {!alreadyAuthed && (
+              <h1 className="font-display text-4xl font-bold uppercase tracking-widest text-center">WELCOME</h1>
+            )}
           </div>
-          <div>
-            <h1 className="font-display text-3xl font-semibold">
-              {alreadyAuthed ? "Complete your profile" : "Join the Clan"}
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
+          <div className="text-center lg:text-left">
+            <p className="text-sm text-muted-foreground">
               {alreadyAuthed
-                ? "Add your WhatsApp and email to get your shift."
-                : "Fill your name and contact details."}
+                ? "Add your WhatsApp to receive your shift details."
+                : "Fill your name and contact details to join the clan."}
             </p>
           </div>
 
           {!alreadyAuthed && (
             <div className="space-y-2">
-              <Label htmlFor="name">Full name</Label>
+              <Label htmlFor="name">First name</Label>
               <Input
                 id="name"
                 required
                 autoFocus={!prefilledName}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Your name"
+                placeholder="Your first name"
                 readOnly={!!prefilledName}
                 className={prefilledName ? "bg-secondary/40" : ""}
               />
@@ -177,7 +177,8 @@ function JoinPage() {
               autoFocus={alreadyAuthed}
               value={whatsapp}
               onChange={(e) => setWhatsapp(e.target.value)}
-              placeholder="+34 600 000 000"
+              placeholder="+44 000 000 000"
+              className="placeholder:opacity-40"
             />
           </div>
 
