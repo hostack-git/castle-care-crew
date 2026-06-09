@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
-import { Settings, Plus, UserCheck, UserX, Inbox, Users, Send, Copy, MessageCircle, Download, Printer, QrCode, Clock, TrendingUp, CalendarCheck, UserPlus } from "lucide-react";
+import { Settings, Plus, UserCheck, UserX, Inbox, Users, Send, Copy, MessageCircle, Download, Printer, QrCode, Clock, TrendingUp, CalendarCheck, UserPlus, X } from "lucide-react";
 
 export const Route = createFileRoute("/app/admin")({ component: AdminPage });
 
@@ -42,6 +42,7 @@ function AdminPage() {
        <TabsList>
           <TabsTrigger value="overview" className="gap-1.5"><TrendingUp className="h-3.5 w-3.5" /> Overview</TabsTrigger>
           <TabsTrigger value="volunteers" className="gap-1.5"><Users className="h-3.5 w-3.5" /> {t("admin.tabVolunteers")}</TabsTrigger>
+          <TabsTrigger value="tasks" className="gap-1.5"><CalendarCheck className="h-3.5 w-3.5" /> Tasks</TabsTrigger>
           <TabsTrigger value="onboarding" className="gap-1.5"><QrCode className="h-3.5 w-3.5" /> Onboarding</TabsTrigger>
         </TabsList>
 
@@ -54,6 +55,10 @@ function AdminPage() {
           <PendingRequests />
         </TabsContent>
 
+        <TabsContent value="tasks" className="space-y-6">
+          <TasksSection />
+        </TabsContent>
+
         <TabsContent value="onboarding" className="space-y-6">
           <WelcomeQR />
         </TabsContent>
@@ -64,7 +69,7 @@ function AdminPage() {
 
 // =================== Overview section ===================
 
-type VolDetail = { id: string; name: string | null; role_type: string | null; start_date: string | null; end_date: string | null; whatsapp: string | null };
+type VolDetail = { id: string; name: string | null; role_type: string | null; start_date: string | null; end_date: string | null; whatsapp_number: string | null };
 type ShiftDetail = { id: string; volunteer_id: string | null; volunteers: { id: string; name: string | null } | null; shift_templates: { name: string | null; start_time: string | null; end_time: string | null } | null };
 
 function OverviewSection() {
@@ -90,7 +95,7 @@ function OverviewSection() {
     setLoadingVols(true);
     hostackSupabase
       .from("volunteers")
-      .select("id, name, role_type, start_date, end_date, whatsapp")
+      .select("id, name, role_type, start_date, end_date, whatsapp_number")
       .eq("property_id", TORRIDONIA_PROPERTY_ID)
       .eq("status", "active")
       .order("name")
@@ -113,7 +118,7 @@ function OverviewSection() {
       .eq("status", "scheduled")
       .then(({ data, error }) => {
         if (error) console.error("shifts dialog:", error.message);
-        setShiftsToday((data as ShiftDetail[]) ?? []);
+        setShiftsToday((data as unknown as ShiftDetail[]) ?? []);
         setLoadingShifts(false);
       });
   }, [showShifts]);
@@ -267,8 +272,8 @@ function OverviewSection() {
                       {v.role_type}{v.start_date ? ` · ${v.start_date} → ${v.end_date}` : ""}
                     </p>
                   </div>
-                  {v.whatsapp && (
-                    <a href={`https://wa.me/${v.whatsapp.replace(/[^\d]/g, "")}`} target="_blank" rel="noopener noreferrer">
+                  {v.whatsapp_number && (
+                    <a href={`https://wa.me/${v.whatsapp_number.replace(/[^\d]/g, "")}`} target="_blank" rel="noopener noreferrer">
                       <Button size="sm" variant="outline" className="gap-1.5 shrink-0">
                         <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
                       </Button>
@@ -322,7 +327,7 @@ type Volunteer = {
   start_date: string | null;
   end_date: string | null;
   status: string | null;
-  whatsapp: string | null;
+  whatsapp_number: string | null;
   email: string | null;
   auth_user_id: string | null;
 };
@@ -342,7 +347,7 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
   const reload = async () => {
     const { data } = await hostackSupabase
       .from("volunteers")
-      .select("id, name, role_type, start_date, end_date, status, whatsapp, email, auth_user_id")
+      .select("id, name, role_type, start_date, end_date, status, whatsapp_number, email, auth_user_id")
       .eq("property_id", TORRIDONIA_PROPERTY_ID)
       .order("start_date", { ascending: false });
     setList((data as Volunteer[]) ?? []);
@@ -395,7 +400,7 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
       role_type: role,
       start_date: startDate,
       end_date: endDate,
-      whatsapp: whatsapp || null,
+      whatsapp_number: whatsapp || null,
       status: "active",
     });
     if (error) {
@@ -411,7 +416,7 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
 
   const sendInvite = async (v: Volunteer) => {
     if (!v.name) return;
-    await createInvitation(v.name, v.role_type ?? "volunteer", v.whatsapp ?? "");
+    await createInvitation(v.name, v.role_type ?? "volunteer", v.whatsapp_number ?? "");
   };
 
   return (
@@ -746,5 +751,139 @@ function WelcomeQR() {
         </div>
       </div>
     </>
+  );
+}
+
+// =================== Tasks section ===================
+
+type ShiftTaskAdmin = {
+  id: string;
+  shift_date: string;
+  title: string;
+  notes: string | null;
+  volunteer_id: string;
+  volunteers: { name: string | null } | null;
+};
+
+function TasksSection() {
+  const [volunteers, setVolunteers] = useState<{ id: string; name: string | null }[]>([]);
+  const [tasks, setTasks] = useState<ShiftTaskAdmin[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [volId, setVolId] = useState("");
+  const [title, setTitle] = useState("");
+  const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [notes, setNotes] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const { user } = useAuth();
+
+  const todayStr = new Date().toISOString().split("T")[0];
+  const weekEnd = new Date();
+  weekEnd.setDate(weekEnd.getDate() + 7);
+  const weekEndStr = weekEnd.toISOString().split("T")[0];
+
+  const reload = async () => {
+    const [{ data: vols }, { data: taskData }] = await Promise.all([
+      hostackSupabase
+        .from("volunteers")
+        .select("id, name")
+        .eq("property_id", TORRIDONIA_PROPERTY_ID)
+        .eq("status", "active")
+        .order("name"),
+      hostackSupabase
+        .from("shift_tasks")
+        .select("id, shift_date, title, notes, volunteer_id, volunteers(name)")
+        .eq("property_id", TORRIDONIA_PROPERTY_ID)
+        .gte("shift_date", todayStr)
+        .lte("shift_date", weekEndStr)
+        .order("shift_date", { ascending: true }),
+    ]);
+    setVolunteers((vols as { id: string; name: string | null }[]) ?? []);
+    setTasks((taskData as unknown as ShiftTaskAdmin[]) ?? []);
+    setLoading(false);
+  };
+
+  useEffect(() => { reload(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const submit = async () => {
+    if (!volId || !title.trim() || !date) return;
+    setSubmitting(true);
+    const { data: authUser } = await hostackSupabase.auth.getUser();
+    const { error } = await hostackSupabase.from("shift_tasks").insert({
+      property_id: TORRIDONIA_PROPERTY_ID,
+      shift_date: date,
+      volunteer_id: volId,
+      title: title.trim(),
+      notes: notes.trim() || null,
+      created_by: authUser?.user?.id ?? null,
+    });
+    if (error) { toast.error(error.message); }
+    else {
+      toast.success("Task assigned");
+      setTitle(""); setNotes(""); setVolId("");
+      await reload();
+    }
+    setSubmitting(false);
+  };
+
+  const deleteTask = async (id: string) => {
+    await hostackSupabase.from("shift_tasks").delete().eq("id", id);
+    setTasks((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-2xl border bg-card p-6 shadow-soft space-y-4">
+        <h2 className="font-display text-xl font-semibold flex items-center gap-2">
+          <Plus className="h-4 w-4 text-accent" /> Assign extra task
+        </h2>
+        <p className="text-sm text-muted-foreground">Add a specific task to a volunteer's shift. It will appear in their dashboard alongside their main shift.</p>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <Select value={volId} onValueChange={setVolId}>
+            <SelectTrigger><SelectValue placeholder="Select volunteer…" /></SelectTrigger>
+            <SelectContent>
+              {volunteers.map((v) => (
+                <SelectItem key={v.id} value={v.id}>{v.name ?? "—"}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          <Input placeholder="Task title (e.g. Clean Cottage 3)" value={title} onChange={(e) => setTitle(e.target.value)} className="sm:col-span-2" />
+          <Textarea placeholder="Additional notes or instructions (optional)" value={notes} onChange={(e) => setNotes(e.target.value)} className="sm:col-span-2 resize-none" rows={2} />
+        </div>
+        <Button onClick={submit} disabled={submitting || !volId || !title.trim()} className="gap-2">
+          <Plus className="h-4 w-4" /> {submitting ? "Saving…" : "Assign task"}
+        </Button>
+      </div>
+
+      <div className="rounded-2xl border bg-card p-6 shadow-soft space-y-3">
+        <h2 className="font-display text-xl font-semibold">Upcoming tasks (next 7 days)</h2>
+        {loading ? (
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        ) : tasks.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No extra tasks assigned yet.</p>
+        ) : (
+          <div className="divide-y">
+            {tasks.map((task) => (
+              <div key={task.id} className="py-3 flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-medium text-sm">{task.title}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {task.volunteers?.name ?? "—"} · {task.shift_date}
+                  </p>
+                  {task.notes && <p className="text-xs text-muted-foreground italic mt-0.5">{task.notes}</p>}
+                </div>
+                <Button
+                  size="sm" variant="ghost"
+                  className="shrink-0 text-destructive hover:text-destructive"
+                  onClick={() => deleteTask(task.id)}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

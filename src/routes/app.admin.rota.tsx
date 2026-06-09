@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
 import { hostackSupabase, TORRIDONIA_PROPERTY_ID } from "@/integrations/hostack/client";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Save, ArrowLeft, Download } from "lucide-react";
+import { ChevronLeft, ChevronRight, Save, ArrowLeft, Download, AlertTriangle, X } from "lucide-react";
 import { importRotaFromSheets, tabNameForDate, startOfWeekMondayUTC } from "@/lib/rota-utils";
 import { toast } from "sonner";
 import { AmenitizUpload } from "@/components/AmenitizUpload";
@@ -79,6 +79,8 @@ function RotaBuilderPage() {
   const [importing, setImporting] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const [reloadTick, setReloadTick] = useState(0);
+  const [importErrors, setImportErrors] = useState<string[]>([]);
+  const [importSummary, setImportSummary] = useState<string | null>(null);
 
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
   const startStr = ymd(days[0]);
@@ -153,15 +155,18 @@ function RotaBuilderPage() {
 
   const onImport = async () => {
     setImporting(true);
+    setImportErrors([]);
+    setImportSummary(null);
     try {
-      // Import current week + next week
       const monCurrent = startOfWeekMondayUTC(new Date());
       const monNext = new Date(monCurrent);
       monNext.setUTCDate(monCurrent.getUTCDate() + 7);
       const tabs = [tabNameForDate(monCurrent), tabNameForDate(monNext)];
       const result = await importRotaFromSheets(tabs);
+      setImportErrors(result.errors);
+      setImportSummary(`${result.inserted} inserted · ${result.updated} updated · ${result.skipped} skipped`);
       if (result.errors.length > 0) {
-        toast.error(`${t("rota.importWarn")} ${result.errors[0]}`);
+        toast.warning(`Import done with ${result.errors.length} warning(s). See details below.`);
       } else {
         toast.success(t("rota.importOk").replace("{n}", String(result.inserted)).replace("{u}", String(result.updated)));
       }
@@ -268,6 +273,28 @@ function RotaBuilderPage() {
           </Button>
         </div>
       </div>
+
+      {importSummary && (
+        <div className="rounded-xl border bg-card p-4 space-y-2">
+          <p className="text-sm font-medium text-muted-foreground">{importSummary}</p>
+          {importErrors.length > 0 && (
+            <div className="space-y-1">
+              <p className="text-xs font-semibold text-amber-700 flex items-center gap-1">
+                <AlertTriangle className="h-3.5 w-3.5" /> {importErrors.length} name(s) not matched — these volunteers were skipped:
+              </p>
+              {importErrors.map((e, i) => (
+                <p key={i} className="text-xs text-amber-600 pl-5">{e}</p>
+              ))}
+              <p className="text-xs text-muted-foreground pl-5 pt-1">
+                Fix: make sure the volunteer name in the Rota Sheet exactly matches the name registered in the Volunteers list (case-insensitive).
+              </p>
+            </div>
+          )}
+          <button type="button" onClick={() => { setImportSummary(null); setImportErrors([]); }} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
+            <X className="h-3 w-3" /> Dismiss
+          </button>
+        </div>
+      )}
 
       {loadingData ? (
         <p className="text-sm text-muted-foreground">{t("rota.loading")}</p>

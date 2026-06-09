@@ -37,14 +37,15 @@ type ShiftTemplate = { name: string | null; start_time: string | null; end_time:
 type Shift = {
   id: string;
   shift_date: string;
+  notes?: string | null;
+  volunteers?: { name: string | null } | { name: string | null }[] | null;
   shift_templates: ShiftTemplate | ShiftTemplate[] | null;
 };
-type Task = {
+type ShiftTask = {
   id: string;
   title: string;
-  status: string;
-  due_time: string | null;
   notes: string | null;
+  shift_date: string;
 };
 
 function pickTemplate(t: Shift["shift_templates"]): ShiftTemplate | null {
@@ -63,6 +64,8 @@ function DashboardRoute() {
 type VolShift = {
   id: string;
   shift_date: string;
+  notes?: string | null;
+  volunteers?: { name: string | null } | { name: string | null }[] | null;
   shift_templates: ShiftTemplate | ShiftTemplate[] | null;
 };
 
@@ -97,8 +100,11 @@ function VolunteerDashboard() {
   const [shifts, setShifts] = useState<VolShift[]>([]);
   const [weekStart, setWeekStart] = useState<Date>(() => startOfWeekMondayUTC(new Date()));
   const [volunteerId, setVolunteerId] = useState<string | null>(null);
+  const [volunteerStatus, setVolunteerStatus] = useState<string | null>(null);
   const [roleType, setRoleType] = useState<string | null>(null);
   const [rooms, setRooms] = useState<RoomEntry[] | null>(null);
+  const [shiftTasks, setShiftTasks] = useState<ShiftTask[]>([]);
+  const [volunteerLinked, setVolunteerLinked] = useState<boolean | null>(null);
 
   const locale = LOCALE_MAP[lang] ?? "en-GB";
   const name =
@@ -123,61 +129,96 @@ function VolunteerDashboard() {
     (async () => {
       const { data: volByAuth } = await hostackSupabase
         .from("volunteers")
-        .select("id, role_type")
+        .select("id, role_type, status")
         .eq("property_id", TORRIDONIA_PROPERTY_ID)
         .eq("auth_user_id", user.id)
         .maybeSingle();
       if (volByAuth?.id) {
-        setVolunteerId(volByAuth.id);
-        setRoleType((volByAuth as { id: string; role_type: string | null }).role_type);
+        const v = volByAuth as { id: string; role_type: string | null; status: string | null };
+        setVolunteerId(v.id);
+        setRoleType(v.role_type);
+        setVolunteerStatus(v.status);
+        setVolunteerLinked(true);
         return;
       }
       const fullName = (user.user_metadata as { full_name?: string } | undefined)?.full_name;
       if (fullName) {
         const { data: volByName } = await hostackSupabase
           .from("volunteers")
-          .select("id, role_type")
+          .select("id, role_type, status")
           .eq("property_id", TORRIDONIA_PROPERTY_ID)
           .ilike("name", fullName)
           .maybeSingle();
         if (volByName?.id) {
-          setVolunteerId(volByName.id);
-          setRoleType((volByName as { id: string; role_type: string | null }).role_type);
+          const v = volByName as { id: string; role_type: string | null; status: string | null };
+          setVolunteerId(v.id);
+          setRoleType(v.role_type);
+          setVolunteerStatus(v.status);
+          setVolunteerLinked(true);
+          return;
         }
       }
+      setVolunteerLinked(false);
     })();
   }, [user]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || volunteerLinked === null) return;
     let cancelled = false;
     setLoading(true);
     (async () => {
       let query = hostackSupabase
         .from("shifts")
-        .select("id, shift_date, shift_templates(name, start_time, end_time)")
+        .select("id, shift_date, notes, volunteers(name), shift_templates(name, start_time, end_time)")
         .eq("property_id", TORRIDONIA_PROPERTY_ID)
         .gte("shift_date", startStr)
         .lte("shift_date", endStr)
         .order("shift_date", { ascending: true });
       if (volunteerId) query = query.eq("volunteer_id", volunteerId);
       const { data } = await query;
-      if (!cancelled) {
-        setShifts((data as VolShift[]) ?? []);
-        setLoading(false);
+      if (!cancelled) setShifts((data as VolShift[]) ?? []);
+
+      // Load sub-tasks for this week
+      if (volunteerId) {
+        const { data: tasks } = await hostackSupabase
+          .from("shift_tasks")
+          .select("id, title, notes, shift_date")
+          .eq("property_id", TORRIDONIA_PROPERTY_ID)
+          .eq("volunteer_id", volunteerId)
+          .gte("shift_date", startStr)
+          .lte("shift_date", endStr)
+          .order("shift_date", { ascending: true });
+        if (!cancelled) setShiftTasks((tasks as ShiftTask[]) ?? []);
       }
+
+      if (!cancelled) setLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [user, volunteerId, startStr, endStr]);
+  }, [user, volunteerId, volunteerLinked, startStr, endStr]);
 
   const fmtTime = (v: string | null) => (v ? v.slice(0, 5) : "");
   const isCurrentWeek = ymdDate(startOfWeekMondayUTC(new Date())) === startStr;
+  // When linked, one shift per date; when unlinked, multiple shifts per date grouped
+  const shiftsByDate = shifts.reduce((acc, s) => {
+    const arr = acc.get(s.shift_date) ?? [];
+    arr.push(s);
+    acc.set(s.shift_date, arr);
+    return acc;
+  }, new Map<string, VolShift[]>());
   const shiftByDate = new Map(shifts.map((s) => [s.shift_date, s]));
   const todayStr = ymdDate(new Date());
-  const todayShift = shiftByDate.get(todayStr);
+  const todayShift = volunteerId ? shiftByDate.get(todayStr) : null;
   const todayTpl = todayShift ? pickTemplate(todayShift.shift_templates) : null;
+  const todayTasks = shiftTasks.filter((t) => t.shift_date === todayStr);
+  const tasksByDate = shiftTasks.reduce((acc, t) => {
+    const arr = acc.get(t.shift_date) ?? [];
+    arr.push(t);
+    acc.set(t.shift_date, arr);
+    return acc;
+  }, new Map<string, ShiftTask[]>());
   const isHousekeeping = roleType?.toLowerCase().includes("housekeep") ?? false;
   const isCottages = roleType?.toLowerCase().includes("cottage") ?? false;
+  const isPending = volunteerStatus === "pending";
 
   return (
     <div className="space-y-6">
@@ -188,21 +229,50 @@ function VolunteerDashboard() {
         <h1 className="font-display text-4xl font-semibold mt-1">{t("dash.hi")}, {name}! 👋</h1>
       </header>
 
+      {isPending && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          Your profile is pending confirmation. Your manager will assign your shifts shortly.
+        </div>
+      )}
+
       {!loading && (
         <div className={`rounded-2xl border p-4 flex items-start gap-3 shadow-soft ${todayTpl ? shiftColor(todayTpl.name) : "bg-card border-border"}`}>
           <Calendar className="h-5 w-5 mt-0.5 shrink-0 opacity-70" />
-          <div>
+          <div className="flex-1 min-w-0">
             <p className="text-xs font-medium uppercase tracking-wide opacity-60">{t("dash.todayShift")}</p>
-            {todayTpl ? (
-              <p className="font-semibold text-lg mt-0.5">
-                {todayTpl.name}
-                {todayTpl.start_time ? ` · ${fmtTime(todayTpl.start_time)}–${fmtTime(todayTpl.end_time)}` : ""}
-              </p>
+            {volunteerId === null && volunteerLinked === false ? (
+              <p className="font-semibold text-lg mt-0.5 text-muted-foreground">Awaiting shift assignment</p>
+            ) : todayTpl ? (
+              <>
+                <p className="font-semibold text-lg mt-0.5">
+                  {todayTpl.name}
+                  {todayTpl.start_time ? ` · ${fmtTime(todayTpl.start_time)}–${fmtTime(todayTpl.end_time)}` : ""}
+                </p>
+                {todayShift?.notes && (
+                  <p className="text-xs mt-1 opacity-70 italic">{todayShift.notes}</p>
+                )}
+              </>
             ) : (
-              <p className="font-semibold text-lg mt-0.5">{t("dash.dayOff")} 🌿</p>
+              <p className="font-semibold text-lg mt-0.5 text-muted-foreground">Free today 🌿</p>
             )}
           </div>
         </div>
+      )}
+
+      {todayTasks.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="font-display text-lg font-semibold flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 text-accent" /> Extra tasks today
+          </h2>
+          <div className="space-y-1.5">
+            {todayTasks.map((task) => (
+              <div key={task.id} className="rounded-xl border bg-card px-4 py-2.5">
+                <p className="font-medium text-sm">{task.title}</p>
+                {task.notes && <p className="text-xs text-muted-foreground mt-0.5">{task.notes}</p>}
+              </div>
+            ))}
+          </div>
+        </section>
       )}
 
       <section className="space-y-3">
@@ -238,36 +308,76 @@ function VolunteerDashboard() {
           <div className="space-y-2">
             {days.map((d) => {
               const dateStr = ymdDate(d);
-              const s = shiftByDate.get(dateStr);
-              const tpl = s ? pickTemplate(s.shift_templates) : null;
               const isToday = dateStr === ymdDate(new Date());
+              const dayTasks = tasksByDate.get(dateStr) ?? [];
+
+              // Linked volunteer: show their single shift
+              if (volunteerId) {
+                const s = shiftByDate.get(dateStr);
+                const tpl = s ? pickTemplate(s.shift_templates) : null;
+                return (
+                  <div key={dateStr} className={`rounded-2xl border p-3 transition ${isToday ? "ring-2 ring-accent/40 shadow-warm" : ""} ${tpl ? shiftColor(tpl.name) : "bg-card text-card-foreground border-border"}`}>
+                    <div className="flex items-center gap-3">
+                      <div className="text-center min-w-[40px]">
+                        <p className="text-[10px] uppercase font-mono font-medium opacity-70">{d.toLocaleDateString(locale, { weekday: "short" }).slice(0, 3).toUpperCase()}</p>
+                        <p className={`text-lg font-semibold leading-none ${isToday ? "text-accent" : ""}`}>{d.getUTCDate()}</p>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        {tpl ? (
+                          <>
+                            <p className="font-medium text-sm">{tpl.name}</p>
+                            {(tpl.start_time || tpl.end_time) && (
+                              <p className="text-xs opacity-70 flex items-center gap-1 mt-0.5">
+                                <Clock className="h-3 w-3" />
+                                {fmtTime(tpl.start_time ?? null)}{tpl.end_time ? ` – ${fmtTime(tpl.end_time)}` : ""}
+                              </p>
+                            )}
+                            {s?.notes && <p className="text-xs opacity-60 italic mt-0.5 truncate">{s.notes}</p>}
+                          </>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">—</p>
+                        )}
+                      </div>
+                    </div>
+                    {dayTasks.length > 0 && (
+                      <div className="mt-2 pl-[52px] space-y-0.5">
+                        {dayTasks.map((task) => (
+                          <p key={task.id} className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Circle className="h-2.5 w-2.5 shrink-0" /> {task.title}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
+              // Unlinked: show all team shifts for this day
+              const dayShifts = shiftsByDate.get(dateStr) ?? [];
               return (
-                <div
-                  key={dateStr}
-                  className={`rounded-2xl border p-3 flex items-center justify-between transition ${
-                    isToday ? "ring-2 ring-accent/40 shadow-warm" : ""
-                  } ${tpl ? shiftColor(tpl.name) : "bg-card text-card-foreground border-border"}`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="text-center min-w-[40px]">
-                      <p className="text-[10px] uppercase font-mono font-medium opacity-70">
-                        {d.toLocaleDateString(locale, { weekday: "short" }).slice(0, 3).toUpperCase()}
-                      </p>
+                <div key={dateStr} className={`rounded-2xl border p-3 transition bg-card text-card-foreground border-border ${isToday ? "ring-2 ring-accent/40 shadow-warm" : ""}`}>
+                  <div className="flex gap-3">
+                    <div className="text-center min-w-[40px] shrink-0">
+                      <p className="text-[10px] uppercase font-mono font-medium opacity-70">{d.toLocaleDateString(locale, { weekday: "short" }).slice(0, 3).toUpperCase()}</p>
                       <p className={`text-lg font-semibold leading-none ${isToday ? "text-accent" : ""}`}>{d.getUTCDate()}</p>
                     </div>
-                    <div>
-                      {tpl ? (
-                        <>
-                          <p className="font-medium text-sm">{tpl.name}</p>
-                          {(tpl.start_time || tpl.end_time) && (
-                            <p className="text-xs opacity-70 flex items-center gap-1 mt-0.5">
-                              <Clock className="h-3 w-3" />
-                              {fmtTime(tpl.start_time ?? null)}{tpl.end_time ? ` – ${fmtTime(tpl.end_time)}` : ""}
-                            </p>
-                          )}
-                        </>
+                    <div className="flex-1 min-w-0">
+                      {dayShifts.length === 0 ? (
+                        <p className="text-xs text-muted-foreground mt-1">No shifts</p>
                       ) : (
-                        <p className="text-sm text-muted-foreground">{t("dash.dayOff")}</p>
+                        <div className="flex flex-wrap gap-1">
+                          {dayShifts.map((s) => {
+                            const tpl = pickTemplate(s.shift_templates);
+                            const volName = Array.isArray(s.volunteers) ? s.volunteers[0]?.name : s.volunteers?.name;
+                            return (
+                              <span key={s.id} className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium border ${tpl ? shiftColor(tpl.name) : "bg-muted text-muted-foreground border-border"}`}>
+                                {volName && <span className="opacity-70">{volName.split(" ")[0]}</span>}
+                                {volName && tpl && <span className="opacity-40">·</span>}
+                                {tpl?.name}
+                              </span>
+                            );
+                          })}
+                        </div>
                       )}
                     </div>
                   </div>
@@ -540,7 +650,7 @@ function AdminMatrix() {
       return;
     }
 
-    const { error } = await hostackSupabase.from("shifts").insert(toInsert);
+    const { error } = await hostackSupabase.from("shifts").insert(toInsert as Record<string, unknown>[]);
     if (error) { toast.error(error.message); setCopying(false); return; }
     toast.success(`${toInsert.length} shifts copied to next week.`);
     setCopying(false);

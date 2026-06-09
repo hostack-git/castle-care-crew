@@ -47,10 +47,10 @@ function VolunteerAccess() {
         // Check if contact info is already on file
         const { data: vol } = await hostackSupabase
           .from("volunteers")
-          .select("whatsapp, email")
+          .select("whatsapp_number, email")
           .eq("id", volunteer.id)
           .single();
-        profileComplete = !!(vol?.whatsapp);
+        profileComplete = !!(vol as { whatsapp_number?: string | null } | null)?.whatsapp_number;
       }
 
       // If volunteer has no WhatsApp → ask for contact info
