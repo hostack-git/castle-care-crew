@@ -52,8 +52,7 @@ function InvitePage() {
         .from("volunteers")
         .update({ auth_user_id: anon.user.id })
         .eq("name", invitation.name)
-        .eq("property_id", TORRIDONIA_PROPERTY_ID)
-        .is("auth_user_id", null);
+        .eq("property_id", TORRIDONIA_PROPERTY_ID);
 
       await hostackSupabase
         .from("staff_invitations")
