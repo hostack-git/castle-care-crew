@@ -30,21 +30,23 @@ function AppLayout() {
     return <div className="min-h-screen grid place-items-center text-muted-foreground">{t("common.loading")}</div>;
   }
 
-  const fullNav = [
+  const volunteerNav = [
     { to: "/app/dashboard",     label: t("nav.dashboard"),     icon: LayoutDashboard },
     { to: "/app/guidebook",     label: t("nav.guidebook"),     icon: BookOpen },
-    { to: "/app/adventures",    label: t("nav.adventures"),    icon: Trail },
     { to: "/app/announcements", label: t("nav.announcements"), icon: Megaphone },
+    { to: "/app/adventures",    label: t("nav.adventures"),    icon: Trail },
   ];
 
-  const mobileNav = isAdmin && !isVolunteer
-    ? [
-        { to: "/app/dashboard",     label: t("nav.dashboard"),     icon: LayoutDashboard },
-        { to: "/app/admin",         label: t("nav.admin"),         icon: ShieldCheck },
-        { to: "/app/guidebook",     label: t("nav.guidebook"),     icon: BookOpen },
-        { to: "/app/announcements", label: t("nav.announcements"), icon: Megaphone },
-      ]
-    : fullNav;
+  const adminNav = [
+    { to: "/app/dashboard",     label: t("nav.dashboard"),     icon: LayoutDashboard },
+    { to: "/app/admin",         label: t("nav.admin"),         icon: ShieldCheck },
+    { to: "/app/guidebook",     label: t("nav.guidebook"),     icon: BookOpen },
+    { to: "/app/announcements", label: t("nav.announcements"), icon: Megaphone },
+    { to: "/app/adventures",    label: t("nav.adventures"),    icon: Trail },
+  ];
+
+  const fullNav = isAdmin && !isVolunteer ? adminNav : volunteerNav;
+  const mobileNav = fullNav;
 
   const displayName = profile?.full_name || profile?.email || (user.user_metadata as { full_name?: string } | undefined)?.full_name || user.email || "Volunteer";
 
@@ -70,18 +72,6 @@ function AppLayout() {
               </Link>
             );
           })}
-          {isAdmin && !isVolunteer && (
-            <Link
-              to="/app/admin"
-              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${
-                loc.pathname.startsWith("/app/admin")
-                  ? "bg-accent text-accent-foreground"
-                  : "text-foreground hover:bg-secondary"
-              }`}
-            >
-              <Settings className="h-4 w-4" /> {t("nav.admin")}
-            </Link>
-          )}
           {isVolunteer && (
             <Link
               to="/app/settings"

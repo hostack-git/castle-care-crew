@@ -3,10 +3,12 @@ import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useI18n, LOCALE_MAP } from "@/lib/i18n";
 import { hostackSupabase, TORRIDONIA_PROPERTY_ID } from "@/integrations/hostack/client";
-import { Calendar, Clock, CheckCircle2, Circle, BookOpen, ChevronLeft, ChevronRight, MessageCircle, Plus, X, LogIn, LogOut, Search, Copy } from "lucide-react";
+import { Calendar, Clock, CheckCircle2, Circle, BookOpen, ChevronLeft, ChevronRight, MessageCircle, Plus, X, LogOut, Search, Copy, Users, TrendingUp, CalendarCheck, UserX, UserPlus, Home } from "lucide-react";
 import { startOfWeekMondayUTC } from "@/lib/rota-utils";
 import { loadTodaysRooms, type RoomEntry } from "@/lib/amenitiz-parser";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/dashboard")({ component: DashboardRoute });
@@ -806,74 +808,280 @@ function AdminMatrix() {
   );
 }
 
-// ── Manager "Today" section ───────────────────────────────────────────────
+// ── Manager "Today" — rooms to clean ────────────────────────────────────
 
-function TodayRooms() {
-  const { t } = useI18n();
+function TodayDepartures() {
   const [rooms, setRooms] = useState<RoomEntry[] | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const today = new Date().toISOString().split("T")[0];
-    setLoading(true);
     loadTodaysRooms(today)
       .then((r) => { setRooms(r); setLoading(false); })
       .catch(() => { setRooms(null); setLoading(false); });
   }, []);
 
   if (loading) return <div className="h-28 rounded-2xl bg-secondary/40 animate-pulse" />;
-  if (!rooms || rooms.length === 0) return (
+
+  const checkouts = rooms?.filter((r) => r.checkout) ?? [];
+
+  if (checkouts.length === 0) return (
     <div className="rounded-2xl border border-dashed bg-secondary/30 p-6 text-center text-muted-foreground">
       <Calendar className="h-6 w-6 mx-auto mb-2" />
-      <p className="text-sm">{t("dash.noToday")}</p>
+      <p className="text-sm">No rooms to clean today.</p>
     </div>
   );
 
-  const checkins  = rooms.filter((r) => r.checkin);
-  const checkouts = rooms.filter((r) => r.checkout);
+  return (
+    <section className="space-y-3">
+      <h2 className="font-display text-lg font-semibold flex items-center gap-2">
+        <LogOut className="h-4 w-4 text-accent" /> Rooms to clean today
+      </h2>
+      <div className="grid grid-cols-2 gap-2">
+        {checkouts.map((r, i) => (
+          <div key={i} className="rounded-xl border border-red-200 bg-red-50 px-3 py-2.5">
+            <p className="font-semibold text-sm text-red-900">{r.room}</p>
+            {r.guests > 0 && <p className="text-xs text-red-600 mt-0.5">{r.guests} guests</p>}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ── Admin overview KPIs ──────────────────────────────────────────────────
+
+type VolDetail = { id: string; name: string | null; role_type: string | null; start_date: string | null; end_date: string | null; whatsapp_number: string | null };
+type OverviewShift = { id: string; volunteer_id: string | null; volunteers: { id: string; name: string | null } | null; shift_templates: { name: string | null; start_time: string | null; end_time: string | null } | null };
+
+function OverviewSection() {
+  const [stats, setStats] = useState<{
+    activeVolunteers: number;
+    shiftsToday: number;
+    upcomingDepartures: { name: string; end_date: string }[];
+    upcomingArrivals: { name: string; start_date: string }[];
+  } | null>(null);
+
+  const [showVolunteers, setShowVolunteers] = useState(false);
+  const [volOnProperty, setVolOnProperty] = useState<VolDetail[]>([]);
+  const [loadingVols, setLoadingVols] = useState(false);
+  const [deactivating, setDeactivating] = useState<string | null>(null);
+
+  const [showShifts, setShowShifts] = useState(false);
+  const [shiftsToday, setShiftsToday] = useState<OverviewShift[]>([]);
+  const [loadingShifts, setLoadingShifts] = useState(false);
+
+  const loadVols = useCallback(() => {
+    setLoadingVols(true);
+    hostackSupabase
+      .from("volunteers")
+      .select("id, name, role_type, start_date, end_date, whatsapp_number")
+      .eq("property_id", TORRIDONIA_PROPERTY_ID)
+      .eq("status", "active")
+      .order("name")
+      .then(({ data, error }) => {
+        if (error) console.error(error.message);
+        setVolOnProperty((data as VolDetail[]) ?? []);
+        setLoadingVols(false);
+      });
+  }, []);
+
+  useEffect(() => { if (showVolunteers) loadVols(); }, [showVolunteers, loadVols]);
+
+  useEffect(() => {
+    if (!showShifts) return;
+    setLoadingShifts(true);
+    const today = new Date().toISOString().split("T")[0];
+    hostackSupabase
+      .from("shifts")
+      .select("id, volunteer_id, volunteers(id, name), shift_templates(name, start_time, end_time)")
+      .eq("property_id", TORRIDONIA_PROPERTY_ID)
+      .eq("shift_date", today)
+      .eq("status", "scheduled")
+      .then(({ data, error }) => {
+        if (error) console.error(error.message);
+        setShiftsToday((data as unknown as OverviewShift[]) ?? []);
+        setLoadingShifts(false);
+      });
+  }, [showShifts]);
+
+  useEffect(() => {
+    const today = new Date().toISOString().split("T")[0];
+    const weekEnd = new Date();
+    weekEnd.setDate(weekEnd.getDate() + 7);
+    const weekEndStr = weekEnd.toISOString().split("T")[0];
+    Promise.all([
+      hostackSupabase.from("volunteers").select("id", { count: "exact" })
+        .eq("property_id", TORRIDONIA_PROPERTY_ID).eq("status", "active"),
+      hostackSupabase.from("shifts").select("id", { count: "exact" })
+        .eq("property_id", TORRIDONIA_PROPERTY_ID).eq("shift_date", today).eq("status", "scheduled"),
+      hostackSupabase.from("volunteers").select("name, end_date")
+        .eq("property_id", TORRIDONIA_PROPERTY_ID).eq("status", "active")
+        .gte("end_date", today).lte("end_date", weekEndStr).order("end_date", { ascending: true }),
+      hostackSupabase.from("volunteers").select("name, start_date")
+        .eq("property_id", TORRIDONIA_PROPERTY_ID).eq("status", "active")
+        .gte("start_date", today).lte("start_date", weekEndStr).order("start_date", { ascending: true }),
+    ]).then(([volRes, shiftsTodayRes, depsRes, arrivalsRes]) => {
+      setStats({
+        activeVolunteers: volRes.count ?? 0,
+        shiftsToday: shiftsTodayRes.count ?? 0,
+        upcomingDepartures: (depsRes.data ?? []) as { name: string; end_date: string }[],
+        upcomingArrivals: (arrivalsRes.data ?? []) as { name: string; start_date: string }[],
+      });
+    });
+  }, []);
+
+  const deactivateVol = async (volId: string) => {
+    setDeactivating(volId);
+    const { error } = await hostackSupabase
+      .from("volunteers")
+      .update({ status: "inactive" })
+      .eq("id", volId);
+    if (error) { toast.error(error.message); setDeactivating(null); return; }
+    setVolOnProperty((prev) => prev.filter((v) => v.id !== volId));
+    setStats((s) => s ? { ...s, activeVolunteers: Math.max(0, s.activeVolunteers - 1) } : s);
+    setDeactivating(null);
+    toast.success("Volunteer removed from active roster");
+  };
+
+  const fmtDate = (d: string) =>
+    new Date(d + "T00:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+
+  if (!stats) return <div className="h-28 rounded-xl bg-secondary/30 animate-pulse" />;
+
+  const minutesSaved = (stats.shiftsToday) * 2;
 
   return (
-    <div className="grid grid-cols-2 gap-4">
-      {/* Arrivals — green */}
-      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-        <h3 className="text-sm font-semibold flex items-center gap-1.5 text-emerald-800 mb-3">
-          <LogIn className="h-4 w-4" /> {t("dash.checkinsToday")}
-        </h3>
-        {checkins.length === 0 ? (
-          <p className="text-xs text-emerald-600/60">—</p>
-        ) : (
-          <div className="space-y-2">
-            {checkins.map((r, i) => (
-              <div key={i} className="rounded-xl bg-white/70 border border-emerald-100 px-3 py-2">
-                <p className="font-semibold text-sm text-emerald-900 leading-tight">{r.guest || r.room}</p>
-                {r.guest && <p className="text-xs text-emerald-700 mt-0.5">{r.room}</p>}
-                {r.guests > 0 && (
-                  <p className="text-xs text-emerald-600 font-medium mt-1">{r.guests} {t("dash.guests")}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+    <div className="space-y-4">
+      <div className="grid grid-cols-3 gap-3">
+        <button onClick={() => setShowVolunteers(true)}
+          className="rounded-xl bg-secondary/40 p-4 space-y-1 text-left hover:bg-secondary/60 transition">
+          <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Users className="h-3.5 w-3.5" /> Active volunteers</p>
+          <p className="text-2xl font-semibold">{stats.activeVolunteers}</p>
+          <p className="text-xs text-muted-foreground">tap to manage</p>
+        </button>
+        <button onClick={() => setShowShifts(true)}
+          className="rounded-xl bg-secondary/40 p-4 space-y-1 text-left hover:bg-secondary/60 transition">
+          <p className="text-xs text-muted-foreground flex items-center gap-1.5"><CalendarCheck className="h-3.5 w-3.5" /> Shifts today</p>
+          <p className="text-2xl font-semibold">{stats.shiftsToday}</p>
+          <p className="text-xs text-muted-foreground">scheduled</p>
+        </button>
+        <div className="rounded-xl bg-secondary/40 p-4 space-y-1">
+          <p className="text-xs text-muted-foreground flex items-center gap-1.5"><TrendingUp className="h-3.5 w-3.5" /> Time saved</p>
+          <p className="text-2xl font-semibold">{minutesSaved} min</p>
+          <p className="text-xs text-muted-foreground">today</p>
+        </div>
       </div>
 
-      {/* Departures — red */}
-      <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
-        <h3 className="text-sm font-semibold flex items-center gap-1.5 text-red-800 mb-3">
-          <LogOut className="h-4 w-4" /> {t("dash.checkoutsToday")}
-        </h3>
-        {checkouts.length === 0 ? (
-          <p className="text-xs text-red-400/60">—</p>
-        ) : (
-          <div className="space-y-2">
-            {checkouts.map((r, i) => (
-              <div key={i} className="rounded-xl bg-white/70 border border-red-100 px-3 py-2">
-                <p className="font-semibold text-sm text-red-900 leading-tight">{r.room}</p>
-                {r.guests > 0 && <p className="text-xs text-red-500 mt-0.5">{r.guests} {t("dash.guests")}</p>}
-              </div>
-            ))}
-          </div>
-        )}
+      <div className="grid sm:grid-cols-2 gap-4">
+        <div className="rounded-2xl border bg-card p-5 shadow-soft space-y-3">
+          <h3 className="font-medium text-sm flex items-center gap-2"><UserX className="h-4 w-4 text-amber-500" /> Departures this week</h3>
+          {stats.upcomingDepartures.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No departures this week.</p>
+          ) : (
+            <ul className="divide-y">
+              {stats.upcomingDepartures.map((v) => (
+                <li key={v.name} className="py-2 flex items-center justify-between text-sm">
+                  <span className="font-medium">{v.name}</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700">{fmtDate(v.end_date)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div className="rounded-2xl border bg-card p-5 shadow-soft space-y-3">
+          <h3 className="font-medium text-sm flex items-center gap-2"><UserPlus className="h-4 w-4 text-emerald-500" /> Arrivals this week</h3>
+          {stats.upcomingArrivals.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No arrivals this week.</p>
+          ) : (
+            <ul className="divide-y">
+              {stats.upcomingArrivals.map((v) => (
+                <li key={v.name} className="py-2 flex items-center justify-between text-sm">
+                  <span className="font-medium">{v.name}</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700">{fmtDate(v.start_date)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
+
+      {/* Active volunteers dialog — with deactivate */}
+      <Dialog open={showVolunteers} onOpenChange={setShowVolunteers}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Users className="h-4 w-4" /> Active volunteers</DialogTitle>
+            <DialogDescription>Tap × to remove someone no longer on the rota.</DialogDescription>
+          </DialogHeader>
+          {loadingVols ? (
+            <p className="text-sm text-muted-foreground">Loading…</p>
+          ) : volOnProperty.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No active volunteers.</p>
+          ) : (
+            <ul className="divide-y max-h-80 overflow-y-auto">
+              {volOnProperty.map((v) => (
+                <li key={v.id} className="py-3 flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm">{v.name ?? "—"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {v.role_type}{v.start_date ? ` · ${v.start_date} → ${v.end_date}` : ""}
+                    </p>
+                  </div>
+                  {v.whatsapp_number && (
+                    <a href={`https://wa.me/${v.whatsapp_number.replace(/[^\d]/g, "")}`} target="_blank" rel="noopener noreferrer">
+                      <Button size="sm" variant="outline" className="shrink-0">
+                        <MessageCircle className="h-3.5 w-3.5" />
+                      </Button>
+                    </a>
+                  )}
+                  <Button
+                    size="sm" variant="ghost"
+                    className="shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    disabled={deactivating === v.id}
+                    onClick={() => deactivateVol(v.id)}
+                    title="Remove from active roster"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="pt-2 border-t">
+            <Link to="/app/admin" className="text-sm text-accent hover:underline inline-flex items-center gap-1" onClick={() => setShowVolunteers(false)}>
+              <Plus className="h-3.5 w-3.5" /> Add volunteer
+            </Link>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Shifts today dialog */}
+      <Dialog open={showShifts} onOpenChange={setShowShifts}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><CalendarCheck className="h-4 w-4" /> Shifts today</DialogTitle>
+            <DialogDescription>{new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}</DialogDescription>
+          </DialogHeader>
+          {loadingShifts ? (
+            <p className="text-sm text-muted-foreground">Loading…</p>
+          ) : shiftsToday.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No shifts scheduled today.</p>
+          ) : (
+            <ul className="divide-y max-h-80 overflow-y-auto">
+              {shiftsToday.map((s, i) => (
+                <li key={s.id ?? i} className="py-3">
+                  <p className="font-medium text-sm">{s.volunteers?.name ?? "—"}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {s.shift_templates?.name ?? "—"}
+                    {s.shift_templates?.start_time ? ` · ${s.shift_templates.start_time.slice(0, 5)}` : ""}
+                    {s.shift_templates?.end_time ? `–${s.shift_templates.end_time.slice(0, 5)}` : ""}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -884,7 +1092,7 @@ function Dashboard() {
   const locale = LOCALE_MAP[lang] ?? "en-GB";
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6">
       <header>
         <p className="text-sm text-muted-foreground">
           {new Date().toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long" })}
@@ -894,14 +1102,21 @@ function Dashboard() {
         </h1>
       </header>
 
-      <section>
-        <h2 className="font-display text-xl font-semibold mb-4 flex items-center gap-2">
-          <Clock className="h-4 w-4 text-accent" /> {t("dash.today")}
-        </h2>
-        <TodayRooms />
-      </section>
+      <Tabs defaultValue="overview" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="today">Today</TabsTrigger>
+        </TabsList>
 
-      <AdminMatrix />
+        <TabsContent value="overview" className="space-y-4">
+          <OverviewSection />
+        </TabsContent>
+
+        <TabsContent value="today" className="space-y-6">
+          <TodayDepartures />
+          <AdminMatrix />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
