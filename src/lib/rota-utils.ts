@@ -138,6 +138,62 @@ async function fetchTabCSV(tab: string): Promise<string> {
   return text;
 }
 
+// ---------- Room availability parsing ----------
+
+import type { RoomEntry } from "@/lib/amenitiz-parser";
+
+const BB_ROOMS: string[] = ["Suite", "East 1", "East 2", "Schoolroom", "Riverview"];
+const COTTAGE_ROOMS: string[] = ["Lochside", "Corry", "Gardeners", "Stables"];
+
+function parseRoomStatusCell(cell: string): Pick<RoomEntry, "status" | "checkout" | "checkin"> {
+  const v = cell.trim().toLowerCase();
+  if (v.includes("to clean")) return { status: "needs_cleaning", checkout: true, checkin: false };
+  if (v.includes("check in") || v.includes("checkin")) return { status: "needs_cleaning", checkout: true, checkin: true };
+  if (v.includes("staying")) return { status: "occupied", checkout: false, checkin: false };
+  return { status: "free", checkout: false, checkin: false };
+}
+
+function parseRoomsFromCSV(csv: string, dayIndex: number): RoomEntry[] {
+  // dayIndex: 0=Mon…6=Sun; col 0 = room name, col dayIndex+1 = today's status
+  const rows = parseCSV(csv);
+  const result: RoomEntry[] = [];
+  for (const row of rows) {
+    const name = (row[0] ?? "").trim();
+    if (!name) continue;
+    const isBB = BB_ROOMS.some((r) => r.toLowerCase() === name.toLowerCase());
+    const isCottage = COTTAGE_ROOMS.some((r) => r.toLowerCase() === name.toLowerCase());
+    if (!isBB && !isCottage) continue;
+    const cell = (row[dayIndex + 1] ?? "").toString();
+    const statusInfo = parseRoomStatusCell(cell);
+    result.push({ room: name, type: isCottage ? "cottages" : "housekeeping", guests: 0, ...statusInfo });
+  }
+  return result;
+}
+
+export interface RoomImportResult {
+  rooms: RoomEntry[];
+  errors: string[];
+  date: string;
+}
+
+/** Fetch today's room availability from the Rota sheet and return structured entries. */
+export async function importRoomsFromSheets(tab: string, date: string): Promise<RoomImportResult> {
+  const csv = await fetchTabCSV(tab);
+  const d = new Date(date + "T00:00:00Z");
+  const dow = d.getUTCDay(); // 0=Sun
+  const dayIndex = (dow + 6) % 7; // 0=Mon…6=Sun
+  const rooms = parseRoomsFromCSV(csv, dayIndex);
+
+  const errors: string[] = [];
+  for (const r of [...BB_ROOMS, ...COTTAGE_ROOMS]) {
+    if (!rooms.find((x) => x.room.toLowerCase() === r.toLowerCase())) {
+      errors.push(`"${r}" not found in sheet tab "${tab}"`);
+    }
+  }
+
+  return { rooms, errors, date };
+}
+
 // ---------- Main import ----------
 export interface ImportResult {
   inserted: number;

@@ -8,6 +8,7 @@ import { ChevronLeft, ChevronRight, Save, ArrowLeft, Download, AlertTriangle, X 
 import { importRotaFromSheets, tabNameForDate, startOfWeekMondayUTC } from "@/lib/rota-utils";
 import { toast } from "sonner";
 import { AmenitizUpload } from "@/components/AmenitizUpload";
+import { RoomListAdmin } from "@/components/RoomListAdmin";
 
 export const Route = createFileRoute("/app/admin/rota")({ component: RotaBuilderPage });
 
@@ -394,7 +395,7 @@ function RotaBuilderPage() {
       </div>
 
       <div className="pt-4 border-t">
-        <AmenitizUpload />
+        <RoomListAdmin />
       </div>
     </div>
   );

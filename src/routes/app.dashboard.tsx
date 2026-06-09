@@ -216,8 +216,10 @@ function VolunteerDashboard() {
     acc.set(t.shift_date, arr);
     return acc;
   }, new Map<string, ShiftTask[]>());
-  const isHousekeeping = roleType?.toLowerCase().includes("housekeep") ?? false;
-  const isCottages = roleType?.toLowerCase().includes("cottage") ?? false;
+  // Determine task type from today's shift template first, fall back to volunteer role
+  const todayShiftName = todayTpl?.name?.toLowerCase() ?? "";
+  const isHousekeeping = todayShiftName.includes("housekeep") || (roleType?.toLowerCase().includes("housekeep") ?? false);
+  const isCottages = todayShiftName.includes("cottage") || (roleType?.toLowerCase().includes("cottage") ?? false);
   const isPending = volunteerStatus === "pending";
 
   return (
@@ -388,40 +390,24 @@ function VolunteerDashboard() {
         )}
       </section>
 
-      {rooms !== null && (() => {
-        const allToClean = rooms.filter((r) => r.checkout || r.checkin);
-        const isCottageRoom = (r: RoomEntry) => r.room.toLowerCase().includes("cottage");
-        const cottagesToClean = allToClean.filter(isCottageRoom);
+      {rooms !== null && (isHousekeeping || isCottages) && (() => {
+        // Show all rooms of the matching type; coordinate among themselves
         const toClean = isCottages
-          ? (cottagesToClean.length > 0 ? cottagesToClean : allToClean)
-          : allToClean;
-        const heading = isCottages ? t("dash.cottages") : t("dash.rooms");
-        const emptyMsg = isCottages ? t("dash.noCottages") : t("dash.noRooms");
-        if (!isHousekeeping && !isCottages) return null;
+          ? rooms.filter((r) => r.type === "cottages" || r.room.toLowerCase().includes("cottage"))
+          : rooms.filter((r) => r.type === "housekeeping" || r.type !== "cottages");
+        const heading = isCottages ? "Cottages to clean today" : "Rooms to clean today";
         return (
           <section className="space-y-2">
             <h2 className="font-display text-xl font-semibold flex items-center gap-2">
-              <LogOut className="h-4 w-4 text-accent" /> {heading}
+              <Home className="h-4 w-4 text-accent" /> {heading}
             </h2>
             {toClean.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{emptyMsg}</p>
+              <p className="text-sm text-muted-foreground">No rooms assigned for today yet.</p>
             ) : (
-              <div className="space-y-1.5">
+              <div className="grid grid-cols-2 gap-1.5">
                 {toClean.map((r, i) => (
-                  <div key={i} className="rounded-xl border bg-card px-4 py-2.5 flex items-center justify-between text-sm">
-                    <span className="font-medium">{r.room}</span>
-                    <div className="flex items-center gap-2 text-xs">
-                      {r.checkout && (
-                        <span className="flex items-center gap-1 text-orange-600 font-medium">
-                          <LogOut className="h-3 w-3" /> {t("dash.checkout")}
-                        </span>
-                      )}
-                      {r.checkin && (
-                        <span className="flex items-center gap-1 text-emerald-600 font-medium">
-                          <LogIn className="h-3 w-3" /> {t("dash.checkin")}
-                        </span>
-                      )}
-                    </div>
+                  <div key={i} className="rounded-xl border bg-card px-3 py-2 text-sm font-medium">
+                    {r.room}
                   </div>
                 ))}
               </div>
