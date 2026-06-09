@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
-import { Settings, Plus, UserCheck, UserX, Inbox, Users, Send, Copy, MessageCircle, Download, Printer, QrCode, X, Pencil, Trash2 } from "lucide-react";
+import { Settings, Plus, UserCheck, UserX, Inbox, Users, Send, Copy, MessageCircle, Download, Printer, QrCode, X, Pencil, Trash2, AlertTriangle, Link2 } from "lucide-react";
 
 export const Route = createFileRoute("/app/admin")({ component: AdminPage });
 
@@ -191,8 +191,38 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
     setDeleting(false);
   };
 
+  const unlinked = list.filter((v) => v.status === "active" && !v.auth_user_id);
+
   return (
     <>
+      {unlinked.length > 0 && (
+        <div className="rounded-2xl border border-amber-300 bg-amber-50 p-5 space-y-3">
+          <h3 className="font-medium text-sm flex items-center gap-2 text-amber-800">
+            <AlertTriangle className="h-4 w-4" /> {unlinked.length} volunteer{unlinked.length > 1 ? "s" : ""} not connected
+          </h3>
+          <p className="text-xs text-amber-700">
+            These volunteers are in the rota but haven't linked their account. Send them a fresh invite link so they can log in and see their shifts.
+          </p>
+          <ul className="divide-y divide-amber-200">
+            {unlinked.map((v) => (
+              <li key={v.id} className="py-2.5 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-medium text-sm text-amber-900">{v.name ?? "—"}</p>
+                  <p className="text-xs text-amber-700">{v.role_type} · {v.start_date ? fmtDate(v.start_date) : "—"} → {v.end_date ? fmtDate(v.end_date) : "—"}</p>
+                </div>
+                <Button
+                  size="sm"
+                  className="shrink-0 gap-1.5 bg-amber-600 hover:bg-amber-700 text-white"
+                  onClick={() => sendInvite(v)}
+                >
+                  <Link2 className="h-3.5 w-3.5" /> Send invite
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="rounded-2xl border bg-card p-6 shadow-soft space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-xl font-semibold flex items-center gap-2">

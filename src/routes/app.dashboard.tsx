@@ -145,18 +145,43 @@ function VolunteerDashboard() {
       }
       const fullName = (user.user_metadata as { full_name?: string } | undefined)?.full_name;
       if (fullName) {
-        const { data: volByName } = await hostackSupabase
+        type VolRow = { id: string; role_type: string | null; status: string | null };
+        let volByName: VolRow | null = null;
+
+        // 1. Exact case-insensitive match
+        const { data: exact } = await hostackSupabase
           .from("volunteers")
           .select("id, role_type, status")
           .eq("property_id", TORRIDONIA_PROPERTY_ID)
           .ilike("name", fullName)
           .maybeSingle();
+        volByName = (exact as VolRow | null) ?? null;
+
+        // 2. First-name prefix fallback (handles "Roxana" stored as first name only
+        //    in user_metadata vs "Roxana LastName" in volunteers table, or vice versa)
+        if (!volByName) {
+          const firstName = fullName.trim().split(" ")[0];
+          const { data: prefix } = await hostackSupabase
+            .from("volunteers")
+            .select("id, role_type, status")
+            .eq("property_id", TORRIDONIA_PROPERTY_ID)
+            .ilike("name", `${firstName}%`)
+            .maybeSingle();
+          volByName = (prefix as VolRow | null) ?? null;
+        }
+
         if (volByName?.id) {
-          const v = volByName as { id: string; role_type: string | null; status: string | null };
-          setVolunteerId(v.id);
-          setRoleType(v.role_type);
-          setVolunteerStatus(v.status);
+          setVolunteerId(volByName.id);
+          setRoleType(volByName.role_type);
+          setVolunteerStatus(volByName.status);
           setVolunteerLinked(true);
+          // Self-heal: write auth_user_id so future logins use the fast path
+          hostackSupabase
+            .from("volunteers")
+            .update({ auth_user_id: user.id })
+            .eq("id", volByName.id)
+            .is("auth_user_id", null)
+            .then(() => {});
           return;
         }
       }
