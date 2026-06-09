@@ -7,13 +7,15 @@ import { hostackSupabase, TORRIDONIA_PROPERTY_ID } from "@/integrations/hostack/
 
 const SHEET_ID = "1k7SwmRTv6qKljEfyjOBVOYkfQHed263ovFrP3gevbis";
 
+// These must stay in sync with shift_templates rows in Supabase.
+// Source of truth: shift_templates table. This is the fallback if a template has NULL times.
 const DEFAULT_TIMES: Record<string, { start: string; end: string }> = {
   Breakfast:       { start: "07:00", end: "12:00" },
   Housekeeping:    { start: "10:00", end: "15:00" },
-  Laundry:         { start: "08:00", end: "13:00" },
+  Laundry:         { start: "10:00", end: "18:00" },
   Cottages:        { start: "10:00", end: "15:00" },
   Maintenance:     { start: "10:00", end: "15:00" },
-  "Special Task":  { start: "09:00", end: "17:00" },
+  "Special Task":  { start: "10:00", end: "17:00" },
   Onboarding:      { start: "09:00", end: "17:00" },
   Arrive:          { start: "09:00", end: "17:00" },
   "Deep Cleaning": { start: "10:00", end: "15:00" },
