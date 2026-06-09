@@ -111,8 +111,8 @@ function AdminPage() {
 
 // =================== Overview section ===================
 
-type VolDetail = { id: string; name: string | null; role_type: string | null; start_date: string | null; end_date: string | null; room: string | null; whatsapp: string | null };
-type ShiftDetail = { id: string; volunteers: { name: string | null; whatsapp: string | null } | null; shift_templates: { name: string | null; start_time: string | null; end_time: string | null } | null };
+type VolDetail = { id: string; name: string | null; role_type: string | null; start_date: string | null; end_date: string | null; whatsapp: string | null };
+type ShiftDetail = { id: string; volunteer_id: string | null; volunteers: { name: string | null; whatsapp: string | null } | null; shift_templates: { name: string | null; start_time: string | null; end_time: string | null } | null };
 
 function OverviewSection() {
   const { t } = useI18n();
@@ -135,29 +135,45 @@ function OverviewSection() {
   useEffect(() => {
     if (!showVolunteers) return;
     setLoadingVols(true);
-    const today = new Date().toISOString().split("T")[0];
     hostackSupabase
       .from("volunteers")
-      .select("id, name, role_type, start_date, end_date, room, whatsapp")
+      .select("id, name, role_type, start_date, end_date, whatsapp")
       .eq("property_id", TORRIDONIA_PROPERTY_ID)
       .eq("status", "active")
-      .lte("start_date", today)
-      .gte("end_date", today)
-      .order("start_date", { ascending: true })
-      .then(({ data }) => { setVolOnProperty((data as VolDetail[]) ?? []); setLoadingVols(false); });
+      .order("name", { ascending: true })
+      .then(({ data, error }) => {
+        if (!error) setVolOnProperty((data as VolDetail[]) ?? []);
+        setLoadingVols(false);
+      });
   }, [showVolunteers]);
 
   useEffect(() => {
     if (!showShifts) return;
     setLoadingShifts(true);
     const today = new Date().toISOString().split("T")[0];
-    hostackSupabase
-      .from("shifts")
-      .select("id, volunteers(name, whatsapp), shift_templates(name, start_time, end_time)")
-      .eq("property_id", TORRIDONIA_PROPERTY_ID)
-      .eq("shift_date", today)
-      .eq("status", "scheduled")
-      .then(({ data }) => { setShiftsToday((data as ShiftDetail[]) ?? []); setLoadingShifts(false); });
+    Promise.all([
+      hostackSupabase
+        .from("shifts")
+        .select("id, volunteer_id, shift_templates(name, start_time, end_time)")
+        .eq("property_id", TORRIDONIA_PROPERTY_ID)
+        .eq("shift_date", today)
+        .eq("status", "scheduled"),
+      hostackSupabase
+        .from("volunteers")
+        .select("id, name, whatsapp")
+        .eq("property_id", TORRIDONIA_PROPERTY_ID)
+        .eq("status", "active"),
+    ]).then(([shiftsRes, volsRes]) => {
+      const volMap = new Map(
+        (volsRes.data ?? []).map((v: { id: string; name: string | null; whatsapp: string | null }) => [v.id, v])
+      );
+      const merged = (shiftsRes.data ?? []).map((s: { id: string; volunteer_id: string | null; shift_templates: unknown }) => ({
+        ...s,
+        volunteers: s.volunteer_id ? (volMap.get(s.volunteer_id) ?? null) : null,
+      }));
+      setShiftsToday(merged as ShiftDetail[]);
+      setLoadingShifts(false);
+    });
   }, [showShifts]);
 
   useEffect(() => {
@@ -169,8 +185,7 @@ function OverviewSection() {
 
       const [volRes, shiftsTodayRes, shiftsWeekRes, depsRes, arrivalsRes] = await Promise.all([
         hostackSupabase.from("volunteers").select("id", { count: "exact" })
-          .eq("property_id", TORRIDONIA_PROPERTY_ID).eq("status", "active")
-          .lte("start_date", today).gte("end_date", today),
+          .eq("property_id", TORRIDONIA_PROPERTY_ID).eq("status", "active"),
         hostackSupabase.from("shifts").select("id", { count: "exact" })
           .eq("property_id", TORRIDONIA_PROPERTY_ID).eq("shift_date", today).eq("status", "scheduled"),
         hostackSupabase.from("shifts").select("id", { count: "exact" })
@@ -308,7 +323,6 @@ function OverviewSection() {
                     <p className="font-medium text-sm">{v.name ?? "—"}</p>
                     <p className="text-xs text-muted-foreground">
                       {v.role_type} · {v.start_date} → {v.end_date}
-                      {v.room ? ` · Room ${v.room}` : ""}
                     </p>
                   </div>
                   {v.whatsapp && (
