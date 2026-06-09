@@ -57,6 +57,8 @@ const MONTHS: Record<string, number> = {
 const MONTH_ABBR = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
 
 function weekStartFromTab(tab: string): string {
+  // Tab format: "MONDAY_DATE-SUNDAY_DATE MONTH_OF_MONDAY" e.g. "8-14 JUN"
+  // The first number is the Monday (week start), the month is the Monday's month.
   const m = tab.toUpperCase().match(/^(\d{1,2})\s*-\s*\d{1,2}\s+([A-Z]{3,})/);
   if (!m) throw new Error(`Unrecognized tab name: "${tab}"`);
   const day = parseInt(m[1], 10);
@@ -71,14 +73,15 @@ function addDaysStr(ymd: string, n: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-/** Generate the Google Sheet tab name for the week containing Monday `weekMon` (Date). */
+/**
+ * Generate the Google Sheet tab name for the week whose Monday is `weekMon`.
+ * Format: "MONDAY_DATE-SUNDAY_DATE MONTH_OF_MONDAY" e.g. "8-14 JUN"
+ * Cross-month example: week Mon Jun 29 → "29-5 JUN"
+ */
 export function tabNameForDate(weekMon: Date): string {
   const sun = new Date(weekMon);
   sun.setUTCDate(weekMon.getUTCDate() + 6);
-  const d = weekMon.getUTCDate();
-  const e = sun.getUTCDate();
-  const mon = MONTH_ABBR[weekMon.getUTCMonth()];
-  return `${d}-${e} ${mon}`;
+  return `${weekMon.getUTCDate()}-${sun.getUTCDate()} ${MONTH_ABBR[weekMon.getUTCMonth()]}`;
 }
 
 /** Returns Monday of the ISO week containing `d`. */
