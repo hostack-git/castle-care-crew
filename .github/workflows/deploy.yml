@@ -7,6 +7,7 @@ on:
       - claude/elegant-lamport-pcI34
       - claude/intelligent-mayer-pSums
       - claude/practical-darwin-kw4qyg
+      - claude/blissful-bohr-wrtkgj
 
 jobs:
   deploy:
