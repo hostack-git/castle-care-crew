@@ -111,8 +111,8 @@ function AdminPage() {
 
 // =================== Overview section ===================
 
-type VolDetail = { id: string; name: string | null; role_type: string | null; start_date: string | null; end_date: string | null; room: string | null; whatsapp: string | null };
-type ShiftDetail = { id: string; volunteer_id: string | null; volunteers: { name: string | null; whatsapp: string | null } | null; shift_templates: { name: string | null; start_time: string | null; end_time: string | null } | null };
+type VolDetail = { id: string; name: string | null; role_type: string | null; start_date: string | null; end_date: string | null; whatsapp: string | null };
+type ShiftDetail = { id: string; volunteer_id: string | null; volunteers: { id: string; name: string | null } | null; shift_templates: { name: string | null; start_time: string | null; end_time: string | null } | null };
 
 function OverviewSection() {
   const { t } = useI18n();
@@ -137,12 +137,13 @@ function OverviewSection() {
     setLoadingVols(true);
     hostackSupabase
       .from("volunteers")
-      .select("id, name, role_type, start_date, end_date, room, whatsapp")
+      .select("id, name, role_type, start_date, end_date, whatsapp")
       .eq("property_id", TORRIDONIA_PROPERTY_ID)
       .eq("status", "active")
-      .order("name", { ascending: true })
+      .order("name")
       .then(({ data, error }) => {
-        if (!error) setVolOnProperty((data as VolDetail[]) ?? []);
+        if (error) console.error("volunteers dialog:", error.message);
+        setVolOnProperty((data as VolDetail[]) ?? []);
         setLoadingVols(false);
       });
   }, [showVolunteers]);
@@ -151,29 +152,17 @@ function OverviewSection() {
     if (!showShifts) return;
     setLoadingShifts(true);
     const today = new Date().toISOString().split("T")[0];
-    Promise.all([
-      hostackSupabase
-        .from("shifts")
-        .select("id, volunteer_id, shift_templates(name, start_time, end_time)")
-        .eq("property_id", TORRIDONIA_PROPERTY_ID)
-        .eq("shift_date", today)
-        .eq("status", "scheduled"),
-      hostackSupabase
-        .from("volunteers")
-        .select("id, name, whatsapp")
-        .eq("property_id", TORRIDONIA_PROPERTY_ID)
-        .eq("status", "active"),
-    ]).then(([shiftsRes, volsRes]) => {
-      const volMap = new Map(
-        (volsRes.data ?? []).map((v: { id: string; name: string | null; whatsapp: string | null }) => [v.id, v])
-      );
-      const merged = (shiftsRes.data ?? []).map((s: { id: string; volunteer_id: string | null; shift_templates: unknown }) => ({
-        ...s,
-        volunteers: s.volunteer_id ? (volMap.get(s.volunteer_id) ?? null) : null,
-      }));
-      setShiftsToday(merged as ShiftDetail[]);
-      setLoadingShifts(false);
-    });
+    hostackSupabase
+      .from("shifts")
+      .select("id, volunteer_id, volunteers(id, name), shift_templates(name, start_time, end_time)")
+      .eq("property_id", TORRIDONIA_PROPERTY_ID)
+      .eq("shift_date", today)
+      .eq("status", "scheduled")
+      .then(({ data, error }) => {
+        if (error) console.error("shifts dialog:", error.message);
+        setShiftsToday((data as ShiftDetail[]) ?? []);
+        setLoadingShifts(false);
+      });
   }, [showShifts]);
 
   useEffect(() => {
@@ -322,8 +311,7 @@ function OverviewSection() {
                   <div>
                     <p className="font-medium text-sm">{v.name ?? "—"}</p>
                     <p className="text-xs text-muted-foreground">
-                      {v.role_type} · {v.start_date} → {v.end_date}
-                      {v.room ? ` · Room ${v.room}` : ""}
+                      {v.role_type}{v.start_date ? ` · ${v.start_date} → ${v.end_date}` : ""}
                     </p>
                   </div>
                   {v.whatsapp && (
@@ -363,13 +351,6 @@ function OverviewSection() {
                       {s.shift_templates?.end_time ? `–${s.shift_templates.end_time.slice(0, 5)}` : ""}
                     </p>
                   </div>
-                  {s.volunteers?.whatsapp && (
-                    <a href={`https://wa.me/${s.volunteers.whatsapp.replace(/[^\d]/g, "")}`} target="_blank" rel="noopener noreferrer">
-                      <Button size="sm" variant="outline" className="gap-1.5 shrink-0">
-                        <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
-                      </Button>
-                    </a>
-                  )}
                 </li>
               ))}
             </ul>
@@ -391,7 +372,6 @@ type Volunteer = {
   whatsapp: string | null;
   email: string | null;
   auth_user_id: string | null;
-  room: string | null;
 };
 
 function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | null }) {
@@ -402,7 +382,6 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
   const [endDate, setEndDate] = useState("");
   const [role, setRole] = useState<typeof VOLUNTEER_ROLES[number]>("Housekeeping");
   const [whatsapp, setWhatsapp] = useState("");
-  const [room, setRoom] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [invite, setInvite] = useState<{ url: string; name: string; whatsapp: string } | null>(null);
   const { t } = useI18n();
@@ -410,7 +389,7 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
   const reload = async () => {
     const { data } = await hostackSupabase
       .from("volunteers")
-      .select("id, name, role_type, start_date, end_date, status, whatsapp, email, auth_user_id, room")
+      .select("id, name, role_type, start_date, end_date, status, whatsapp, email, auth_user_id")
       .eq("property_id", TORRIDONIA_PROPERTY_ID)
       .order("start_date", { ascending: false });
     setList((data as Volunteer[]) ?? []);
@@ -464,7 +443,6 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
       start_date: startDate,
       end_date: endDate,
       whatsapp: whatsapp || null,
-      room: room || null,
       status: "active",
     });
     if (error) {
@@ -473,7 +451,7 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
     }
     await createInvitation(name, role, whatsapp);
     toast.success("Volunteer added");
-    setName(""); setStartDate(""); setEndDate(""); setWhatsapp(""); setRoom(""); setRole("Housekeeping");
+    setName(""); setStartDate(""); setEndDate(""); setWhatsapp(""); setRole("Housekeeping");
     await reload();
     setSubmitting(false);
   };
@@ -506,7 +484,6 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
                   <th className="py-2 pr-3">Role</th>
                   <th className="py-2 pr-3">Start</th>
                   <th className="py-2 pr-3">End</th>
-                  <th className="py-2 pr-3">Room</th>
                   <th className="py-2 pr-3">Status</th>
                   <th className="py-2"></th>
                 </tr>
@@ -518,7 +495,6 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
                     <td className="py-2 pr-3">{v.role_type || "—"}</td>
                     <td className="py-2 pr-3">{v.start_date || "—"}</td>
                     <td className="py-2 pr-3">{v.end_date || "—"}</td>
-                    <td className="py-2 pr-3">{v.room || "—"}</td>
                     <td className="py-2 pr-3">
                       {v.auth_user_id ? (
                         <Badge className="bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/20">Active</Badge>
@@ -562,7 +538,6 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
             <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
           </div>
           <Input placeholder="WhatsApp (optional)" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} />
-          <Input placeholder="Room (optional)" value={room} onChange={(e) => setRoom(e.target.value)} />
         </div>
         <Button onClick={submit} disabled={!name || !startDate || !endDate || submitting} className="bg-accent text-accent-foreground hover:bg-accent/90">
           {submitting ? "Creating…" : "Create volunteer"}
