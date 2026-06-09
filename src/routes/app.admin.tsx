@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
-import { Settings, Plus, UserCheck, UserX, Inbox, Users, Send, Copy, MessageCircle, Download, Printer, QrCode, X } from "lucide-react";
+import { Settings, Plus, UserCheck, UserX, Inbox, Users, Send, Copy, MessageCircle, Download, Printer, QrCode, X, Pencil, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/app/admin")({ component: AdminPage });
 
@@ -74,6 +74,12 @@ type Volunteer = {
   whatsapp_number: string | null;
   email: string | null;
   auth_user_id: string | null;
+  room: string | null;
+};
+
+const fmtDate = (d: string | null) => {
+  if (!d) return "—";
+  return new Date(d + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 };
 
 function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | null }) {
@@ -86,12 +92,15 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
   const [whatsapp, setWhatsapp] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [invite, setInvite] = useState<{ url: string; name: string; whatsapp: string } | null>(null);
+  const [editingVol, setEditingVol] = useState<Volunteer | null>(null);
+  const [deletingVol, setDeletingVol] = useState<Volunteer | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const { t } = useI18n();
 
   const reload = async () => {
     const { data } = await hostackSupabase
       .from("volunteers")
-      .select("id, name, role_type, start_date, end_date, status, whatsapp_number, email, auth_user_id")
+      .select("id, name, role_type, start_date, end_date, status, whatsapp_number, email, auth_user_id, room")
       .eq("property_id", TORRIDONIA_PROPERTY_ID)
       .order("start_date", { ascending: false });
     setList((data as Volunteer[]) ?? []);
@@ -163,6 +172,20 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
     await createInvitation(v.name, v.role_type ?? "volunteer", v.whatsapp_number ?? "");
   };
 
+  const deleteVol = async () => {
+    if (!deletingVol) return;
+    setDeleting(true);
+    const { error } = await hostackSupabase
+      .from("volunteers")
+      .update({ status: "inactive" })
+      .eq("id", deletingVol.id);
+    if (error) { toast.error(error.message); setDeleting(false); return; }
+    setList((prev) => prev.filter((v) => v.id !== deletingVol.id));
+    toast.success(`${deletingVol.name ?? "Volunteer"} removed`);
+    setDeletingVol(null);
+    setDeleting(false);
+  };
+
   return (
     <>
       <div className="rounded-2xl border bg-card p-6 shadow-soft space-y-4">
@@ -195,21 +218,29 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
                   <tr key={v.id}>
                     <td className="py-2 pr-3 font-medium">{v.name || "—"}</td>
                     <td className="py-2 pr-3">{v.role_type || "—"}</td>
-                    <td className="py-2 pr-3">{v.start_date || "—"}</td>
-                    <td className="py-2 pr-3">{v.end_date || "—"}</td>
+                    <td className="py-2 pr-3 whitespace-nowrap">{fmtDate(v.start_date)}</td>
+                    <td className="py-2 pr-3 whitespace-nowrap">{fmtDate(v.end_date)}</td>
                     <td className="py-2 pr-3">
                       {v.auth_user_id ? (
                         <Badge className="bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/20">Active</Badge>
                       ) : (
-                        <Badge variant="secondary">Not registered</Badge>
+                        <Badge variant="secondary">Pending</Badge>
                       )}
                     </td>
                     <td className="py-2 text-right">
-                      {!v.auth_user_id && (
-                        <Button size="sm" variant="outline" className="gap-1.5" onClick={() => sendInvite(v)}>
-                          <Send className="h-3.5 w-3.5" /> {t("admin.invite")}
+                      <div className="flex items-center justify-end gap-1">
+                        {!v.auth_user_id && (
+                          <Button size="sm" variant="ghost" title="Send invite" onClick={() => sendInvite(v)}>
+                            <Send className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                        <Button size="sm" variant="ghost" title="Edit" onClick={() => setEditingVol(v)}>
+                          <Pencil className="h-3.5 w-3.5" />
                         </Button>
-                      )}
+                        <Button size="sm" variant="ghost" title="Remove" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeletingVol(v)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -247,6 +278,39 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
       </div>
 
       <InviteDialog invite={invite} onClose={() => setInvite(null)} />
+
+      {/* Edit dialog */}
+      <EditVolunteerDialog
+        volunteer={editingVol}
+        onClose={() => setEditingVol(null)}
+        onSave={(updated) => {
+          setList((prev) => prev.map((v) => v.id === updated.id ? updated : v));
+          setEditingVol(null);
+        }}
+      />
+
+      {/* Delete confirm dialog */}
+      <Dialog open={!!deletingVol} onOpenChange={(o) => { if (!o) setDeletingVol(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Remove volunteer</DialogTitle>
+            <DialogDescription>
+              Remove <strong>{deletingVol?.name}</strong> from the active roster? Their data and shifts are preserved.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2 pt-2">
+            <Button
+              variant="destructive"
+              className="flex-1"
+              disabled={deleting}
+              onClick={deleteVol}
+            >
+              {deleting ? "Removing…" : "Remove"}
+            </Button>
+            <Button variant="outline" onClick={() => setDeletingVol(null)}>Cancel</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
@@ -286,6 +350,127 @@ function InviteDialog({ invite, onClose }: { invite: { url: string; name: string
             )}
           </div>
         )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// =================== Edit volunteer dialog ===================
+
+function EditVolunteerDialog({
+  volunteer,
+  onClose,
+  onSave,
+}: {
+  volunteer: Volunteer | null;
+  onClose: () => void;
+  onSave: (updated: Volunteer) => void;
+}) {
+  const [name, setName] = useState("");
+  const [role, setRole] = useState<string>("Housekeeping");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [email, setEmail] = useState("");
+  const [room, setRoom] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (volunteer) {
+      setName(volunteer.name ?? "");
+      setRole(volunteer.role_type ?? "Housekeeping");
+      setStartDate(volunteer.start_date ?? "");
+      setEndDate(volunteer.end_date ?? "");
+      setWhatsapp(volunteer.whatsapp_number ?? "");
+      setEmail(volunteer.email ?? "");
+      setRoom(volunteer.room ?? "");
+    }
+  }, [volunteer]);
+
+  const save = async () => {
+    if (!volunteer || !name.trim() || !startDate || !endDate) return;
+    setSaving(true);
+    const { error } = await hostackSupabase
+      .from("volunteers")
+      .update({
+        name: name.trim(),
+        role_type: role,
+        start_date: startDate,
+        end_date: endDate,
+        whatsapp_number: whatsapp.trim() || null,
+        email: email.trim() || null,
+        room: room.trim() || null,
+      })
+      .eq("id", volunteer.id);
+    if (error) { toast.error(error.message); setSaving(false); return; }
+    toast.success("Volunteer updated");
+    onSave({
+      ...volunteer,
+      name: name.trim(),
+      role_type: role,
+      start_date: startDate,
+      end_date: endDate,
+      whatsapp_number: whatsapp.trim() || null,
+      email: email.trim() || null,
+      room: room.trim() || null,
+    });
+    setSaving(false);
+  };
+
+  return (
+    <Dialog open={!!volunteer} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Pencil className="h-4 w-4" /> Edit volunteer
+          </DialogTitle>
+          <DialogDescription>Update {volunteer?.name}&apos;s profile</DialogDescription>
+        </DialogHeader>
+        <div className="grid sm:grid-cols-2 gap-3 pt-1">
+          <div className="sm:col-span-2">
+            <label className="text-xs text-muted-foreground block mb-1">Full name</label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">Role</label>
+            <Select value={role} onValueChange={setRole}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {VOLUNTEER_ROLES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">Room</label>
+            <Input value={room} onChange={(e) => setRoom(e.target.value)} placeholder="e.g. East 1" />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">Start date</label>
+            <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">End date</label>
+            <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">Email</label>
+            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@example.com" />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">WhatsApp</label>
+            <Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="+44 7700 900000" />
+          </div>
+        </div>
+        <div className="flex gap-2 pt-2">
+          <Button
+            onClick={save}
+            disabled={saving || !name.trim() || !startDate || !endDate}
+            className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90"
+          >
+            {saving ? "Saving…" : "Save changes"}
+          </Button>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

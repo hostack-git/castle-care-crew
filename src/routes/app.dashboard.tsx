@@ -852,7 +852,7 @@ function TodayDepartures() {
 // ── Admin overview KPIs ──────────────────────────────────────────────────
 
 type VolDetail = { id: string; name: string | null; role_type: string | null; start_date: string | null; end_date: string | null; whatsapp_number: string | null };
-type OverviewShift = { id: string; volunteer_id: string | null; volunteers: { id: string; name: string | null } | null; shift_templates: { name: string | null; start_time: string | null; end_time: string | null } | null };
+type OverviewShift = { id: string; volunteer_id: string | null; volunteers: { id: string; name: string | null; whatsapp_number?: string | null } | null; shift_templates: { name: string | null; start_time: string | null; end_time: string | null } | null };
 
 function OverviewSection() {
   const [stats, setStats] = useState<{
@@ -869,7 +869,7 @@ function OverviewSection() {
 
   const [showShifts, setShowShifts] = useState(false);
   const [shiftsToday, setShiftsToday] = useState<OverviewShift[]>([]);
-  const [loadingShifts, setLoadingShifts] = useState(false);
+  const [loadingShifts, setLoadingShifts] = useState(true);
 
   const loadVols = useCallback(() => {
     setLoadingVols(true);
@@ -888,13 +888,13 @@ function OverviewSection() {
 
   useEffect(() => { if (showVolunteers) loadVols(); }, [showVolunteers, loadVols]);
 
+  // Load today's shifts on mount (always visible in card)
   useEffect(() => {
-    if (!showShifts) return;
     setLoadingShifts(true);
     const today = new Date().toISOString().split("T")[0];
     hostackSupabase
       .from("shifts")
-      .select("id, volunteer_id, volunteers(id, name), shift_templates(name, start_time, end_time)")
+      .select("id, volunteer_id, volunteers(id, name, whatsapp_number), shift_templates(name, start_time, end_time)")
       .eq("property_id", TORRIDONIA_PROPERTY_ID)
       .eq("shift_date", today)
       .eq("status", "scheduled")
@@ -903,7 +903,7 @@ function OverviewSection() {
         setShiftsToday((data as unknown as OverviewShift[]) ?? []);
         setLoadingShifts(false);
       });
-  }, [showShifts]);
+  }, []);
 
   useEffect(() => {
     const today = new Date().toISOString().split("T")[0];
@@ -971,6 +971,47 @@ function OverviewSection() {
           <p className="text-2xl font-semibold">{minutesSaved} min</p>
           <p className="text-xs text-muted-foreground">today</p>
         </div>
+      </div>
+
+      {/* On shift today card */}
+      <div className="rounded-2xl border bg-card p-5 shadow-soft space-y-3">
+        <h3 className="font-medium text-sm flex items-center gap-2">
+          <CalendarCheck className="h-4 w-4 text-accent" /> On shift today
+        </h3>
+        {loadingShifts ? (
+          <div className="space-y-2">
+            {[1,2].map((i) => <div key={i} className="h-10 rounded-lg bg-secondary/40 animate-pulse" />)}
+          </div>
+        ) : shiftsToday.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No shifts scheduled today.</p>
+        ) : (
+          <ul className="divide-y">
+            {shiftsToday.map((s, i) => {
+              const vol = Array.isArray(s.volunteers) ? s.volunteers[0] : s.volunteers;
+              const tpl = Array.isArray(s.shift_templates) ? s.shift_templates[0] : s.shift_templates;
+              const wa = vol?.whatsapp_number?.replace(/[^\d]/g, "");
+              return (
+                <li key={s.id ?? i} className="py-2.5 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-medium text-sm">{vol?.name ?? "—"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {tpl?.name ?? "—"}
+                      {tpl?.start_time ? ` · ${tpl.start_time.slice(0,5)}` : ""}
+                      {tpl?.end_time ? `–${tpl.end_time.slice(0,5)}` : ""}
+                    </p>
+                  </div>
+                  {wa && (
+                    <a href={`https://wa.me/${wa}`} target="_blank" rel="noopener noreferrer">
+                      <Button size="sm" variant="outline" className="shrink-0 gap-1.5">
+                        <MessageCircle className="h-3.5 w-3.5" />
+                      </Button>
+                    </a>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
 
       <div className="grid sm:grid-cols-2 gap-4">
@@ -1055,7 +1096,7 @@ function OverviewSection() {
         </DialogContent>
       </Dialog>
 
-      {/* Shifts today dialog */}
+      {/* Shifts today dialog — data already loaded via on-mount effect */}
       <Dialog open={showShifts} onOpenChange={setShowShifts}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
@@ -1068,16 +1109,20 @@ function OverviewSection() {
             <p className="text-sm text-muted-foreground">No shifts scheduled today.</p>
           ) : (
             <ul className="divide-y max-h-80 overflow-y-auto">
-              {shiftsToday.map((s, i) => (
-                <li key={s.id ?? i} className="py-3">
-                  <p className="font-medium text-sm">{s.volunteers?.name ?? "—"}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {s.shift_templates?.name ?? "—"}
-                    {s.shift_templates?.start_time ? ` · ${s.shift_templates.start_time.slice(0, 5)}` : ""}
-                    {s.shift_templates?.end_time ? `–${s.shift_templates.end_time.slice(0, 5)}` : ""}
-                  </p>
-                </li>
-              ))}
+              {shiftsToday.map((s, i) => {
+                const vol = Array.isArray(s.volunteers) ? s.volunteers[0] : s.volunteers;
+                const tpl = Array.isArray(s.shift_templates) ? s.shift_templates[0] : s.shift_templates;
+                return (
+                  <li key={s.id ?? i} className="py-3">
+                    <p className="font-medium text-sm">{vol?.name ?? "—"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {tpl?.name ?? "—"}
+                      {tpl?.start_time ? ` · ${tpl.start_time.slice(0, 5)}` : ""}
+                      {tpl?.end_time ? `–${tpl.end_time.slice(0, 5)}` : ""}
+                    </p>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </DialogContent>
