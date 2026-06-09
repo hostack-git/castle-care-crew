@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useI18n } from "@/lib/i18n";
 import { hostackSupabase, TORRIDONIA_PROPERTY_ID } from "@/integrations/hostack/client";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Save, ArrowLeft, Download } from "lucide-react";
@@ -63,10 +64,11 @@ function ymd(d: Date) {
   const day = String(d.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
-const DAY_LABELS_ES = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 function RotaBuilderPage() {
   const { isAdmin, loading } = useAuth();
+  const { t } = useI18n();
   const [weekStart, setWeekStart] = useState<Date>(() => startOfWeekMonday(new Date()));
   const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -130,7 +132,7 @@ function RotaBuilderPage() {
       setLoadingData(false);
     })().catch((e) => {
       if (!cancel) {
-        toast.error(e instanceof Error ? e.message : "Error cargando rota");
+        toast.error(e instanceof Error ? e.message : t("rota.errorLoad"));
         setLoadingData(false);
       }
     });
@@ -159,13 +161,13 @@ function RotaBuilderPage() {
       const tabs = [tabNameForDate(monCurrent), tabNameForDate(monNext)];
       const result = await importRotaFromSheets(tabs);
       if (result.errors.length > 0) {
-        toast.error(`Importado con advertencias: ${result.errors[0]}`);
+        toast.error(`${t("rota.importWarn")} ${result.errors[0]}`);
       } else {
-        toast.success(`Importado: ${result.inserted} nuevos, ${result.updated} actualizados`);
+        toast.success(t("rota.importOk").replace("{n}", String(result.inserted)).replace("{u}", String(result.updated)));
       }
       setReloadTick((x) => x + 1);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Error al importar");
+      toast.error(e instanceof Error ? e.message : t("rota.errorImport"));
     } finally {
       setImporting(false);
     }
@@ -219,18 +221,18 @@ function RotaBuilderPage() {
         await hostackSupabase.from("shifts").insert(toInsert);
       }
 
-      toast.success(`Guardado: ${toInsert.length + toUpdate.length} cambios, ${toDelete.length} eliminados`);
+      toast.success(t("rota.saveOk").replace("{n}", String(toInsert.length + toUpdate.length)).replace("{d}", String(toDelete.length)));
       setOriginalGrid(JSON.parse(JSON.stringify(grid)));
       setReloadTick((x) => x + 1);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Error al guardar");
+      toast.error(e instanceof Error ? e.message : t("rota.errorSave"));
     } finally {
       setBusy(false);
     }
   };
 
   if (loading) return <p className="text-sm text-muted-foreground">Loading…</p>;
-  if (!isAdmin) return <p className="text-sm">Solo administradores.</p>;
+  if (!isAdmin) return <p className="text-sm">{t("rota.adminOnly")}</p>;
 
   return (
     <div className="space-y-6">
@@ -245,33 +247,33 @@ function RotaBuilderPage() {
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => setWeekStart((w) => addDays(w, -7))} className="gap-1">
-            <ChevronLeft className="h-4 w-4" /> Semana anterior
+            <ChevronLeft className="h-4 w-4" /> {t("rota.prevWeek")}
           </Button>
           <Button variant="outline" size="sm" onClick={() => setWeekStart(startOfWeekMonday(new Date()))}>
-            Hoy
+            {t("cal.today")}
           </Button>
           <Button variant="outline" size="sm" onClick={() => setWeekStart((w) => addDays(w, 7))} className="gap-1">
-            Semana siguiente <ChevronRight className="h-4 w-4" />
+            {t("rota.nextWeek")} <ChevronRight className="h-4 w-4" />
           </Button>
           <span className="text-sm text-muted-foreground ml-2">
             {startStr} → {endStr}
           </span>
           <Button onClick={onImport} disabled={importing} variant="outline" className="gap-2 ml-2">
             <Download className="h-4 w-4" />
-            {importing ? "Importando…" : "Importar Sheets"}
+            {importing ? t("rota.importing") : "Import Sheets"}
           </Button>
           <Button onClick={onSave} disabled={busy} className="gap-2">
             <Save className="h-4 w-4" />
-            {busy ? "Guardando…" : "Guardar semana"}
+            {busy ? t("rota.saving") : t("rota.saveWeek")}
           </Button>
         </div>
       </div>
 
       {loadingData ? (
-        <p className="text-sm text-muted-foreground">Cargando datos…</p>
+        <p className="text-sm text-muted-foreground">{t("rota.loading")}</p>
       ) : volunteers.length === 0 ? (
         <div className="rounded-2xl border bg-card p-8 text-center text-sm text-muted-foreground">
-          No hay voluntarios activos.
+          {t("rota.noVolunteers")}
         </div>
       ) : (
         <div className="overflow-x-auto rounded-2xl border bg-card shadow-soft">
@@ -279,7 +281,7 @@ function RotaBuilderPage() {
             <thead>
               <tr className="bg-muted/40">
                 <th className="text-left px-3 py-2 sticky left-0 bg-muted/40 z-10 min-w-[200px] border-b border-r">
-                  Voluntario
+                  {t("rota.volunteer")}
                 </th>
                 {days.map((d) => {
                   const dateStr = ymd(d);
@@ -287,7 +289,7 @@ function RotaBuilderPage() {
                     <th key={dateStr} className="px-2 py-2 text-center font-medium border-b border-l min-w-[140px]">
                       <div className="flex flex-col items-center">
                         <span>
-                          {DAY_LABELS_ES[d.getDay() === 0 ? 6 : d.getDay() - 1]} {d.getDate()}
+                          {DAY_LABELS[d.getDay() === 0 ? 6 : d.getDay() - 1]} {d.getDate()}
                         </span>
                       </div>
                     </th>
@@ -328,7 +330,7 @@ function RotaBuilderPage() {
                           className={`w-full rounded-md border px-2 py-1.5 text-xs font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary ${cls}`}
                           title={label}
                         >
-                          <option value="">– vacío</option>
+                          <option value="">{t("rota.empty")}</option>
                           {templates.map((t) => (
                             <option key={t.id} value={t.id}>
                               {t.name}

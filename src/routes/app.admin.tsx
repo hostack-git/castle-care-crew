@@ -88,7 +88,7 @@ function AdminPage() {
       <Tabs defaultValue="overview" className="space-y-4">
        <TabsList>
           <TabsTrigger value="overview" className="gap-1.5"><TrendingUp className="h-3.5 w-3.5" /> Overview</TabsTrigger>
-          <TabsTrigger value="volunteers" className="gap-1.5"><Users className="h-3.5 w-3.5" /> Voluntarios</TabsTrigger>
+          <TabsTrigger value="volunteers" className="gap-1.5"><Users className="h-3.5 w-3.5" /> {t("admin.tabVolunteers")}</TabsTrigger>
           <TabsTrigger value="onboarding" className="gap-1.5"><QrCode className="h-3.5 w-3.5" /> Onboarding</TabsTrigger>
         </TabsList>
 
@@ -111,7 +111,11 @@ function AdminPage() {
 
 // =================== Overview section ===================
 
+type VolDetail = { id: string; name: string | null; role_type: string | null; start_date: string | null; end_date: string | null; room: string | null; whatsapp: string | null };
+type ShiftDetail = { id: string; volunteers: { name: string | null; whatsapp: string | null } | null; shift_templates: { name: string | null; start_time: string | null; end_time: string | null } | null };
+
 function OverviewSection() {
+  const { t } = useI18n();
   const [stats, setStats] = useState<{
     activeVolunteers: number;
     shiftsToday: number;
@@ -119,6 +123,42 @@ function OverviewSection() {
     upcomingDepartures: { name: string; end_date: string }[];
     upcomingArrivals: { name: string; start_date: string }[];
   } | null>(null);
+
+  const [showVolunteers, setShowVolunteers] = useState(false);
+  const [volOnProperty, setVolOnProperty] = useState<VolDetail[]>([]);
+  const [loadingVols, setLoadingVols] = useState(false);
+
+  const [showShifts, setShowShifts] = useState(false);
+  const [shiftsToday, setShiftsToday] = useState<ShiftDetail[]>([]);
+  const [loadingShifts, setLoadingShifts] = useState(false);
+
+  useEffect(() => {
+    if (!showVolunteers) return;
+    setLoadingVols(true);
+    const today = new Date().toISOString().split("T")[0];
+    hostackSupabase
+      .from("volunteers")
+      .select("id, name, role_type, start_date, end_date, room, whatsapp")
+      .eq("property_id", TORRIDONIA_PROPERTY_ID)
+      .eq("status", "active")
+      .lte("start_date", today)
+      .gte("end_date", today)
+      .order("start_date", { ascending: true })
+      .then(({ data }) => { setVolOnProperty((data as VolDetail[]) ?? []); setLoadingVols(false); });
+  }, [showVolunteers]);
+
+  useEffect(() => {
+    if (!showShifts) return;
+    setLoadingShifts(true);
+    const today = new Date().toISOString().split("T")[0];
+    hostackSupabase
+      .from("shifts")
+      .select("id, volunteers(name, whatsapp), shift_templates(name, start_time, end_time)")
+      .eq("property_id", TORRIDONIA_PROPERTY_ID)
+      .eq("shift_date", today)
+      .eq("status", "scheduled")
+      .then(({ data }) => { setShiftsToday((data as ShiftDetail[]) ?? []); setLoadingShifts(false); });
+  }, [showShifts]);
 
   useEffect(() => {
     const load = async () => {
@@ -129,7 +169,8 @@ function OverviewSection() {
 
       const [volRes, shiftsTodayRes, shiftsWeekRes, depsRes, arrivalsRes] = await Promise.all([
         hostackSupabase.from("volunteers").select("id", { count: "exact" })
-          .eq("property_id", TORRIDONIA_PROPERTY_ID).eq("status", "active"),
+          .eq("property_id", TORRIDONIA_PROPERTY_ID).eq("status", "active")
+          .lte("start_date", today).gte("end_date", today),
         hostackSupabase.from("shifts").select("id", { count: "exact" })
           .eq("property_id", TORRIDONIA_PROPERTY_ID).eq("shift_date", today).eq("status", "scheduled"),
         hostackSupabase.from("shifts").select("id", { count: "exact" })
@@ -168,16 +209,16 @@ function OverviewSection() {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="rounded-xl bg-secondary/40 p-4 space-y-1">
+        <button onClick={() => setShowVolunteers(true)} className="rounded-xl bg-secondary/40 p-4 space-y-1 text-left cursor-pointer hover:bg-secondary/60 transition">
           <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Users className="h-3.5 w-3.5" /> Active volunteers</p>
           <p className="text-2xl font-semibold">{stats.activeVolunteers}</p>
-          <p className="text-xs text-muted-foreground">on property</p>
-        </div>
-        <div className="rounded-xl bg-secondary/40 p-4 space-y-1">
+          <p className="text-xs text-muted-foreground">{t("admin.volOnProperty")}</p>
+        </button>
+        <button onClick={() => setShowShifts(true)} className="rounded-xl bg-secondary/40 p-4 space-y-1 text-left cursor-pointer hover:bg-secondary/60 transition">
           <p className="text-xs text-muted-foreground flex items-center gap-1.5"><CalendarCheck className="h-3.5 w-3.5" /> Shifts today</p>
           <p className="text-2xl font-semibold">{stats.shiftsToday}</p>
           <p className="text-xs text-muted-foreground">scheduled</p>
-        </div>
+        </button>
         <div className="rounded-xl bg-secondary/40 p-4 space-y-1">
           <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> Time saved today</p>
           <p className="text-2xl font-semibold">{minutesSavedToday} min</p>
@@ -247,6 +288,79 @@ function OverviewSection() {
           Baseline: 2 min/volunteer briefing saved vs. manual WhatsApp coordination (previous method: 2–4 min each).
         </p>
       </div>
+
+      {/* Active volunteers dialog */}
+      <Dialog open={showVolunteers} onOpenChange={setShowVolunteers}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Users className="h-4 w-4" /> Volunteers on property</DialogTitle>
+            <DialogDescription>{t("admin.volOnProperty")}</DialogDescription>
+          </DialogHeader>
+          {loadingVols ? (
+            <p className="text-sm text-muted-foreground">Loading…</p>
+          ) : volOnProperty.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{t("admin.noVolunteers")}</p>
+          ) : (
+            <ul className="divide-y max-h-80 overflow-y-auto">
+              {volOnProperty.map((v) => (
+                <li key={v.id} className="py-3 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="font-medium text-sm">{v.name ?? "—"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {v.role_type} · {v.start_date} → {v.end_date}
+                      {v.room ? ` · Room ${v.room}` : ""}
+                    </p>
+                  </div>
+                  {v.whatsapp && (
+                    <a href={`https://wa.me/${v.whatsapp.replace(/[^\d]/g, "")}`} target="_blank" rel="noopener noreferrer">
+                      <Button size="sm" variant="outline" className="gap-1.5 shrink-0">
+                        <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+                      </Button>
+                    </a>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Shifts today dialog */}
+      <Dialog open={showShifts} onOpenChange={setShowShifts}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><CalendarCheck className="h-4 w-4" /> Shifts today</DialogTitle>
+            <DialogDescription>{new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}</DialogDescription>
+          </DialogHeader>
+          {loadingShifts ? (
+            <p className="text-sm text-muted-foreground">Loading…</p>
+          ) : shiftsToday.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No shifts scheduled today.</p>
+          ) : (
+            <ul className="divide-y max-h-80 overflow-y-auto">
+              {shiftsToday.map((s, i) => (
+                <li key={s.id ?? i} className="py-3 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="font-medium text-sm">{s.volunteers?.name ?? "—"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {s.shift_templates?.name ?? "—"}
+                      {s.shift_templates?.start_time ? ` · ${s.shift_templates.start_time.slice(0, 5)}` : ""}
+                      {s.shift_templates?.end_time ? `–${s.shift_templates.end_time.slice(0, 5)}` : ""}
+                    </p>
+                  </div>
+                  {s.volunteers?.whatsapp && (
+                    <a href={`https://wa.me/${s.volunteers.whatsapp.replace(/[^\d]/g, "")}`} target="_blank" rel="noopener noreferrer">
+                      <Button size="sm" variant="outline" className="gap-1.5 shrink-0">
+                        <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+                      </Button>
+                    </a>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -262,6 +376,7 @@ type Volunteer = {
   whatsapp: string | null;
   email: string | null;
   auth_user_id: string | null;
+  room: string | null;
 };
 
 function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | null }) {
@@ -272,13 +387,15 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
   const [endDate, setEndDate] = useState("");
   const [role, setRole] = useState<typeof VOLUNTEER_ROLES[number]>("Housekeeping");
   const [whatsapp, setWhatsapp] = useState("");
+  const [room, setRoom] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [invite, setInvite] = useState<{ url: string; name: string; whatsapp: string } | null>(null);
+  const { t } = useI18n();
 
   const reload = async () => {
     const { data } = await hostackSupabase
       .from("volunteers")
-      .select("id, name, role_type, start_date, end_date, status, whatsapp, email, auth_user_id")
+      .select("id, name, role_type, start_date, end_date, status, whatsapp, email, auth_user_id, room")
       .eq("property_id", TORRIDONIA_PROPERTY_ID)
       .order("start_date", { ascending: false });
     setList((data as Volunteer[]) ?? []);
@@ -314,7 +431,7 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
       .select("token")
       .single();
     if (error || !data) {
-      toast.error(error?.message ?? "Error creando invitación");
+      toast.error(error?.message ?? t("admin.errorInvite"));
       return null;
     }
     const url = buildInviteUrl((data as { token: string }).token);
@@ -332,6 +449,7 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
       start_date: startDate,
       end_date: endDate,
       whatsapp: whatsapp || null,
+      room: room || null,
       status: "active",
     });
     if (error) {
@@ -340,7 +458,7 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
     }
     await createInvitation(name, role, whatsapp);
     toast.success("Volunteer added");
-    setName(""); setStartDate(""); setEndDate(""); setWhatsapp(""); setRole("Housekeeping");
+    setName(""); setStartDate(""); setEndDate(""); setWhatsapp(""); setRoom(""); setRole("Housekeeping");
     await reload();
     setSubmitting(false);
   };
@@ -355,7 +473,7 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
       <div className="rounded-2xl border bg-card p-6 shadow-soft space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-xl font-semibold flex items-center gap-2">
-            <Users className="h-4 w-4 text-accent" /> Voluntarios
+            <Users className="h-4 w-4 text-accent" /> {t("admin.tabVolunteers")}
           </h2>
           <span className="text-xs text-muted-foreground">{list.length}</span>
         </div>
@@ -363,7 +481,7 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
         {loading ? (
           <p className="text-sm text-muted-foreground">Loading…</p>
         ) : list.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No hay voluntarios todavía.</p>
+          <p className="text-sm text-muted-foreground">{t("admin.noVolunteers")}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -373,6 +491,7 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
                   <th className="py-2 pr-3">Role</th>
                   <th className="py-2 pr-3">Start</th>
                   <th className="py-2 pr-3">End</th>
+                  <th className="py-2 pr-3">Room</th>
                   <th className="py-2 pr-3">Status</th>
                   <th className="py-2"></th>
                 </tr>
@@ -384,6 +503,7 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
                     <td className="py-2 pr-3">{v.role_type || "—"}</td>
                     <td className="py-2 pr-3">{v.start_date || "—"}</td>
                     <td className="py-2 pr-3">{v.end_date || "—"}</td>
+                    <td className="py-2 pr-3">{v.room || "—"}</td>
                     <td className="py-2 pr-3">
                       {v.auth_user_id ? (
                         <Badge className="bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/20">Active</Badge>
@@ -394,7 +514,7 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
                     <td className="py-2 text-right">
                       {!v.auth_user_id && (
                         <Button size="sm" variant="outline" className="gap-1.5" onClick={() => sendInvite(v)}>
-                          <Send className="h-3.5 w-3.5" /> Invitar
+                          <Send className="h-3.5 w-3.5" /> {t("admin.invite")}
                         </Button>
                       )}
                     </td>
@@ -427,6 +547,7 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
             <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
           </div>
           <Input placeholder="WhatsApp (optional)" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} />
+          <Input placeholder="Room (optional)" value={room} onChange={(e) => setRoom(e.target.value)} />
         </div>
         <Button onClick={submit} disabled={!name || !startDate || !endDate || submitting} className="bg-accent text-accent-foreground hover:bg-accent/90">
           {submitting ? "Creating…" : "Create volunteer"}
@@ -491,6 +612,7 @@ type AccessRequest = {
 };
 
 function PendingRequests() {
+  const { t } = useI18n();
   const [requests, setRequests] = useState<AccessRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -554,7 +676,7 @@ function PendingRequests() {
     <div className="rounded-2xl border bg-card p-6 shadow-soft space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="font-display text-xl font-semibold flex items-center gap-2">
-          <Inbox className="h-4 w-4 text-accent" /> Solicitudes pendientes
+          <Inbox className="h-4 w-4 text-accent" /> {t("admin.pendingRequests")}
         </h2>
         <span className="text-xs text-muted-foreground">{requests.length}</span>
       </div>

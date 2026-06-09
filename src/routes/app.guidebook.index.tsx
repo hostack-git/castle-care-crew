@@ -110,7 +110,7 @@ function GuidebookIndexPage() {
       ) : filtered.length === 0 ? (
         <div className="rounded-2xl border bg-card p-12 text-center">
           <BookOpen className="h-10 w-10 text-muted-foreground/60 mx-auto mb-3" />
-          <p className="font-medium">Sin guías disponibles</p>
+          <p className="font-medium">{t("guide.noGuides")}</p>
           <p className="text-sm text-muted-foreground mt-1">
             {q ? `No matches for "${q}"` : "No SOPs published yet."}
           </p>

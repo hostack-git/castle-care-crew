@@ -97,6 +97,7 @@ function VolunteerDashboard() {
   const [shifts, setShifts] = useState<VolShift[]>([]);
   const [weekStart, setWeekStart] = useState<Date>(() => startOfWeekMondayUTC(new Date()));
   const [volunteerId, setVolunteerId] = useState<string | null>(null);
+  const [roleType, setRoleType] = useState<string | null>(null);
   const [rooms, setRooms] = useState<RoomEntry[] | null>(null);
 
   const locale = LOCALE_MAP[lang] ?? "en-GB";
@@ -122,20 +123,27 @@ function VolunteerDashboard() {
     (async () => {
       const { data: volByAuth } = await hostackSupabase
         .from("volunteers")
-        .select("id")
+        .select("id, role_type")
         .eq("property_id", TORRIDONIA_PROPERTY_ID)
         .eq("auth_user_id", user.id)
         .maybeSingle();
-      if (volByAuth?.id) { setVolunteerId(volByAuth.id); return; }
+      if (volByAuth?.id) {
+        setVolunteerId(volByAuth.id);
+        setRoleType((volByAuth as { id: string; role_type: string | null }).role_type);
+        return;
+      }
       const fullName = (user.user_metadata as { full_name?: string } | undefined)?.full_name;
       if (fullName) {
         const { data: volByName } = await hostackSupabase
           .from("volunteers")
-          .select("id")
+          .select("id, role_type")
           .eq("property_id", TORRIDONIA_PROPERTY_ID)
           .ilike("name", fullName)
           .maybeSingle();
-        if (volByName?.id) setVolunteerId(volByName.id);
+        if (volByName?.id) {
+          setVolunteerId(volByName.id);
+          setRoleType((volByName as { id: string; role_type: string | null }).role_type);
+        }
       }
     })();
   }, [user]);
@@ -165,6 +173,11 @@ function VolunteerDashboard() {
   const fmtTime = (v: string | null) => (v ? v.slice(0, 5) : "");
   const isCurrentWeek = ymdDate(startOfWeekMondayUTC(new Date())) === startStr;
   const shiftByDate = new Map(shifts.map((s) => [s.shift_date, s]));
+  const todayStr = ymdDate(new Date());
+  const todayShift = shiftByDate.get(todayStr);
+  const todayTpl = todayShift ? pickTemplate(todayShift.shift_templates) : null;
+  const isHousekeeping = roleType?.toLowerCase().includes("housekeep") ?? false;
+  const isCottages = roleType?.toLowerCase().includes("cottage") ?? false;
 
   return (
     <div className="space-y-6">
@@ -174,6 +187,23 @@ function VolunteerDashboard() {
         </p>
         <h1 className="font-display text-4xl font-semibold mt-1">{t("dash.hi")}, {name}! 👋</h1>
       </header>
+
+      {!loading && (
+        <div className={`rounded-2xl border p-4 flex items-start gap-3 shadow-soft ${todayTpl ? shiftColor(todayTpl.name) : "bg-card border-border"}`}>
+          <Calendar className="h-5 w-5 mt-0.5 shrink-0 opacity-70" />
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide opacity-60">{t("dash.todayShift")}</p>
+            {todayTpl ? (
+              <p className="font-semibold text-lg mt-0.5">
+                {todayTpl.name}
+                {todayTpl.start_time ? ` · ${fmtTime(todayTpl.start_time)}–${fmtTime(todayTpl.end_time)}` : ""}
+              </p>
+            ) : (
+              <p className="font-semibold text-lg mt-0.5">{t("dash.dayOff")} 🌿</p>
+            )}
+          </div>
+        </div>
+      )}
 
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-2">
@@ -249,14 +279,22 @@ function VolunteerDashboard() {
       </section>
 
       {rooms !== null && (() => {
-        const toClean = rooms.filter((r) => r.checkout || r.checkin);
+        const allToClean = rooms.filter((r) => r.checkout || r.checkin);
+        const isCottageRoom = (r: RoomEntry) => r.room.toLowerCase().includes("cottage");
+        const cottagesToClean = allToClean.filter(isCottageRoom);
+        const toClean = isCottages
+          ? (cottagesToClean.length > 0 ? cottagesToClean : allToClean)
+          : allToClean;
+        const heading = isCottages ? t("dash.cottages") : t("dash.rooms");
+        const emptyMsg = isCottages ? t("dash.noCottages") : t("dash.noRooms");
+        if (!isHousekeeping && !isCottages) return null;
         return (
           <section className="space-y-2">
             <h2 className="font-display text-xl font-semibold flex items-center gap-2">
-              <LogOut className="h-4 w-4 text-accent" /> {t("dash.rooms")}
+              <LogOut className="h-4 w-4 text-accent" /> {heading}
             </h2>
             {toClean.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t("dash.noRooms")}</p>
+              <p className="text-sm text-muted-foreground">{emptyMsg}</p>
             ) : (
               <div className="space-y-1.5">
                 {toClean.map((r, i) => (
