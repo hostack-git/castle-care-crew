@@ -32,6 +32,7 @@ import { Route as AppAdventuresRouteImport } from './routes/app.adventures'
 import { Route as AppAdminRouteImport } from './routes/app.admin'
 import { Route as AppGuidebookIndexRouteImport } from './routes/app.guidebook.index'
 import { Route as AppAdminRotaRouteImport } from './routes/app.admin.rota'
+import { Route as AppAdminCleaningRouteImport } from './routes/app.admin.cleaning'
 import { Route as AppGuidebookSopSopIdRouteImport } from './routes/app.guidebook.sop.$sopId'
 
 const VolunteerAccessRoute = VolunteerAccessRouteImport.update({
@@ -149,6 +150,11 @@ const AppAdminRotaRoute = AppAdminRotaRouteImport.update({
   path: '/rota',
   getParentRoute: () => AppAdminRoute,
 } as any)
+const AppAdminCleaningRoute = AppAdminCleaningRouteImport.update({
+  id: '/cleaning',
+  path: '/cleaning',
+  getParentRoute: () => AppAdminRoute,
+} as any)
 const AppGuidebookSopSopIdRoute = AppGuidebookSopSopIdRouteImport.update({
   id: '/sop/$sopId',
   path: '/sop/$sopId',
@@ -178,6 +184,7 @@ export interface FileRoutesByFullPath {
   '/invite/$token': typeof InviteTokenRoute
   '/sops/$sopSlug': typeof SopsSopSlugRoute
   '/app/admin/rota': typeof AppAdminRotaRoute
+  '/app/admin/cleaning': typeof AppAdminCleaningRoute
   '/app/guidebook/': typeof AppGuidebookIndexRoute
   '/app/guidebook/sop/$sopId': typeof AppGuidebookSopSopIdRoute
 }
@@ -203,6 +210,7 @@ export interface FileRoutesByTo {
   '/invite/$token': typeof InviteTokenRoute
   '/sops/$sopSlug': typeof SopsSopSlugRoute
   '/app/admin/rota': typeof AppAdminRotaRoute
+  '/app/admin/cleaning': typeof AppAdminCleaningRoute
   '/app/guidebook': typeof AppGuidebookIndexRoute
   '/app/guidebook/sop/$sopId': typeof AppGuidebookSopSopIdRoute
 }
@@ -230,6 +238,7 @@ export interface FileRoutesById {
   '/invite/$token': typeof InviteTokenRoute
   '/sops/$sopSlug': typeof SopsSopSlugRoute
   '/app/admin/rota': typeof AppAdminRotaRoute
+  '/app/admin/cleaning': typeof AppAdminCleaningRoute
   '/app/guidebook/': typeof AppGuidebookIndexRoute
   '/app/guidebook/sop/$sopId': typeof AppGuidebookSopSopIdRoute
 }
@@ -258,6 +267,7 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/sops/$sopSlug'
     | '/app/admin/rota'
+    | '/app/admin/cleaning'
     | '/app/guidebook/'
     | '/app/guidebook/sop/$sopId'
   fileRoutesByTo: FileRoutesByTo
@@ -283,6 +293,7 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/sops/$sopSlug'
     | '/app/admin/rota'
+    | '/app/admin/cleaning'
     | '/app/guidebook'
     | '/app/guidebook/sop/$sopId'
   id:
@@ -309,6 +320,7 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/sops/$sopSlug'
     | '/app/admin/rota'
+    | '/app/admin/cleaning'
     | '/app/guidebook/'
     | '/app/guidebook/sop/$sopId'
   fileRoutesById: FileRoutesById
@@ -490,6 +502,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminRotaRouteImport
       parentRoute: typeof AppAdminRoute
     }
+    '/app/admin/cleaning': {
+      id: '/app/admin/cleaning'
+      path: '/cleaning'
+      fullPath: '/app/admin/cleaning'
+      preLoaderRoute: typeof AppAdminCleaningRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
     '/app/guidebook/sop/$sopId': {
       id: '/app/guidebook/sop/$sopId'
       path: '/sop/$sopId'
@@ -502,10 +521,12 @@ declare module '@tanstack/react-router' {
 
 interface AppAdminRouteChildren {
   AppAdminRotaRoute: typeof AppAdminRotaRoute
+  AppAdminCleaningRoute: typeof AppAdminCleaningRoute
 }
 
 const AppAdminRouteChildren: AppAdminRouteChildren = {
   AppAdminRotaRoute: AppAdminRotaRoute,
+  AppAdminCleaningRoute: AppAdminCleaningRoute,
 }
 
 const AppAdminRouteWithChildren = AppAdminRoute._addFileChildren(
