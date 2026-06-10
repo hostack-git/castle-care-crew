@@ -18,6 +18,11 @@ export const Route = createFileRoute("/app/admin")({ component: AdminPage });
 
 const VOLUNTEER_ROLES = ["Volunteer", "Manager", "Owner"] as const;
 
+function todayLocalYmd(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 function AdminPage() {
   const { isAdmin, loading, user } = useAuth();
   const { t } = useI18n();
@@ -544,7 +549,7 @@ function PendingRequests() {
 
   const approve = async (req: AccessRequest) => {
     setBusyId(req.id);
-    const today = new Date().toISOString().split("T")[0];
+    const today = todayLocalYmd();
     const { error: updErr } = await hostackSupabase
       .from("staff_access_requests")
       .update({ status: "approved" })
@@ -735,15 +740,15 @@ function TasksSection() {
   const [loading, setLoading] = useState(true);
   const [volId, setVolId] = useState("");
   const [title, setTitle] = useState("");
-  const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [date, setDate] = useState(() => todayLocalYmd());
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const { user } = useAuth();
 
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = todayLocalYmd();
   const weekEnd = new Date();
   weekEnd.setDate(weekEnd.getDate() + 7);
-  const weekEndStr = weekEnd.toISOString().split("T")[0];
+  const weekEndStr = `${weekEnd.getFullYear()}-${String(weekEnd.getMonth() + 1).padStart(2, "0")}-${String(weekEnd.getDate()).padStart(2, "0")}`;
 
   const reload = async () => {
     const [{ data: vols }, { data: taskData }] = await Promise.all([

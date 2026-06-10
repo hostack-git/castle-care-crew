@@ -93,6 +93,11 @@ function ymdDate(d: Date) {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
 }
 
+function todayLocalYmd(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 // ── Volunteer dashboard ────────────────────────────────────────────────────
 
 function VolunteerDashboard() {
@@ -122,7 +127,7 @@ function VolunteerDashboard() {
   const endStr = ymdDate(days[6]);
 
   useEffect(() => {
-    const today = new Date().toISOString().split("T")[0];
+    const today = todayLocalYmd();
     loadTodaysRooms(today).then((r) => setRooms(r)).catch(() => setRooms(null));
   }, []);
 
@@ -840,7 +845,7 @@ function TodayDepartures() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const today = new Date().toISOString().split("T")[0];
+    const today = todayLocalYmd();
     loadTodaysRooms(today)
       .then((r) => { setRooms(r); setLoading(false); })
       .catch(() => { setRooms(null); setLoading(false); });
@@ -916,7 +921,7 @@ function OverviewSection() {
   // Load today's shifts on mount (always visible in card)
   useEffect(() => {
     setLoadingShifts(true);
-    const today = new Date().toISOString().split("T")[0];
+    const today = todayLocalYmd();
     hostackSupabase
       .from("shifts")
       .select("id, volunteer_id, volunteers(id, name, whatsapp_number), shift_templates(name, start_time, end_time)")
@@ -931,10 +936,10 @@ function OverviewSection() {
   }, []);
 
   useEffect(() => {
-    const today = new Date().toISOString().split("T")[0];
+    const today = todayLocalYmd();
     const weekEnd = new Date();
     weekEnd.setDate(weekEnd.getDate() + 7);
-    const weekEndStr = weekEnd.toISOString().split("T")[0];
+    const weekEndStr = `${weekEnd.getFullYear()}-${String(weekEnd.getMonth() + 1).padStart(2, "0")}-${String(weekEnd.getDate()).padStart(2, "0")}`;
     Promise.all([
       hostackSupabase.from("volunteers").select("id", { count: "exact" })
         .eq("property_id", TORRIDONIA_PROPERTY_ID).eq("status", "active"),
