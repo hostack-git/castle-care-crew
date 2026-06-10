@@ -2,6 +2,7 @@ import { createFileRoute, Outlet, Link, useNavigate, useLocation } from "@tansta
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
+import { IS_DEMO } from "@/integrations/hostack/client";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { LayoutDashboard, BookOpen, Mountain as Trail, Megaphone, Settings, LogOut, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,7 @@ function AppLayout() {
 
   useEffect(() => {
     if (loading) return;
-    if (!user) navigate({ to: "/login" });
+    if (!user) navigate({ to: IS_DEMO ? "/demo" : "/login" });
     else if (!isVolunteer && profile && !profile.onboarded) navigate({ to: "/onboarding" });
     if (!loading && isVolunteer && (loc.pathname.startsWith("/app/admin") || loc.pathname.startsWith("/app/rooms"))) {
       navigate({ to: "/app/dashboard" });

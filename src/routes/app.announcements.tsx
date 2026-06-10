@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { hostackSupabase } from "@/integrations/hostack/client";
+import { hostackSupabase, TORRIDONIA_PROPERTY_ID, IS_DEMO } from "@/integrations/hostack/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
@@ -23,9 +23,15 @@ function AnnouncementsPage() {
   const [content, setContent] = useState("");
   const [priority, setPriority] = useState("normal");
 
-  const load = () =>
-    hostackSupabase.from("announcements").select("*").order("created_at", { ascending: false })
-      .then(({ data }) => setItems((data as Ann[]) ?? []));
+  const load = () => {
+    let q = hostackSupabase.from("announcements").select("*").order("created_at", { ascending: false });
+    if (IS_DEMO) {
+      q = q.eq("property_id", TORRIDONIA_PROPERTY_ID);
+    } else {
+      q = q.or(`property_id.eq.${TORRIDONIA_PROPERTY_ID},property_id.is.null`);
+    }
+    q.then(({ data }) => setItems((data as Ann[]) ?? []));
+  };
 
   useEffect(() => { load(); }, []);
 
