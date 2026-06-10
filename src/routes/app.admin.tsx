@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useLocation, Link, Outlet } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
@@ -27,12 +27,19 @@ function AdminPage() {
   const { isAdmin, loading, user } = useAuth();
   const { t } = useI18n();
   const navigate = useNavigate();
+  const loc = useLocation();
 
   useEffect(() => {
     if (!loading && !isAdmin) navigate({ to: "/app/dashboard" });
   }, [loading, isAdmin, navigate]);
 
+  if (loading) return null;
   if (!isAdmin) return null;
+
+  // Child routes (rota, cleaning) render themselves — just pass through
+  if (loc.pathname !== "/app/admin") {
+    return <Outlet />;
+  }
 
   return (
     <div className="space-y-6">
