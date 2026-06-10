@@ -3,10 +3,11 @@ import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useI18n, LOCALE_MAP } from "@/lib/i18n";
 import { hostackSupabase, TORRIDONIA_PROPERTY_ID } from "@/integrations/hostack/client";
-import { Calendar, Clock, CheckCircle2, Circle, BookOpen, ChevronLeft, ChevronRight, MessageCircle, Plus, X, LogIn, LogOut, Search, Copy } from "lucide-react";
+import { Calendar, Clock, CheckCircle2, Circle, BookOpen, ChevronLeft, ChevronRight, MessageCircle, Plus, X, LogOut, Search, Copy, Users, TrendingUp, CalendarCheck, UserX, UserPlus, Home, TreePine } from "lucide-react";
 import { startOfWeekMondayUTC } from "@/lib/rota-utils";
-import { loadTodaysRooms, type RoomEntry } from "@/lib/amenitiz-parser";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/dashboard")({ component: DashboardRoute });
@@ -47,6 +48,8 @@ type ShiftTask = {
   notes: string | null;
   shift_date: string;
 };
+
+type CleaningEntry = { id: string; room_name: string; room_type: string };
 
 function pickTemplate(t: Shift["shift_templates"]): ShiftTemplate | null {
   if (!t) return null;
@@ -91,6 +94,11 @@ function ymdDate(d: Date) {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
 }
 
+function todayLocalYmd(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 // ── Volunteer dashboard ────────────────────────────────────────────────────
 
 function VolunteerDashboard() {
@@ -102,7 +110,7 @@ function VolunteerDashboard() {
   const [volunteerId, setVolunteerId] = useState<string | null>(null);
   const [volunteerStatus, setVolunteerStatus] = useState<string | null>(null);
   const [roleType, setRoleType] = useState<string | null>(null);
-  const [rooms, setRooms] = useState<RoomEntry[] | null>(null);
+  const [cleaningRooms, setCleaningRooms] = useState<CleaningEntry[]>([]);
   const [shiftTasks, setShiftTasks] = useState<ShiftTask[]>([]);
   const [volunteerLinked, setVolunteerLinked] = useState<boolean | null>(null);
 
@@ -120,8 +128,20 @@ function VolunteerDashboard() {
   const endStr = ymdDate(days[6]);
 
   useEffect(() => {
-    const today = new Date().toISOString().split("T")[0];
-    loadTodaysRooms(today).then((r) => setRooms(r)).catch(() => setRooms(null));
+    const today = todayLocalYmd();
+    hostackSupabase
+      .from("cleaning_schedule")
+      .select("id, property_rooms(name, type)")
+      .eq("property_id", TORRIDONIA_PROPERTY_ID)
+      .eq("clean_date", today)
+      .then(({ data }) => {
+        const entries = (data ?? []).map((d) => {
+          const pr = Array.isArray(d.property_rooms) ? d.property_rooms[0] : d.property_rooms;
+          return { id: d.id, room_name: (pr as { name: string; type: string } | null)?.name ?? "?", room_type: (pr as { name: string; type: string } | null)?.type ?? "room" };
+        });
+        setCleaningRooms(entries);
+      })
+      .catch(() => setCleaningRooms([]));
   }, []);
 
   useEffect(() => {
@@ -143,18 +163,43 @@ function VolunteerDashboard() {
       }
       const fullName = (user.user_metadata as { full_name?: string } | undefined)?.full_name;
       if (fullName) {
-        const { data: volByName } = await hostackSupabase
+        type VolRow = { id: string; role_type: string | null; status: string | null };
+        let volByName: VolRow | null = null;
+
+        // 1. Exact case-insensitive match
+        const { data: exact } = await hostackSupabase
           .from("volunteers")
           .select("id, role_type, status")
           .eq("property_id", TORRIDONIA_PROPERTY_ID)
           .ilike("name", fullName)
           .maybeSingle();
+        volByName = (exact as VolRow | null) ?? null;
+
+        // 2. First-name prefix fallback (handles "Roxana" stored as first name only
+        //    in user_metadata vs "Roxana LastName" in volunteers table, or vice versa)
+        if (!volByName) {
+          const firstName = fullName.trim().split(" ")[0];
+          const { data: prefix } = await hostackSupabase
+            .from("volunteers")
+            .select("id, role_type, status")
+            .eq("property_id", TORRIDONIA_PROPERTY_ID)
+            .ilike("name", `${firstName}%`)
+            .maybeSingle();
+          volByName = (prefix as VolRow | null) ?? null;
+        }
+
         if (volByName?.id) {
-          const v = volByName as { id: string; role_type: string | null; status: string | null };
-          setVolunteerId(v.id);
-          setRoleType(v.role_type);
-          setVolunteerStatus(v.status);
+          setVolunteerId(volByName.id);
+          setRoleType(volByName.role_type);
+          setVolunteerStatus(volByName.status);
           setVolunteerLinked(true);
+          // Self-heal: write auth_user_id so future logins use the fast path
+          hostackSupabase
+            .from("volunteers")
+            .update({ auth_user_id: user.id })
+            .eq("id", volByName.id)
+            .is("auth_user_id", null)
+            .then(() => {});
           return;
         }
       }
@@ -390,24 +435,25 @@ function VolunteerDashboard() {
         )}
       </section>
 
-      {rooms !== null && (isHousekeeping || isCottages) && (() => {
-        // Show all rooms of the matching type; coordinate among themselves
-        const toClean = isCottages
-          ? rooms.filter((r) => r.type === "cottages" || r.room.toLowerCase().includes("cottage"))
-          : rooms.filter((r) => r.type === "housekeeping" || r.type !== "cottages");
+      {(isHousekeeping || isCottages) && (() => {
+        const toClean = cleaningRooms.filter((r) => isCottages ? r.room_type === "cottage" : r.room_type === "room");
         const heading = isCottages ? "Cottages to clean today" : "Rooms to clean today";
+        const color = isCottages
+          ? { card: "border-teal-200 bg-teal-50 text-teal-900", icon: "text-teal-500" }
+          : { card: "border-emerald-200 bg-emerald-50 text-emerald-900", icon: "text-emerald-500" };
         return (
           <section className="space-y-2">
             <h2 className="font-display text-xl font-semibold flex items-center gap-2">
-              <Home className="h-4 w-4 text-accent" /> {heading}
+              {isCottages ? <TreePine className={`h-4 w-4 ${color.icon}`} /> : <Home className={`h-4 w-4 ${color.icon}`} />}
+              {heading}
             </h2>
             {toClean.length === 0 ? (
               <p className="text-sm text-muted-foreground">No rooms assigned for today yet.</p>
             ) : (
               <div className="grid grid-cols-2 gap-1.5">
-                {toClean.map((r, i) => (
-                  <div key={i} className="rounded-xl border bg-card px-3 py-2 text-sm font-medium">
-                    {r.room}
+                {toClean.map((r) => (
+                  <div key={r.id} className={`rounded-xl border ${color.card} px-3 py-2 text-sm font-medium`}>
+                    {r.room_name}
                   </div>
                 ))}
               </div>
@@ -806,74 +852,370 @@ function AdminMatrix() {
   );
 }
 
-// ── Manager "Today" section ───────────────────────────────────────────────
+// ── Manager "Today" — cleaning schedule ─────────────────────────────────
 
-function TodayRooms() {
-  const { t } = useI18n();
-  const [rooms, setRooms] = useState<RoomEntry[] | null>(null);
+function TodayDepartures() {
+  const [entries, setEntries] = useState<CleaningEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const today = new Date().toISOString().split("T")[0];
-    setLoading(true);
-    loadTodaysRooms(today)
-      .then((r) => { setRooms(r); setLoading(false); })
-      .catch(() => { setRooms(null); setLoading(false); });
+    const today = todayLocalYmd();
+    hostackSupabase
+      .from("cleaning_schedule")
+      .select("id, property_rooms(name, type)")
+      .eq("property_id", TORRIDONIA_PROPERTY_ID)
+      .eq("clean_date", today)
+      .then(({ data }) => {
+        const parsed = (data ?? []).map((d) => {
+          const pr = Array.isArray(d.property_rooms) ? d.property_rooms[0] : d.property_rooms;
+          return {
+            id: d.id,
+            room_name: (pr as { name: string; type: string } | null)?.name ?? "?",
+            room_type: (pr as { name: string; type: string } | null)?.type ?? "room",
+          };
+        });
+        setEntries(parsed);
+        setLoading(false);
+      })
+      .catch(() => { setEntries([]); setLoading(false); });
   }, []);
 
   if (loading) return <div className="h-28 rounded-2xl bg-secondary/40 animate-pulse" />;
-  if (!rooms || rooms.length === 0) return (
-    <div className="rounded-2xl border border-dashed bg-secondary/30 p-6 text-center text-muted-foreground">
-      <Calendar className="h-6 w-6 mx-auto mb-2" />
-      <p className="text-sm">{t("dash.noToday")}</p>
+
+  const bbRooms = entries.filter((e) => e.room_type === "room");
+  const cottages = entries.filter((e) => e.room_type === "cottage");
+
+  if (bbRooms.length === 0 && cottages.length === 0) return (
+    <div className="rounded-2xl border border-dashed bg-secondary/30 p-6 text-center text-muted-foreground space-y-2">
+      <Calendar className="h-6 w-6 mx-auto" />
+      <p className="text-sm">No rooms scheduled for cleaning today.</p>
+      <Link to="/app/admin/cleaning" className="text-xs text-accent hover:underline block">
+        Edit cleaning schedule →
+      </Link>
     </div>
   );
 
-  const checkins  = rooms.filter((r) => r.checkin);
-  const checkouts = rooms.filter((r) => r.checkout);
+  return (
+    <section className="space-y-4">
+      {bbRooms.length > 0 && (
+        <div className="space-y-2">
+          <h2 className="font-display text-lg font-semibold flex items-center gap-2">
+            <Home className="h-4 w-4 text-emerald-500" /> B&amp;B Rooms to clean
+          </h2>
+          <div className="grid grid-cols-2 gap-2">
+            {bbRooms.map((r) => (
+              <div key={r.id} className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5">
+                <p className="font-semibold text-sm text-emerald-900">{r.room_name}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {cottages.length > 0 && (
+        <div className="space-y-2">
+          <h2 className="font-display text-lg font-semibold flex items-center gap-2">
+            <TreePine className="h-4 w-4 text-teal-500" /> Cottages to clean
+          </h2>
+          <div className="grid grid-cols-2 gap-2">
+            {cottages.map((r) => (
+              <div key={r.id} className="rounded-xl border border-teal-200 bg-teal-50 px-3 py-2.5">
+                <p className="font-semibold text-sm text-teal-900">{r.room_name}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      <Link to="/app/admin/cleaning" className="text-xs text-accent hover:underline block">
+        Edit cleaning schedule →
+      </Link>
+    </section>
+  );
+}
+
+// ── Admin overview KPIs ──────────────────────────────────────────────────
+
+type VolDetail = { id: string; name: string | null; role_type: string | null; start_date: string | null; end_date: string | null; whatsapp_number: string | null };
+type OverviewShift = { id: string; volunteer_id: string | null; volunteers: { id: string; name: string | null; whatsapp_number?: string | null } | null; shift_templates: { name: string | null; start_time: string | null; end_time: string | null } | null };
+
+function OverviewSection() {
+  const [stats, setStats] = useState<{
+    activeVolunteers: number;
+    shiftsToday: number;
+    upcomingDepartures: { name: string; end_date: string }[];
+    upcomingArrivals: { name: string; start_date: string }[];
+  } | null>(null);
+
+  const [showVolunteers, setShowVolunteers] = useState(false);
+  const [volOnProperty, setVolOnProperty] = useState<VolDetail[]>([]);
+  const [loadingVols, setLoadingVols] = useState(false);
+  const [deactivating, setDeactivating] = useState<string | null>(null);
+
+  const [showShifts, setShowShifts] = useState(false);
+  const [shiftsToday, setShiftsToday] = useState<OverviewShift[]>([]);
+  const [loadingShifts, setLoadingShifts] = useState(true);
+
+  const loadVols = useCallback(() => {
+    setLoadingVols(true);
+    hostackSupabase
+      .from("volunteers")
+      .select("id, name, role_type, start_date, end_date, whatsapp_number")
+      .eq("property_id", TORRIDONIA_PROPERTY_ID)
+      .eq("status", "active")
+      .order("name")
+      .then(({ data, error }) => {
+        if (error) console.error(error.message);
+        setVolOnProperty((data as VolDetail[]) ?? []);
+        setLoadingVols(false);
+      });
+  }, []);
+
+  useEffect(() => { if (showVolunteers) loadVols(); }, [showVolunteers, loadVols]);
+
+  // Load today's shifts on mount (always visible in card)
+  useEffect(() => {
+    setLoadingShifts(true);
+    const today = todayLocalYmd();
+    hostackSupabase
+      .from("shifts")
+      .select("id, volunteer_id, volunteers(id, name, whatsapp_number), shift_templates(name, start_time, end_time)")
+      .eq("property_id", TORRIDONIA_PROPERTY_ID)
+      .eq("shift_date", today)
+      .eq("status", "scheduled")
+      .then(({ data, error }) => {
+        if (error) console.error(error.message);
+        setShiftsToday((data as unknown as OverviewShift[]) ?? []);
+        setLoadingShifts(false);
+      });
+  }, []);
+
+  useEffect(() => {
+    const today = todayLocalYmd();
+    const weekEnd = new Date();
+    weekEnd.setDate(weekEnd.getDate() + 7);
+    const weekEndStr = `${weekEnd.getFullYear()}-${String(weekEnd.getMonth() + 1).padStart(2, "0")}-${String(weekEnd.getDate()).padStart(2, "0")}`;
+    Promise.all([
+      hostackSupabase.from("volunteers").select("id", { count: "exact" })
+        .eq("property_id", TORRIDONIA_PROPERTY_ID).eq("status", "active"),
+      hostackSupabase.from("shifts").select("id", { count: "exact" })
+        .eq("property_id", TORRIDONIA_PROPERTY_ID).eq("shift_date", today).eq("status", "scheduled"),
+      hostackSupabase.from("volunteers").select("name, end_date")
+        .eq("property_id", TORRIDONIA_PROPERTY_ID).eq("status", "active")
+        .gte("end_date", today).lte("end_date", weekEndStr).order("end_date", { ascending: true }),
+      hostackSupabase.from("volunteers").select("name, start_date")
+        .eq("property_id", TORRIDONIA_PROPERTY_ID).eq("status", "active")
+        .gte("start_date", today).lte("start_date", weekEndStr).order("start_date", { ascending: true }),
+    ]).then(([volRes, shiftsTodayRes, depsRes, arrivalsRes]) => {
+      setStats({
+        activeVolunteers: volRes.count ?? 0,
+        shiftsToday: shiftsTodayRes.count ?? 0,
+        upcomingDepartures: (depsRes.data ?? []) as { name: string; end_date: string }[],
+        upcomingArrivals: (arrivalsRes.data ?? []) as { name: string; start_date: string }[],
+      });
+    });
+  }, []);
+
+  const deactivateVol = async (volId: string) => {
+    setDeactivating(volId);
+    const { error } = await hostackSupabase
+      .from("volunteers")
+      .update({ status: "inactive" })
+      .eq("id", volId);
+    if (error) { toast.error(error.message); setDeactivating(null); return; }
+    setVolOnProperty((prev) => prev.filter((v) => v.id !== volId));
+    setStats((s) => s ? { ...s, activeVolunteers: Math.max(0, s.activeVolunteers - 1) } : s);
+    setDeactivating(null);
+    toast.success("Volunteer removed from active roster");
+  };
+
+  const fmtDate = (d: string): string => {
+    const date = new Date(d + "T00:00:00");
+    const day = date.getDate();
+    const month = date.toLocaleDateString("en-GB", { month: "short" }).toUpperCase();
+    const year = date.getFullYear();
+    if (year !== new Date().getFullYear()) return `${day} ${month} ${String(year).slice(2)}`;
+    return `${day} ${month}`;
+  };
+
+  if (!stats) return <div className="h-28 rounded-xl bg-secondary/30 animate-pulse" />;
+
+  const minutesSaved = (stats.shiftsToday) * 2;
 
   return (
-    <div className="grid grid-cols-2 gap-4">
-      {/* Arrivals — green */}
-      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-        <h3 className="text-sm font-semibold flex items-center gap-1.5 text-emerald-800 mb-3">
-          <LogIn className="h-4 w-4" /> {t("dash.checkinsToday")}
+    <div className="space-y-4">
+      <div className="grid grid-cols-3 gap-3">
+        <button onClick={() => setShowVolunteers(true)}
+          className="rounded-xl bg-secondary/40 p-4 space-y-1 text-left hover:bg-secondary/60 transition">
+          <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Users className="h-3.5 w-3.5" /> Active volunteers</p>
+          <p className="text-2xl font-semibold">{stats.activeVolunteers}</p>
+          <p className="text-xs text-muted-foreground">tap to manage</p>
+        </button>
+        <button onClick={() => setShowShifts(true)}
+          className="rounded-xl bg-secondary/40 p-4 space-y-1 text-left hover:bg-secondary/60 transition">
+          <p className="text-xs text-muted-foreground flex items-center gap-1.5"><CalendarCheck className="h-3.5 w-3.5" /> Shifts today</p>
+          <p className="text-2xl font-semibold">{stats.shiftsToday}</p>
+          <p className="text-xs text-muted-foreground">scheduled</p>
+        </button>
+        <div className="rounded-xl bg-secondary/40 p-4 space-y-1">
+          <p className="text-xs text-muted-foreground flex items-center gap-1.5"><TrendingUp className="h-3.5 w-3.5" /> Time saved</p>
+          <p className="text-2xl font-semibold">{minutesSaved} min</p>
+          <p className="text-xs text-muted-foreground">today</p>
+        </div>
+      </div>
+
+      {/* On shift today card */}
+      <div className="rounded-2xl border bg-card p-5 shadow-soft space-y-3">
+        <h3 className="font-medium text-sm flex items-center gap-2">
+          <CalendarCheck className="h-4 w-4 text-accent" /> On shift today
         </h3>
-        {checkins.length === 0 ? (
-          <p className="text-xs text-emerald-600/60">—</p>
-        ) : (
+        {loadingShifts ? (
           <div className="space-y-2">
-            {checkins.map((r, i) => (
-              <div key={i} className="rounded-xl bg-white/70 border border-emerald-100 px-3 py-2">
-                <p className="font-semibold text-sm text-emerald-900 leading-tight">{r.guest || r.room}</p>
-                {r.guest && <p className="text-xs text-emerald-700 mt-0.5">{r.room}</p>}
-                {r.guests > 0 && (
-                  <p className="text-xs text-emerald-600 font-medium mt-1">{r.guests} {t("dash.guests")}</p>
-                )}
-              </div>
-            ))}
+            {[1,2].map((i) => <div key={i} className="h-10 rounded-lg bg-secondary/40 animate-pulse" />)}
           </div>
+        ) : shiftsToday.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No shifts scheduled today.</p>
+        ) : (
+          <ul className="divide-y">
+            {shiftsToday.map((s, i) => {
+              const vol = Array.isArray(s.volunteers) ? s.volunteers[0] : s.volunteers;
+              const tpl = Array.isArray(s.shift_templates) ? s.shift_templates[0] : s.shift_templates;
+              const wa = vol?.whatsapp_number?.replace(/[^\d]/g, "");
+              return (
+                <li key={s.id ?? i} className="py-2.5 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-medium text-sm">{vol?.name ?? "—"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {tpl?.name ?? "—"}
+                      {tpl?.start_time ? ` · ${tpl.start_time.slice(0,5)}` : ""}
+                      {tpl?.end_time ? `–${tpl.end_time.slice(0,5)}` : ""}
+                    </p>
+                  </div>
+                  {wa && (
+                    <a href={`https://wa.me/${wa}`} target="_blank" rel="noopener noreferrer">
+                      <Button size="sm" variant="outline" className="shrink-0 gap-1.5">
+                        <MessageCircle className="h-3.5 w-3.5" />
+                      </Button>
+                    </a>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
         )}
       </div>
 
-      {/* Departures — red */}
-      <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
-        <h3 className="text-sm font-semibold flex items-center gap-1.5 text-red-800 mb-3">
-          <LogOut className="h-4 w-4" /> {t("dash.checkoutsToday")}
-        </h3>
-        {checkouts.length === 0 ? (
-          <p className="text-xs text-red-400/60">—</p>
-        ) : (
-          <div className="space-y-2">
-            {checkouts.map((r, i) => (
-              <div key={i} className="rounded-xl bg-white/70 border border-red-100 px-3 py-2">
-                <p className="font-semibold text-sm text-red-900 leading-tight">{r.room}</p>
-                {r.guests > 0 && <p className="text-xs text-red-500 mt-0.5">{r.guests} {t("dash.guests")}</p>}
-              </div>
-            ))}
-          </div>
-        )}
+      <div className="grid sm:grid-cols-2 gap-4">
+        <div className="rounded-2xl border bg-card p-5 shadow-soft space-y-3">
+          <h3 className="font-medium text-sm flex items-center gap-2"><UserX className="h-4 w-4 text-amber-500" /> Departures this week</h3>
+          {stats.upcomingDepartures.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No departures this week.</p>
+          ) : (
+            <ul className="divide-y">
+              {stats.upcomingDepartures.map((v) => (
+                <li key={v.name} className="py-2 flex items-center justify-between text-sm">
+                  <span className="font-medium">{v.name}</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700">{fmtDate(v.end_date)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div className="rounded-2xl border bg-card p-5 shadow-soft space-y-3">
+          <h3 className="font-medium text-sm flex items-center gap-2"><UserPlus className="h-4 w-4 text-emerald-500" /> Arrivals this week</h3>
+          {stats.upcomingArrivals.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No arrivals this week.</p>
+          ) : (
+            <ul className="divide-y">
+              {stats.upcomingArrivals.map((v) => (
+                <li key={v.name} className="py-2 flex items-center justify-between text-sm">
+                  <span className="font-medium">{v.name}</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700">{fmtDate(v.start_date)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
+
+      {/* Active volunteers dialog — with deactivate */}
+      <Dialog open={showVolunteers} onOpenChange={setShowVolunteers}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Users className="h-4 w-4" /> Active volunteers</DialogTitle>
+            <DialogDescription>Tap × to remove someone no longer on the rota.</DialogDescription>
+          </DialogHeader>
+          {loadingVols ? (
+            <p className="text-sm text-muted-foreground">Loading…</p>
+          ) : volOnProperty.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No active volunteers.</p>
+          ) : (
+            <ul className="divide-y max-h-80 overflow-y-auto">
+              {volOnProperty.map((v) => (
+                <li key={v.id} className="py-3 flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm">{v.name ?? "—"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {v.role_type}{v.start_date ? ` · ${fmtDate(v.start_date)} → ${v.end_date ? fmtDate(v.end_date) : ""}` : ""}
+                    </p>
+                  </div>
+                  {v.whatsapp_number && (
+                    <a href={`https://wa.me/${v.whatsapp_number.replace(/[^\d]/g, "")}`} target="_blank" rel="noopener noreferrer">
+                      <Button size="sm" variant="outline" className="shrink-0">
+                        <MessageCircle className="h-3.5 w-3.5" />
+                      </Button>
+                    </a>
+                  )}
+                  <Button
+                    size="sm" variant="ghost"
+                    className="shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    disabled={deactivating === v.id}
+                    onClick={() => deactivateVol(v.id)}
+                    title="Remove from active roster"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="pt-2 border-t">
+            <Link to="/app/admin" className="text-sm text-accent hover:underline inline-flex items-center gap-1" onClick={() => setShowVolunteers(false)}>
+              <Plus className="h-3.5 w-3.5" /> Add volunteer
+            </Link>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Shifts today dialog — data already loaded via on-mount effect */}
+      <Dialog open={showShifts} onOpenChange={setShowShifts}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><CalendarCheck className="h-4 w-4" /> Shifts today</DialogTitle>
+            <DialogDescription>{new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}</DialogDescription>
+          </DialogHeader>
+          {loadingShifts ? (
+            <p className="text-sm text-muted-foreground">Loading…</p>
+          ) : shiftsToday.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No shifts scheduled today.</p>
+          ) : (
+            <ul className="divide-y max-h-80 overflow-y-auto">
+              {shiftsToday.map((s, i) => {
+                const vol = Array.isArray(s.volunteers) ? s.volunteers[0] : s.volunteers;
+                const tpl = Array.isArray(s.shift_templates) ? s.shift_templates[0] : s.shift_templates;
+                return (
+                  <li key={s.id ?? i} className="py-3">
+                    <p className="font-medium text-sm">{vol?.name ?? "—"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {tpl?.name ?? "—"}
+                      {tpl?.start_time ? ` · ${tpl.start_time.slice(0, 5)}` : ""}
+                      {tpl?.end_time ? `–${tpl.end_time.slice(0, 5)}` : ""}
+                    </p>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -884,7 +1226,7 @@ function Dashboard() {
   const locale = LOCALE_MAP[lang] ?? "en-GB";
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6">
       <header>
         <p className="text-sm text-muted-foreground">
           {new Date().toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long" })}
@@ -894,14 +1236,21 @@ function Dashboard() {
         </h1>
       </header>
 
-      <section>
-        <h2 className="font-display text-xl font-semibold mb-4 flex items-center gap-2">
-          <Clock className="h-4 w-4 text-accent" /> {t("dash.today")}
-        </h2>
-        <TodayRooms />
-      </section>
+      <Tabs defaultValue="overview" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="today">Today</TabsTrigger>
+        </TabsList>
 
-      <AdminMatrix />
+        <TabsContent value="overview" className="space-y-4">
+          <OverviewSection />
+        </TabsContent>
+
+        <TabsContent value="today" className="space-y-6">
+          <TodayDepartures />
+          <AdminMatrix />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useLocation, Link, Outlet } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
@@ -12,22 +12,34 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
-import { Settings, Plus, UserCheck, UserX, Inbox, Users, Send, Copy, MessageCircle, Download, Printer, QrCode, Clock, TrendingUp, CalendarCheck, UserPlus, X } from "lucide-react";
+import { Settings, Plus, UserCheck, UserX, Inbox, Users, Send, Copy, MessageCircle, Download, Printer, QrCode, X, Pencil, Trash2, AlertTriangle, Link2, CalendarRange, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/app/admin")({ component: AdminPage });
 
-const VOLUNTEER_ROLES = ["Housekeeping", "Maintenance", "Special Task", "Family", "Team Leader"] as const;
+const VOLUNTEER_ROLES = ["Volunteer", "Manager", "Owner"] as const;
+
+function todayLocalYmd(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 function AdminPage() {
   const { isAdmin, loading, user } = useAuth();
   const { t } = useI18n();
   const navigate = useNavigate();
+  const loc = useLocation();
 
   useEffect(() => {
     if (!loading && !isAdmin) navigate({ to: "/app/dashboard" });
   }, [loading, isAdmin, navigate]);
 
+  if (loading) return null;
   if (!isAdmin) return null;
+
+  // Child routes (rota, cleaning) render themselves — just pass through
+  if (loc.pathname !== "/app/admin") {
+    return <Outlet />;
+  }
 
   return (
     <div className="space-y-6">
@@ -38,17 +50,40 @@ function AdminPage() {
         <p className="text-muted-foreground text-sm mt-1">{t("admin.sub")}</p>
       </header>
 
-      <Tabs defaultValue="overview" className="space-y-4">
-       <TabsList>
-          <TabsTrigger value="overview" className="gap-1.5"><TrendingUp className="h-3.5 w-3.5" /> Overview</TabsTrigger>
+      {/* Quick links to builder pages */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
+        <Link
+          to="/app/admin/rota"
+          className="rounded-2xl border bg-card p-4 hover:bg-secondary/40 transition flex items-center gap-3"
+        >
+          <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+            <CalendarRange className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <p className="font-semibold text-sm">Rota Builder</p>
+            <p className="text-xs text-muted-foreground">Assign volunteer shifts</p>
+          </div>
+        </Link>
+        <Link
+          to="/app/admin/cleaning"
+          className="rounded-2xl border bg-card p-4 hover:bg-secondary/40 transition flex items-center gap-3"
+        >
+          <div className="h-10 w-10 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
+            <Sparkles className="h-5 w-5 text-emerald-600" />
+          </div>
+          <div>
+            <p className="font-semibold text-sm">Cleaning Schedule</p>
+            <p className="text-xs text-muted-foreground">Rooms &amp; cottages to clean</p>
+          </div>
+        </Link>
+      </div>
+
+      <Tabs defaultValue="volunteers" className="space-y-4">
+        <TabsList>
           <TabsTrigger value="volunteers" className="gap-1.5"><Users className="h-3.5 w-3.5" /> {t("admin.tabVolunteers")}</TabsTrigger>
-          <TabsTrigger value="tasks" className="gap-1.5"><CalendarCheck className="h-3.5 w-3.5" /> Tasks</TabsTrigger>
+          <TabsTrigger value="tasks" className="gap-1.5"><Settings className="h-3.5 w-3.5" /> Tasks</TabsTrigger>
           <TabsTrigger value="onboarding" className="gap-1.5"><QrCode className="h-3.5 w-3.5" /> Onboarding</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="overview" className="space-y-4">
-          <OverviewSection />
-        </TabsContent>
 
         <TabsContent value="volunteers" className="space-y-6">
           <VolunteersSection currentAuthUserId={user?.id ?? null} />
@@ -67,257 +102,6 @@ function AdminPage() {
   );
 }
 
-// =================== Overview section ===================
-
-type VolDetail = { id: string; name: string | null; role_type: string | null; start_date: string | null; end_date: string | null; whatsapp_number: string | null };
-type ShiftDetail = { id: string; volunteer_id: string | null; volunteers: { id: string; name: string | null } | null; shift_templates: { name: string | null; start_time: string | null; end_time: string | null } | null };
-
-function OverviewSection() {
-  const { t } = useI18n();
-  const [stats, setStats] = useState<{
-    activeVolunteers: number;
-    shiftsToday: number;
-    shiftsThisWeek: number;
-    upcomingDepartures: { name: string; end_date: string }[];
-    upcomingArrivals: { name: string; start_date: string }[];
-  } | null>(null);
-
-  const [showVolunteers, setShowVolunteers] = useState(false);
-  const [volOnProperty, setVolOnProperty] = useState<VolDetail[]>([]);
-  const [loadingVols, setLoadingVols] = useState(false);
-
-  const [showShifts, setShowShifts] = useState(false);
-  const [shiftsToday, setShiftsToday] = useState<ShiftDetail[]>([]);
-  const [loadingShifts, setLoadingShifts] = useState(false);
-
-  useEffect(() => {
-    if (!showVolunteers) return;
-    setLoadingVols(true);
-    hostackSupabase
-      .from("volunteers")
-      .select("id, name, role_type, start_date, end_date, whatsapp_number")
-      .eq("property_id", TORRIDONIA_PROPERTY_ID)
-      .eq("status", "active")
-      .order("name")
-      .then(({ data, error }) => {
-        if (error) console.error("volunteers dialog:", error.message);
-        setVolOnProperty((data as VolDetail[]) ?? []);
-        setLoadingVols(false);
-      });
-  }, [showVolunteers]);
-
-  useEffect(() => {
-    if (!showShifts) return;
-    setLoadingShifts(true);
-    const today = new Date().toISOString().split("T")[0];
-    hostackSupabase
-      .from("shifts")
-      .select("id, volunteer_id, volunteers(id, name), shift_templates(name, start_time, end_time)")
-      .eq("property_id", TORRIDONIA_PROPERTY_ID)
-      .eq("shift_date", today)
-      .eq("status", "scheduled")
-      .then(({ data, error }) => {
-        if (error) console.error("shifts dialog:", error.message);
-        setShiftsToday((data as unknown as ShiftDetail[]) ?? []);
-        setLoadingShifts(false);
-      });
-  }, [showShifts]);
-
-  useEffect(() => {
-    const load = async () => {
-      const today = new Date().toISOString().split("T")[0];
-      const weekEnd = new Date();
-      weekEnd.setDate(weekEnd.getDate() + 7);
-      const weekEndStr = weekEnd.toISOString().split("T")[0];
-
-      const [volRes, shiftsTodayRes, shiftsWeekRes, depsRes, arrivalsRes] = await Promise.all([
-        hostackSupabase.from("volunteers").select("id", { count: "exact" })
-          .eq("property_id", TORRIDONIA_PROPERTY_ID).eq("status", "active"),
-        hostackSupabase.from("shifts").select("id", { count: "exact" })
-          .eq("property_id", TORRIDONIA_PROPERTY_ID).eq("shift_date", today).eq("status", "scheduled"),
-        hostackSupabase.from("shifts").select("id", { count: "exact" })
-          .eq("property_id", TORRIDONIA_PROPERTY_ID).eq("status", "scheduled")
-          .gte("shift_date", today).lte("shift_date", weekEndStr),
-        hostackSupabase.from("volunteers").select("name, end_date")
-          .eq("property_id", TORRIDONIA_PROPERTY_ID).eq("status", "active")
-          .gte("end_date", today).lte("end_date", weekEndStr)
-          .order("end_date", { ascending: true }),
-        hostackSupabase.from("volunteers").select("name, start_date")
-          .eq("property_id", TORRIDONIA_PROPERTY_ID).eq("status", "active")
-          .gte("start_date", today).lte("start_date", weekEndStr)
-          .order("start_date", { ascending: true }),
-      ]);
-
-      setStats({
-        activeVolunteers: volRes.count ?? 0,
-        shiftsToday: shiftsTodayRes.count ?? 0,
-        shiftsThisWeek: shiftsWeekRes.count ?? 0,
-        upcomingDepartures: (depsRes.data ?? []) as { name: string; end_date: string }[],
-        upcomingArrivals: (arrivalsRes.data ?? []) as { name: string; start_date: string }[],
-      });
-    };
-    load();
-  }, []);
-
-  const minutesSavedToday = (stats?.shiftsToday ?? 0) * 2;
-  const minutesSavedMonth = minutesSavedToday * 20;
-  const hoursSavedMonth = (minutesSavedMonth / 60).toFixed(1);
-
-  const formatDate = (d: string) =>
-    new Date(d + "T00:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
-
-  if (!stats) return <p className="text-sm text-muted-foreground">Loading overview…</p>;
-
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <button onClick={() => setShowVolunteers(true)} className="rounded-xl bg-secondary/40 p-4 space-y-1 text-left cursor-pointer hover:bg-secondary/60 transition">
-          <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Users className="h-3.5 w-3.5" /> Active volunteers</p>
-          <p className="text-2xl font-semibold">{stats.activeVolunteers}</p>
-          <p className="text-xs text-muted-foreground">{t("admin.volOnProperty")}</p>
-        </button>
-        <button onClick={() => setShowShifts(true)} className="rounded-xl bg-secondary/40 p-4 space-y-1 text-left cursor-pointer hover:bg-secondary/60 transition">
-          <p className="text-xs text-muted-foreground flex items-center gap-1.5"><CalendarCheck className="h-3.5 w-3.5" /> Shifts today</p>
-          <p className="text-2xl font-semibold">{stats.shiftsToday}</p>
-          <p className="text-xs text-muted-foreground">scheduled</p>
-        </button>
-        <div className="rounded-xl bg-secondary/40 p-4 space-y-1">
-          <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> Time saved today</p>
-          <p className="text-2xl font-semibold">{minutesSavedToday} min</p>
-          <p className="text-xs text-muted-foreground">vs. manual briefing</p>
-        </div>
-        <div className="rounded-xl bg-secondary/40 p-4 space-y-1">
-          <p className="text-xs text-muted-foreground flex items-center gap-1.5"><TrendingUp className="h-3.5 w-3.5" /> Saved this month</p>
-          <p className="text-2xl font-semibold">{hoursSavedMonth} hrs</p>
-          <p className="text-xs text-muted-foreground">estimated</p>
-        </div>
-      </div>
-
-      <div className="grid sm:grid-cols-2 gap-4">
-        <div className="rounded-2xl border bg-card p-5 shadow-soft space-y-3">
-          <h3 className="font-medium text-sm flex items-center gap-2"><UserX className="h-4 w-4 text-amber-500" /> Departures this week</h3>
-          {stats.upcomingDepartures.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No departures this week.</p>
-          ) : (
-            <ul className="divide-y">
-              {stats.upcomingDepartures.map((v) => (
-                <li key={v.name} className="py-2 flex items-center justify-between text-sm">
-                  <span className="font-medium">{v.name}</span>
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700">{formatDate(v.end_date)}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        <div className="rounded-2xl border bg-card p-5 shadow-soft space-y-3">
-          <h3 className="font-medium text-sm flex items-center gap-2"><UserPlus className="h-4 w-4 text-emerald-500" /> Arrivals this week</h3>
-          {stats.upcomingArrivals.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No arrivals this week.</p>
-          ) : (
-            <ul className="divide-y">
-              {stats.upcomingArrivals.map((v) => (
-                <li key={v.name} className="py-2 flex items-center justify-between text-sm">
-                  <span className="font-medium">{v.name}</span>
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700">{formatDate(v.start_date)}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
-
-      <div className="rounded-2xl border bg-card p-5 shadow-soft">
-        <h3 className="font-medium text-sm mb-3 flex items-center gap-2"><Clock className="h-4 w-4 text-accent" /> Time saved by Hostack</h3>
-        <div className="grid grid-cols-3 gap-4 text-center">
-          <div>
-            <p className="text-xs text-muted-foreground mb-1">Per briefing</p>
-            <p className="text-lg font-semibold">2 min</p>
-            <p className="text-xs text-muted-foreground">per volunteer</p>
-          </div>
-          <div className="border-x">
-            <p className="text-xs text-muted-foreground mb-1">Today total</p>
-            <p className="text-lg font-semibold">{minutesSavedToday} min</p>
-            <p className="text-xs text-muted-foreground">{stats.shiftsToday} volunteers</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground mb-1">This month</p>
-            <p className="text-lg font-semibold">~{hoursSavedMonth} hrs</p>
-            <p className="text-xs text-muted-foreground">manager time</p>
-          </div>
-        </div>
-        <p className="text-xs text-muted-foreground mt-3 pt-3 border-t">
-          Baseline: 2 min/volunteer briefing saved vs. manual WhatsApp coordination (previous method: 2–4 min each).
-        </p>
-      </div>
-
-      {/* Active volunteers dialog */}
-      <Dialog open={showVolunteers} onOpenChange={setShowVolunteers}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><Users className="h-4 w-4" /> Volunteers on property</DialogTitle>
-            <DialogDescription>{t("admin.volOnProperty")}</DialogDescription>
-          </DialogHeader>
-          {loadingVols ? (
-            <p className="text-sm text-muted-foreground">Loading…</p>
-          ) : volOnProperty.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{t("admin.noVolunteers")}</p>
-          ) : (
-            <ul className="divide-y max-h-80 overflow-y-auto">
-              {volOnProperty.map((v) => (
-                <li key={v.id} className="py-3 flex items-center justify-between gap-3">
-                  <div>
-                    <p className="font-medium text-sm">{v.name ?? "—"}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {v.role_type}{v.start_date ? ` · ${v.start_date} → ${v.end_date}` : ""}
-                    </p>
-                  </div>
-                  {v.whatsapp_number && (
-                    <a href={`https://wa.me/${v.whatsapp_number.replace(/[^\d]/g, "")}`} target="_blank" rel="noopener noreferrer">
-                      <Button size="sm" variant="outline" className="gap-1.5 shrink-0">
-                        <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
-                      </Button>
-                    </a>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Shifts today dialog */}
-      <Dialog open={showShifts} onOpenChange={setShowShifts}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><CalendarCheck className="h-4 w-4" /> Shifts today</DialogTitle>
-            <DialogDescription>{new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}</DialogDescription>
-          </DialogHeader>
-          {loadingShifts ? (
-            <p className="text-sm text-muted-foreground">Loading…</p>
-          ) : shiftsToday.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No shifts scheduled today.</p>
-          ) : (
-            <ul className="divide-y max-h-80 overflow-y-auto">
-              {shiftsToday.map((s, i) => (
-                <li key={s.id ?? i} className="py-3 flex items-center justify-between gap-3">
-                  <div>
-                    <p className="font-medium text-sm">{s.volunteers?.name ?? "—"}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {s.shift_templates?.name ?? "—"}
-                      {s.shift_templates?.start_time ? ` · ${s.shift_templates.start_time.slice(0, 5)}` : ""}
-                      {s.shift_templates?.end_time ? `–${s.shift_templates.end_time.slice(0, 5)}` : ""}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
 // =================== Volunteers section ===================
 
 type Volunteer = {
@@ -330,6 +114,17 @@ type Volunteer = {
   whatsapp_number: string | null;
   email: string | null;
   auth_user_id: string | null;
+  room: string | null;
+};
+
+const fmtDate = (d: string | null): string => {
+  if (!d) return "—";
+  const date = new Date(d + "T00:00:00");
+  const day = date.getDate();
+  const month = date.toLocaleDateString("en-GB", { month: "short" }).toUpperCase();
+  const year = date.getFullYear();
+  if (year !== new Date().getFullYear()) return `${day} ${month} ${String(year).slice(2)}`;
+  return `${day} ${month}`;
 };
 
 function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | null }) {
@@ -338,16 +133,19 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
   const [name, setName] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [role, setRole] = useState<typeof VOLUNTEER_ROLES[number]>("Housekeeping");
+  const [role, setRole] = useState<typeof VOLUNTEER_ROLES[number]>("Volunteer");
   const [whatsapp, setWhatsapp] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [invite, setInvite] = useState<{ url: string; name: string; whatsapp: string } | null>(null);
+  const [editingVol, setEditingVol] = useState<Volunteer | null>(null);
+  const [deletingVol, setDeletingVol] = useState<Volunteer | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const { t } = useI18n();
 
   const reload = async () => {
     const { data } = await hostackSupabase
       .from("volunteers")
-      .select("id, name, role_type, start_date, end_date, status, whatsapp_number, email, auth_user_id")
+      .select("id, name, role_type, start_date, end_date, status, whatsapp_number, email, auth_user_id, room")
       .eq("property_id", TORRIDONIA_PROPERTY_ID)
       .order("start_date", { ascending: false });
     setList((data as Volunteer[]) ?? []);
@@ -409,7 +207,7 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
     }
     await createInvitation(name, role, whatsapp);
     toast.success("Volunteer added");
-    setName(""); setStartDate(""); setEndDate(""); setWhatsapp(""); setRole("Housekeeping");
+    setName(""); setStartDate(""); setEndDate(""); setWhatsapp(""); setRole("Volunteer");
     await reload();
     setSubmitting(false);
   };
@@ -419,8 +217,52 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
     await createInvitation(v.name, v.role_type ?? "volunteer", v.whatsapp_number ?? "");
   };
 
+  const deleteVol = async () => {
+    if (!deletingVol) return;
+    setDeleting(true);
+    const { error } = await hostackSupabase
+      .from("volunteers")
+      .update({ status: "inactive" })
+      .eq("id", deletingVol.id);
+    if (error) { toast.error(error.message); setDeleting(false); return; }
+    setList((prev) => prev.filter((v) => v.id !== deletingVol.id));
+    toast.success(`${deletingVol.name ?? "Volunteer"} removed`);
+    setDeletingVol(null);
+    setDeleting(false);
+  };
+
+  const unlinked = list.filter((v) => v.status === "active" && !v.auth_user_id);
+
   return (
     <>
+      {unlinked.length > 0 && (
+        <div className="rounded-2xl border border-amber-300 bg-amber-50 p-5 space-y-3">
+          <h3 className="font-medium text-sm flex items-center gap-2 text-amber-800">
+            <AlertTriangle className="h-4 w-4" /> {unlinked.length} volunteer{unlinked.length > 1 ? "s" : ""} not connected
+          </h3>
+          <p className="text-xs text-amber-700">
+            These volunteers are in the rota but haven't linked their account. Send them a fresh invite link so they can log in and see their shifts.
+          </p>
+          <ul className="divide-y divide-amber-200">
+            {unlinked.map((v) => (
+              <li key={v.id} className="py-2.5 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-medium text-sm text-amber-900">{v.name ?? "—"}</p>
+                  <p className="text-xs text-amber-700">{v.role_type} · {v.start_date ? fmtDate(v.start_date) : "—"} → {v.end_date ? fmtDate(v.end_date) : "—"}</p>
+                </div>
+                <Button
+                  size="sm"
+                  className="shrink-0 gap-1.5 bg-amber-600 hover:bg-amber-700 text-white"
+                  onClick={() => sendInvite(v)}
+                >
+                  <Link2 className="h-3.5 w-3.5" /> Send invite
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="rounded-2xl border bg-card p-6 shadow-soft space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-xl font-semibold flex items-center gap-2">
@@ -451,21 +293,29 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
                   <tr key={v.id}>
                     <td className="py-2 pr-3 font-medium">{v.name || "—"}</td>
                     <td className="py-2 pr-3">{v.role_type || "—"}</td>
-                    <td className="py-2 pr-3">{v.start_date || "—"}</td>
-                    <td className="py-2 pr-3">{v.end_date || "—"}</td>
+                    <td className="py-2 pr-3 whitespace-nowrap">{fmtDate(v.start_date)}</td>
+                    <td className="py-2 pr-3 whitespace-nowrap">{fmtDate(v.end_date)}</td>
                     <td className="py-2 pr-3">
                       {v.auth_user_id ? (
                         <Badge className="bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/20">Active</Badge>
                       ) : (
-                        <Badge variant="secondary">Not registered</Badge>
+                        <Badge variant="secondary">Pending</Badge>
                       )}
                     </td>
                     <td className="py-2 text-right">
-                      {!v.auth_user_id && (
-                        <Button size="sm" variant="outline" className="gap-1.5" onClick={() => sendInvite(v)}>
-                          <Send className="h-3.5 w-3.5" /> {t("admin.invite")}
+                      <div className="flex items-center justify-end gap-1">
+                        {!v.auth_user_id && (
+                          <Button size="sm" variant="ghost" title="Send invite" onClick={() => sendInvite(v)}>
+                            <Send className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                        <Button size="sm" variant="ghost" title="Edit" onClick={() => setEditingVol(v)}>
+                          <Pencil className="h-3.5 w-3.5" />
                         </Button>
-                      )}
+                        <Button size="sm" variant="ghost" title="Remove" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeletingVol(v)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -503,6 +353,39 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
       </div>
 
       <InviteDialog invite={invite} onClose={() => setInvite(null)} />
+
+      {/* Edit dialog */}
+      <EditVolunteerDialog
+        volunteer={editingVol}
+        onClose={() => setEditingVol(null)}
+        onSave={(updated) => {
+          setList((prev) => prev.map((v) => v.id === updated.id ? updated : v));
+          setEditingVol(null);
+        }}
+      />
+
+      {/* Delete confirm dialog */}
+      <Dialog open={!!deletingVol} onOpenChange={(o) => { if (!o) setDeletingVol(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Remove volunteer</DialogTitle>
+            <DialogDescription>
+              Remove <strong>{deletingVol?.name}</strong> from the active roster? Their data and shifts are preserved.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2 pt-2">
+            <Button
+              variant="destructive"
+              className="flex-1"
+              disabled={deleting}
+              onClick={deleteVol}
+            >
+              {deleting ? "Removing…" : "Remove"}
+            </Button>
+            <Button variant="outline" onClick={() => setDeletingVol(null)}>Cancel</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
@@ -547,6 +430,127 @@ function InviteDialog({ invite, onClose }: { invite: { url: string; name: string
   );
 }
 
+// =================== Edit volunteer dialog ===================
+
+function EditVolunteerDialog({
+  volunteer,
+  onClose,
+  onSave,
+}: {
+  volunteer: Volunteer | null;
+  onClose: () => void;
+  onSave: (updated: Volunteer) => void;
+}) {
+  const [name, setName] = useState("");
+  const [role, setRole] = useState<string>("Volunteer");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [email, setEmail] = useState("");
+  const [room, setRoom] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (volunteer) {
+      setName(volunteer.name ?? "");
+      setRole(volunteer.role_type ?? "Volunteer");
+      setStartDate(volunteer.start_date ?? "");
+      setEndDate(volunteer.end_date ?? "");
+      setWhatsapp(volunteer.whatsapp_number ?? "");
+      setEmail(volunteer.email ?? "");
+      setRoom(volunteer.room ?? "");
+    }
+  }, [volunteer]);
+
+  const save = async () => {
+    if (!volunteer || !name.trim() || !startDate || !endDate) return;
+    setSaving(true);
+    const { error } = await hostackSupabase
+      .from("volunteers")
+      .update({
+        name: name.trim(),
+        role_type: role,
+        start_date: startDate,
+        end_date: endDate,
+        whatsapp_number: whatsapp.trim() || null,
+        email: email.trim() || null,
+        room: room.trim() || null,
+      })
+      .eq("id", volunteer.id);
+    if (error) { toast.error(error.message); setSaving(false); return; }
+    toast.success("Volunteer updated");
+    onSave({
+      ...volunteer,
+      name: name.trim(),
+      role_type: role,
+      start_date: startDate,
+      end_date: endDate,
+      whatsapp_number: whatsapp.trim() || null,
+      email: email.trim() || null,
+      room: room.trim() || null,
+    });
+    setSaving(false);
+  };
+
+  return (
+    <Dialog open={!!volunteer} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Pencil className="h-4 w-4" /> Edit volunteer
+          </DialogTitle>
+          <DialogDescription>Update {volunteer?.name}&apos;s profile</DialogDescription>
+        </DialogHeader>
+        <div className="grid sm:grid-cols-2 gap-3 pt-1">
+          <div className="sm:col-span-2">
+            <label className="text-xs text-muted-foreground block mb-1">Full name</label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">Role</label>
+            <Select value={role} onValueChange={setRole}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {VOLUNTEER_ROLES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">Room</label>
+            <Input value={room} onChange={(e) => setRoom(e.target.value)} placeholder="Room 7" />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">Start date</label>
+            <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">End date</label>
+            <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">Email</label>
+            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@example.com" />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">WhatsApp</label>
+            <Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="+44 7700 900000" />
+          </div>
+        </div>
+        <div className="flex gap-2 pt-2">
+          <Button
+            onClick={save}
+            disabled={saving || !name.trim() || !startDate || !endDate}
+            className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90"
+          >
+            {saving ? "Saving…" : "Save changes"}
+          </Button>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // =================== Pending access requests ===================
 
 type AccessRequest = {
@@ -580,7 +584,7 @@ function PendingRequests() {
 
   const approve = async (req: AccessRequest) => {
     setBusyId(req.id);
-    const today = new Date().toISOString().split("T")[0];
+    const today = todayLocalYmd();
     const { error: updErr } = await hostackSupabase
       .from("staff_access_requests")
       .update({ status: "approved" })
@@ -771,15 +775,15 @@ function TasksSection() {
   const [loading, setLoading] = useState(true);
   const [volId, setVolId] = useState("");
   const [title, setTitle] = useState("");
-  const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [date, setDate] = useState(() => todayLocalYmd());
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const { user } = useAuth();
 
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = todayLocalYmd();
   const weekEnd = new Date();
   weekEnd.setDate(weekEnd.getDate() + 7);
-  const weekEndStr = weekEnd.toISOString().split("T")[0];
+  const weekEndStr = `${weekEnd.getFullYear()}-${String(weekEnd.getMonth() + 1).padStart(2, "0")}-${String(weekEnd.getDate()).padStart(2, "0")}`;
 
   const reload = async () => {
     const [{ data: vols }, { data: taskData }] = await Promise.all([

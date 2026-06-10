@@ -18,6 +18,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as JoinRouteImport } from './routes/join'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AppRouteImport } from './routes/app'
+import { Route as DemoRouteImport } from './routes/demo'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SopsSopSlugRouteImport } from './routes/sops.$sopSlug'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
@@ -32,6 +33,7 @@ import { Route as AppAdventuresRouteImport } from './routes/app.adventures'
 import { Route as AppAdminRouteImport } from './routes/app.admin'
 import { Route as AppGuidebookIndexRouteImport } from './routes/app.guidebook.index'
 import { Route as AppAdminRotaRouteImport } from './routes/app.admin.rota'
+import { Route as AppAdminCleaningRouteImport } from './routes/app.admin.cleaning'
 import { Route as AppGuidebookSopSopIdRouteImport } from './routes/app.guidebook.sop.$sopId'
 
 const VolunteerAccessRoute = VolunteerAccessRouteImport.update({
@@ -77,6 +79,11 @@ const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
 const AppRoute = AppRouteImport.update({
   id: '/app',
   path: '/app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DemoRoute = DemoRouteImport.update({
+  id: '/demo',
+  path: '/demo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -149,6 +156,11 @@ const AppAdminRotaRoute = AppAdminRotaRouteImport.update({
   path: '/rota',
   getParentRoute: () => AppAdminRoute,
 } as any)
+const AppAdminCleaningRoute = AppAdminCleaningRouteImport.update({
+  id: '/cleaning',
+  path: '/cleaning',
+  getParentRoute: () => AppAdminRoute,
+} as any)
 const AppGuidebookSopSopIdRoute = AppGuidebookSopSopIdRouteImport.update({
   id: '/sop/$sopId',
   path: '/sop/$sopId',
@@ -157,6 +169,7 @@ const AppGuidebookSopSopIdRoute = AppGuidebookSopSopIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/demo': typeof DemoRoute
   '/app': typeof AppRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
   '/join': typeof JoinRoute
@@ -178,11 +191,13 @@ export interface FileRoutesByFullPath {
   '/invite/$token': typeof InviteTokenRoute
   '/sops/$sopSlug': typeof SopsSopSlugRoute
   '/app/admin/rota': typeof AppAdminRotaRoute
+  '/app/admin/cleaning': typeof AppAdminCleaningRoute
   '/app/guidebook/': typeof AppGuidebookIndexRoute
   '/app/guidebook/sop/$sopId': typeof AppGuidebookSopSopIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/demo': typeof DemoRoute
   '/app': typeof AppRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
   '/join': typeof JoinRoute
@@ -203,12 +218,14 @@ export interface FileRoutesByTo {
   '/invite/$token': typeof InviteTokenRoute
   '/sops/$sopSlug': typeof SopsSopSlugRoute
   '/app/admin/rota': typeof AppAdminRotaRoute
+  '/app/admin/cleaning': typeof AppAdminCleaningRoute
   '/app/guidebook': typeof AppGuidebookIndexRoute
   '/app/guidebook/sop/$sopId': typeof AppGuidebookSopSopIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/demo': typeof DemoRoute
   '/app': typeof AppRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
   '/join': typeof JoinRoute
@@ -230,6 +247,7 @@ export interface FileRoutesById {
   '/invite/$token': typeof InviteTokenRoute
   '/sops/$sopSlug': typeof SopsSopSlugRoute
   '/app/admin/rota': typeof AppAdminRotaRoute
+  '/app/admin/cleaning': typeof AppAdminCleaningRoute
   '/app/guidebook/': typeof AppGuidebookIndexRoute
   '/app/guidebook/sop/$sopId': typeof AppGuidebookSopSopIdRoute
 }
@@ -237,6 +255,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/demo'
     | '/app'
     | '/forgot-password'
     | '/join'
@@ -258,11 +277,13 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/sops/$sopSlug'
     | '/app/admin/rota'
+    | '/app/admin/cleaning'
     | '/app/guidebook/'
     | '/app/guidebook/sop/$sopId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/demo'
     | '/app'
     | '/forgot-password'
     | '/join'
@@ -283,11 +304,13 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/sops/$sopSlug'
     | '/app/admin/rota'
+    | '/app/admin/cleaning'
     | '/app/guidebook'
     | '/app/guidebook/sop/$sopId'
   id:
     | '__root__'
     | '/'
+    | '/demo'
     | '/app'
     | '/forgot-password'
     | '/join'
@@ -309,12 +332,14 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/sops/$sopSlug'
     | '/app/admin/rota'
+    | '/app/admin/cleaning'
     | '/app/guidebook/'
     | '/app/guidebook/sop/$sopId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DemoRoute: typeof DemoRoute
   AppRoute: typeof AppRouteWithChildren
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   JoinRoute: typeof JoinRoute
@@ -397,6 +422,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/demo': {
+      id: '/demo'
+      path: '/demo'
+      fullPath: '/demo'
+      preLoaderRoute: typeof DemoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sops/$sopSlug': {
@@ -490,6 +522,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminRotaRouteImport
       parentRoute: typeof AppAdminRoute
     }
+    '/app/admin/cleaning': {
+      id: '/app/admin/cleaning'
+      path: '/cleaning'
+      fullPath: '/app/admin/cleaning'
+      preLoaderRoute: typeof AppAdminCleaningRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
     '/app/guidebook/sop/$sopId': {
       id: '/app/guidebook/sop/$sopId'
       path: '/sop/$sopId'
@@ -502,10 +541,12 @@ declare module '@tanstack/react-router' {
 
 interface AppAdminRouteChildren {
   AppAdminRotaRoute: typeof AppAdminRotaRoute
+  AppAdminCleaningRoute: typeof AppAdminCleaningRoute
 }
 
 const AppAdminRouteChildren: AppAdminRouteChildren = {
   AppAdminRotaRoute: AppAdminRotaRoute,
+  AppAdminCleaningRoute: AppAdminCleaningRoute,
 }
 
 const AppAdminRouteWithChildren = AppAdminRoute._addFileChildren(
@@ -564,6 +605,7 @@ const SopsRouteWithChildren = SopsRoute._addFileChildren(SopsRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DemoRoute: DemoRoute,
   AppRoute: AppRouteWithChildren,
   ForgotPasswordRoute: ForgotPasswordRoute,
   JoinRoute: JoinRoute,

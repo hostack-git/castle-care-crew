@@ -48,11 +48,35 @@ function InvitePage() {
         data: { full_name: invitation.name, role: "volunteer", property_id: TORRIDONIA_PROPERTY_ID },
       });
 
-      await hostackSupabase
+      // Robust name-based lookup: try exact case-insensitive, then first-word prefix
+      const invName = (invitation.name ?? "").trim();
+      let volId: string | null = null;
+
+      const { data: exactMatch } = await hostackSupabase
         .from("volunteers")
-        .update({ auth_user_id: anon.user.id })
-        .eq("name", invitation.name)
-        .eq("property_id", TORRIDONIA_PROPERTY_ID);
+        .select("id")
+        .eq("property_id", TORRIDONIA_PROPERTY_ID)
+        .ilike("name", invName)
+        .maybeSingle();
+      volId = (exactMatch as { id: string } | null)?.id ?? null;
+
+      if (!volId && invName) {
+        const firstName = invName.split(" ")[0];
+        const { data: prefixMatch } = await hostackSupabase
+          .from("volunteers")
+          .select("id")
+          .eq("property_id", TORRIDONIA_PROPERTY_ID)
+          .ilike("name", `${firstName}%`)
+          .maybeSingle();
+        volId = (prefixMatch as { id: string } | null)?.id ?? null;
+      }
+
+      if (volId) {
+        await hostackSupabase
+          .from("volunteers")
+          .update({ auth_user_id: anon.user.id })
+          .eq("id", volId);
+      }
 
       await hostackSupabase
         .from("staff_invitations")
@@ -64,7 +88,7 @@ function InvitePage() {
         .from("volunteers")
         .select("whatsapp_number")
         .eq("property_id", TORRIDONIA_PROPERTY_ID)
-        .ilike("name", invitation.name ?? "")
+        .ilike("name", invName)
         .maybeSingle();
 
       const hasContact = !!(vol as { whatsapp_number?: string | null } | null)?.whatsapp_number;

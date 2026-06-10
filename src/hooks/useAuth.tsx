@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
-import { hostackSupabase } from "@/integrations/hostack/client";
+import { hostackSupabase, IS_DEMO } from "@/integrations/hostack/client";
 
 type Profile = {
   id: string;
@@ -40,11 +40,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const applyAnonymousVolunteer = (currentUser: User) => {
+    const meta = currentUser.user_metadata as { demo_admin?: boolean; full_name?: string } | undefined;
+    const isDemoAdmin = meta?.demo_admin === true;
     setUser(currentUser);
-    setIsVolunteer(true);
-    setProfile(null);
-    setIsAdmin(false);
-    setIsRoomManager(false);
+    setIsVolunteer(!isDemoAdmin);
+    setIsAdmin(isDemoAdmin);
+    setIsRoomManager(isDemoAdmin);
+    if (isDemoAdmin) {
+      setProfile({
+        id: currentUser.id,
+        full_name: meta?.full_name ?? 'Demo Manager',
+        email: null,
+        phone: null,
+        language: 'en',
+        nationality: null,
+        passport_number: null,
+        passport_url: null,
+        avatar_url: null,
+        bio: null,
+        onboarded: true,
+      });
+    } else {
+      setProfile(null);
+    }
     setLoading(false);
   };
 
@@ -157,7 +175,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await hostackSupabase.auth.signOut();
-    window.location.href = "/staffapp/";
+    window.location.href = IS_DEMO ? "/staffapp/demo" : "/staffapp/";
   };
 
   return (
