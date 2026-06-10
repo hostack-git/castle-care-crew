@@ -3,9 +3,8 @@ import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useI18n, LOCALE_MAP } from "@/lib/i18n";
 import { hostackSupabase, TORRIDONIA_PROPERTY_ID } from "@/integrations/hostack/client";
-import { Calendar, Clock, CheckCircle2, Circle, BookOpen, ChevronLeft, ChevronRight, MessageCircle, Plus, X, LogOut, Search, Copy, Users, TrendingUp, CalendarCheck, UserX, UserPlus, Home } from "lucide-react";
+import { Calendar, Clock, CheckCircle2, Circle, BookOpen, ChevronLeft, ChevronRight, MessageCircle, Plus, X, LogOut, Search, Copy, Users, TrendingUp, CalendarCheck, UserX, UserPlus, Home, TreePine } from "lucide-react";
 import { startOfWeekMondayUTC } from "@/lib/rota-utils";
-import { loadTodaysRooms, type RoomEntry } from "@/lib/amenitiz-parser";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -49,6 +48,8 @@ type ShiftTask = {
   notes: string | null;
   shift_date: string;
 };
+
+type CleaningEntry = { id: string; room_name: string; room_type: string };
 
 function pickTemplate(t: Shift["shift_templates"]): ShiftTemplate | null {
   if (!t) return null;
@@ -109,7 +110,7 @@ function VolunteerDashboard() {
   const [volunteerId, setVolunteerId] = useState<string | null>(null);
   const [volunteerStatus, setVolunteerStatus] = useState<string | null>(null);
   const [roleType, setRoleType] = useState<string | null>(null);
-  const [rooms, setRooms] = useState<RoomEntry[] | null>(null);
+  const [cleaningRooms, setCleaningRooms] = useState<CleaningEntry[]>([]);
   const [shiftTasks, setShiftTasks] = useState<ShiftTask[]>([]);
   const [volunteerLinked, setVolunteerLinked] = useState<boolean | null>(null);
 
@@ -128,7 +129,19 @@ function VolunteerDashboard() {
 
   useEffect(() => {
     const today = todayLocalYmd();
-    loadTodaysRooms(today).then((r) => setRooms(r)).catch(() => setRooms(null));
+    hostackSupabase
+      .from("cleaning_schedule")
+      .select("id, property_rooms(name, type)")
+      .eq("property_id", TORRIDONIA_PROPERTY_ID)
+      .eq("clean_date", today)
+      .then(({ data }) => {
+        const entries = (data ?? []).map((d) => {
+          const pr = Array.isArray(d.property_rooms) ? d.property_rooms[0] : d.property_rooms;
+          return { id: d.id, room_name: (pr as { name: string; type: string } | null)?.name ?? "?", room_type: (pr as { name: string; type: string } | null)?.type ?? "room" };
+        });
+        setCleaningRooms(entries);
+      })
+      .catch(() => setCleaningRooms([]));
   }, []);
 
   useEffect(() => {
@@ -422,24 +435,25 @@ function VolunteerDashboard() {
         )}
       </section>
 
-      {rooms !== null && (isHousekeeping || isCottages) && (() => {
-        // Show all rooms of the matching type; coordinate among themselves
-        const toClean = isCottages
-          ? rooms.filter((r) => r.type === "cottages" || r.room.toLowerCase().includes("cottage"))
-          : rooms.filter((r) => r.type === "housekeeping" || r.type !== "cottages");
+      {(isHousekeeping || isCottages) && (() => {
+        const toClean = cleaningRooms.filter((r) => isCottages ? r.room_type === "cottage" : r.room_type === "room");
         const heading = isCottages ? "Cottages to clean today" : "Rooms to clean today";
+        const color = isCottages
+          ? { card: "border-teal-200 bg-teal-50 text-teal-900", icon: "text-teal-500" }
+          : { card: "border-emerald-200 bg-emerald-50 text-emerald-900", icon: "text-emerald-500" };
         return (
           <section className="space-y-2">
             <h2 className="font-display text-xl font-semibold flex items-center gap-2">
-              <Home className="h-4 w-4 text-accent" /> {heading}
+              {isCottages ? <TreePine className={`h-4 w-4 ${color.icon}`} /> : <Home className={`h-4 w-4 ${color.icon}`} />}
+              {heading}
             </h2>
             {toClean.length === 0 ? (
               <p className="text-sm text-muted-foreground">No rooms assigned for today yet.</p>
             ) : (
               <div className="grid grid-cols-2 gap-1.5">
-                {toClean.map((r, i) => (
-                  <div key={i} className="rounded-xl border bg-card px-3 py-2 text-sm font-medium">
-                    {r.room}
+                {toClean.map((r) => (
+                  <div key={r.id} className={`rounded-xl border ${color.card} px-3 py-2 text-sm font-medium`}>
+                    {r.room_name}
                   </div>
                 ))}
               </div>
@@ -838,43 +852,82 @@ function AdminMatrix() {
   );
 }
 
-// ── Manager "Today" — rooms to clean ────────────────────────────────────
+// ── Manager "Today" — cleaning schedule ─────────────────────────────────
 
 function TodayDepartures() {
-  const [rooms, setRooms] = useState<RoomEntry[] | null>(null);
+  const [entries, setEntries] = useState<CleaningEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const today = todayLocalYmd();
-    loadTodaysRooms(today)
-      .then((r) => { setRooms(r); setLoading(false); })
-      .catch(() => { setRooms(null); setLoading(false); });
+    hostackSupabase
+      .from("cleaning_schedule")
+      .select("id, property_rooms(name, type)")
+      .eq("property_id", TORRIDONIA_PROPERTY_ID)
+      .eq("clean_date", today)
+      .then(({ data }) => {
+        const parsed = (data ?? []).map((d) => {
+          const pr = Array.isArray(d.property_rooms) ? d.property_rooms[0] : d.property_rooms;
+          return {
+            id: d.id,
+            room_name: (pr as { name: string; type: string } | null)?.name ?? "?",
+            room_type: (pr as { name: string; type: string } | null)?.type ?? "room",
+          };
+        });
+        setEntries(parsed);
+        setLoading(false);
+      })
+      .catch(() => { setEntries([]); setLoading(false); });
   }, []);
 
   if (loading) return <div className="h-28 rounded-2xl bg-secondary/40 animate-pulse" />;
 
-  const checkouts = rooms?.filter((r) => r.checkout) ?? [];
+  const bbRooms = entries.filter((e) => e.room_type === "room");
+  const cottages = entries.filter((e) => e.room_type === "cottage");
 
-  if (checkouts.length === 0) return (
-    <div className="rounded-2xl border border-dashed bg-secondary/30 p-6 text-center text-muted-foreground">
-      <Calendar className="h-6 w-6 mx-auto mb-2" />
-      <p className="text-sm">No rooms to clean today.</p>
+  if (bbRooms.length === 0 && cottages.length === 0) return (
+    <div className="rounded-2xl border border-dashed bg-secondary/30 p-6 text-center text-muted-foreground space-y-2">
+      <Calendar className="h-6 w-6 mx-auto" />
+      <p className="text-sm">No rooms scheduled for cleaning today.</p>
+      <Link to="/app/admin/cleaning" className="text-xs text-accent hover:underline block">
+        Edit cleaning schedule →
+      </Link>
     </div>
   );
 
   return (
-    <section className="space-y-3">
-      <h2 className="font-display text-lg font-semibold flex items-center gap-2">
-        <LogOut className="h-4 w-4 text-accent" /> Rooms to clean today
-      </h2>
-      <div className="grid grid-cols-2 gap-2">
-        {checkouts.map((r, i) => (
-          <div key={i} className="rounded-xl border border-red-200 bg-red-50 px-3 py-2.5">
-            <p className="font-semibold text-sm text-red-900">{r.room}</p>
-            {r.guests > 0 && <p className="text-xs text-red-600 mt-0.5">{r.guests} guests</p>}
+    <section className="space-y-4">
+      {bbRooms.length > 0 && (
+        <div className="space-y-2">
+          <h2 className="font-display text-lg font-semibold flex items-center gap-2">
+            <Home className="h-4 w-4 text-emerald-500" /> B&amp;B Rooms to clean
+          </h2>
+          <div className="grid grid-cols-2 gap-2">
+            {bbRooms.map((r) => (
+              <div key={r.id} className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5">
+                <p className="font-semibold text-sm text-emerald-900">{r.room_name}</p>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </div>
+      )}
+      {cottages.length > 0 && (
+        <div className="space-y-2">
+          <h2 className="font-display text-lg font-semibold flex items-center gap-2">
+            <TreePine className="h-4 w-4 text-teal-500" /> Cottages to clean
+          </h2>
+          <div className="grid grid-cols-2 gap-2">
+            {cottages.map((r) => (
+              <div key={r.id} className="rounded-xl border border-teal-200 bg-teal-50 px-3 py-2.5">
+                <p className="font-semibold text-sm text-teal-900">{r.room_name}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      <Link to="/app/admin/cleaning" className="text-xs text-accent hover:underline block">
+        Edit cleaning schedule →
+      </Link>
     </section>
   );
 }

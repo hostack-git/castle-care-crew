@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
-import { Settings, Plus, UserCheck, UserX, Inbox, Users, Send, Copy, MessageCircle, Download, Printer, QrCode, X, Pencil, Trash2, AlertTriangle, Link2 } from "lucide-react";
+import { Settings, Plus, UserCheck, UserX, Inbox, Users, Send, Copy, MessageCircle, Download, Printer, QrCode, X, Pencil, Trash2, AlertTriangle, Link2, CalendarRange, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/app/admin")({ component: AdminPage });
 
@@ -42,6 +42,34 @@ function AdminPage() {
         </h1>
         <p className="text-muted-foreground text-sm mt-1">{t("admin.sub")}</p>
       </header>
+
+      {/* Quick links to builder pages */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
+        <Link
+          to="/app/admin/rota"
+          className="rounded-2xl border bg-card p-4 hover:bg-secondary/40 transition flex items-center gap-3"
+        >
+          <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+            <CalendarRange className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <p className="font-semibold text-sm">Rota Builder</p>
+            <p className="text-xs text-muted-foreground">Assign volunteer shifts</p>
+          </div>
+        </Link>
+        <Link
+          to="/app/admin/cleaning"
+          className="rounded-2xl border bg-card p-4 hover:bg-secondary/40 transition flex items-center gap-3"
+        >
+          <div className="h-10 w-10 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
+            <Sparkles className="h-5 w-5 text-emerald-600" />
+          </div>
+          <div>
+            <p className="font-semibold text-sm">Cleaning Schedule</p>
+            <p className="text-xs text-muted-foreground">Rooms &amp; cottages to clean</p>
+          </div>
+        </Link>
+      </div>
 
       <Tabs defaultValue="volunteers" className="space-y-4">
         <TabsList>
