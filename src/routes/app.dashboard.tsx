@@ -3,11 +3,15 @@ import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useI18n, LOCALE_MAP } from "@/lib/i18n";
 import { hostackSupabase, TORRIDONIA_PROPERTY_ID } from "@/integrations/hostack/client";
-import { Calendar, Clock, CheckCircle2, Circle, BookOpen, ChevronLeft, ChevronRight, MessageCircle, Plus, X, LogOut, Search, Copy, Users, TrendingUp, CalendarCheck, UserX, UserPlus, Home, TreePine } from "lucide-react";
+import { Calendar, Clock, CheckCircle2, Circle, BookOpen, ChevronLeft, ChevronRight, MessageCircle, Plus, X, LogOut, Search, Copy, Users, TrendingUp, CalendarCheck, UserX, UserPlus, Home, TreePine, AlertTriangle } from "lucide-react";
 import { startOfWeekMondayUTC } from "@/lib/rota-utils";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/dashboard")({ component: DashboardRoute });
@@ -50,6 +54,8 @@ type ShiftTask = {
 };
 
 type CleaningEntry = { id: string; room_name: string; room_type: string };
+
+type IssueRow = { id: string; title: string; category: string; status: string; reporter_name: string | null; manager_notes: string | null; created_at: string; };
 
 function pickTemplate(t: Shift["shift_templates"]): ShiftTemplate | null {
   if (!t) return null;
@@ -462,6 +468,8 @@ function VolunteerDashboard() {
         );
       })()}
 
+      <IssueReportButton reporterName={name} reporterVolunteerId={volunteerId} />
+
       <div className="flex flex-col gap-3">
         <Link
           to="/app/guidebook"
@@ -479,6 +487,74 @@ function VolunteerDashboard() {
         </a>
       </div>
     </div>
+  );
+}
+
+function IssueReportButton({ reporterName, reporterVolunteerId }: { reporterName: string; reporterVolunteerId: string | null }) {
+  const [open, setOpen] = useState(false);
+  const [category, setCategory] = useState("");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const resetForm = () => { setCategory(""); setTitle(""); setDescription(""); };
+
+  const handleSubmit = async () => {
+    if (!title || !category) return;
+    setBusy(true);
+    const { error } = await hostackSupabase.from("issues").insert({
+      property_id: TORRIDONIA_PROPERTY_ID,
+      title,
+      description,
+      category,
+      reporter_name: reporterName,
+      reporter_volunteer_id: reporterVolunteerId,
+      status: "pending",
+    });
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Issue reported! The manager has been notified.");
+    setOpen(false);
+    resetForm();
+  };
+
+  return (
+    <>
+      <Button
+        variant="outline"
+        className="w-full flex items-center justify-center gap-2 rounded-2xl py-4 font-medium border-amber-300 text-amber-700 hover:bg-amber-50 transition"
+        onClick={() => setOpen(true)}
+      >
+        <AlertTriangle className="h-5 w-5" /> Report an Issue
+      </Button>
+
+      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-amber-500" /> Report an Issue</DialogTitle>
+            <DialogDescription>Let the manager know about a problem that needs attention.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Maintenance">Maintenance</SelectItem>
+                <SelectItem value="Plumbing">Plumbing</SelectItem>
+                <SelectItem value="Supplies">Supplies</SelectItem>
+                <SelectItem value="Electrical">Electrical</SelectItem>
+                <SelectItem value="Cleaning">Cleaning</SelectItem>
+                <SelectItem value="Other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input placeholder="What's the issue?" value={title} onChange={(e) => setTitle(e.target.value)} />
+            <Textarea placeholder="Describe what happened…" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
+            <Button className="w-full" onClick={handleSubmit} disabled={busy || !title || !category}>
+              {busy ? "Submitting…" : "Submit Issue"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
@@ -954,6 +1030,11 @@ function OverviewSection() {
   const [shiftsToday, setShiftsToday] = useState<OverviewShift[]>([]);
   const [loadingShifts, setLoadingShifts] = useState(true);
 
+  const [issues, setIssues] = useState<IssueRow[]>([]);
+  const [loadingIssues, setLoadingIssues] = useState(true);
+  const [resolvingIssue, setResolvingIssue] = useState<string | null>(null);
+  const [showIssues, setShowIssues] = useState(false);
+
   const loadVols = useCallback(() => {
     setLoadingVols(true);
     hostackSupabase
@@ -987,6 +1068,34 @@ function OverviewSection() {
         setLoadingShifts(false);
       });
   }, []);
+
+  const loadIssues = useCallback(() => {
+    setLoadingIssues(true);
+    hostackSupabase
+      .from("issues")
+      .select("id, title, category, status, reporter_name, manager_notes, created_at")
+      .eq("property_id", TORRIDONIA_PROPERTY_ID)
+      .order("created_at", { ascending: false })
+      .limit(20)
+      .then(({ data, error }) => {
+        if (error) console.error(error.message);
+        setIssues((data as IssueRow[]) ?? []);
+        setLoadingIssues(false);
+      });
+  }, []);
+
+  useEffect(() => { loadIssues(); }, [loadIssues]);
+
+  const resolveIssue = async (id: string) => {
+    setResolvingIssue(id);
+    const { error } = await hostackSupabase
+      .from("issues")
+      .update({ status: "resolved", resolved_at: new Date().toISOString() })
+      .eq("id", id);
+    if (error) { toast.error(error.message); setResolvingIssue(null); return; }
+    setResolvingIssue(null);
+    loadIssues();
+  };
 
   useEffect(() => {
     const today = todayLocalYmd();
@@ -1060,6 +1169,73 @@ function OverviewSection() {
           <p className="text-2xl font-semibold">{minutesSaved} min</p>
           <p className="text-xs text-muted-foreground">today</p>
         </div>
+      </div>
+
+      {/* Issues section */}
+      <div className="rounded-2xl border bg-card shadow-soft overflow-hidden">
+        <button
+          type="button"
+          className="w-full flex items-center justify-between p-4 text-left hover:bg-secondary/30 transition"
+          onClick={() => setShowIssues((v) => !v)}
+        >
+          <span className="font-medium text-sm flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-amber-500" /> Issues
+          </span>
+          <span className="flex items-center gap-2">
+            {!loadingIssues && issues.filter((i) => i.status === "pending").length > 0 && (
+              <Badge className="bg-amber-500 text-white text-xs">
+                {issues.filter((i) => i.status === "pending").length} pending
+              </Badge>
+            )}
+            <span className="text-xs text-muted-foreground">{showIssues ? "▲" : "▼"}</span>
+          </span>
+        </button>
+
+        {showIssues && (
+          <div className="border-t p-4 space-y-2">
+            {loadingIssues ? (
+              <div className="space-y-2">
+                {[1, 2].map((i) => <div key={i} className="h-10 rounded-lg bg-secondary/40 animate-pulse" />)}
+              </div>
+            ) : issues.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No issues reported.</p>
+            ) : (
+              <ul className="space-y-2">
+                {issues.map((issue) => (
+                  <li key={issue.id} className={`rounded-xl border p-3 space-y-1 ${issue.status === "pending" ? "border-amber-200 bg-amber-50" : "border-border bg-secondary/20"}`}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full border ${issue.status === "pending" ? "bg-amber-100 text-amber-800 border-amber-200" : "bg-emerald-100 text-emerald-800 border-emerald-200"}`}>
+                            {issue.category}
+                          </span>
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${issue.status === "pending" ? "bg-amber-200/60 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>
+                            {issue.status === "pending" ? "Pending" : "Resolved"}
+                          </span>
+                        </div>
+                        <p className="font-medium text-sm mt-1">{issue.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {issue.reporter_name ?? "Unknown"} · {new Date(issue.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                        </p>
+                      </div>
+                      {issue.status === "pending" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="shrink-0 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                          disabled={resolvingIssue === issue.id}
+                          onClick={() => resolveIssue(issue.id)}
+                        >
+                          {resolvingIssue === issue.id ? "…" : "Mark resolved"}
+                        </Button>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
       </div>
 
       {/* On shift today card */}

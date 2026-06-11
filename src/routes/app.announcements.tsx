@@ -8,12 +8,21 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Megaphone, Plus } from "lucide-react";
+import { Megaphone, Plus, CalendarDays, Users2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/announcements")({ component: AnnouncementsPage });
 
-type Ann = { id: string; title: string; content: string; priority: string; created_at: string };
+type Ann = {
+  id: string; title: string; content: string; priority: string; created_at: string;
+  event_date: string | null; expires_at: string | null;
+  volunteers_involved: { id: string; name: string }[] | null;
+};
+
+function todayLocalYmd(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 function AnnouncementsPage() {
   const { isAdmin, user } = useAuth();
@@ -22,6 +31,11 @@ function AnnouncementsPage() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [priority, setPriority] = useState("normal");
+  const [eventDate, setEventDate] = useState("");
+  const [expiresAt, setExpiresAt] = useState("");
+  const [involvedVols, setInvolvedVols] = useState<{ id: string; name: string }[]>([]);
+  const [allVolunteers, setAllVolunteers] = useState<{ id: string; name: string }[]>([]);
+  const [showVolPicker, setShowVolPicker] = useState(false);
 
   const load = () => {
     let q = hostackSupabase.from("announcements").select("*").order("created_at", { ascending: false });
@@ -30,18 +44,51 @@ function AnnouncementsPage() {
     } else {
       q = q.or(`property_id.eq.${TORRIDONIA_PROPERTY_ID},property_id.is.null`);
     }
-    q.then(({ data }) => setItems((data as Ann[]) ?? []));
+    q.then(({ data }) => {
+      const today = todayLocalYmd();
+      const filtered = (data as Ann[]).filter((a) => !a.expires_at || a.expires_at >= today);
+      setItems(filtered);
+    });
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    hostackSupabase
+      .from("volunteers")
+      .select("id, name")
+      .eq("property_id", TORRIDONIA_PROPERTY_ID)
+      .eq("status", "active")
+      .order("name")
+      .then(({ data }) => setAllVolunteers((data as { id: string; name: string }[]) ?? []));
+  }, [isAdmin]);
 
   const post = async () => {
     if (!user || !title || !content) return;
-    const { error } = await hostackSupabase.from("announcements").insert({ title, content, priority, created_by: user.id });
+    const { error } = await hostackSupabase.from("announcements").insert({
+      property_id: TORRIDONIA_PROPERTY_ID,
+      title,
+      content,
+      priority,
+      created_by: user.id,
+      event_date: eventDate || null,
+      expires_at: expiresAt || null,
+      volunteers_involved: involvedVols.length ? involvedVols : null,
+    });
     if (error) return toast.error(error.message);
     toast.success("Posted!");
     setTitle(""); setContent(""); setPriority("normal");
+    setEventDate(""); setExpiresAt(""); setInvolvedVols([]);
     load();
+  };
+
+  const toggleVol = (vol: { id: string; name: string }) => {
+    setInvolvedVols((prev) =>
+      prev.some((v) => v.id === vol.id)
+        ? prev.filter((v) => v.id !== vol.id)
+        : [...prev, vol]
+    );
   };
 
   return (
@@ -56,14 +103,60 @@ function AnnouncementsPage() {
           <h2 className="font-medium flex items-center gap-2"><Plus className="h-4 w-4" /> {t("ann.new")}</h2>
           <Input placeholder={t("ann.titleField")} value={title} onChange={(e) => setTitle(e.target.value)} />
           <Textarea placeholder={t("ann.message")} value={content} onChange={(e) => setContent(e.target.value)} rows={3} />
-          <div className="flex items-center justify-between gap-2">
-            <Select value={priority} onValueChange={setPriority}>
-              <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="normal">{t("ann.normal")}</SelectItem>
-                <SelectItem value="high">{t("ann.high")}</SelectItem>
-              </SelectContent>
-            </Select>
+          <Select value={priority} onValueChange={setPriority}>
+            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="normal">{t("ann.normal")}</SelectItem>
+              <SelectItem value="high">{t("ann.high")}</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">Event date (optional)</label>
+              <input
+                type="date"
+                value={eventDate}
+                onChange={(e) => setEventDate(e.target.value)}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">Hide after date (optional)</label>
+              <input
+                type="date"
+                value={expiresAt}
+                onChange={(e) => setExpiresAt(e.target.value)}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <button
+              type="button"
+              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+              onClick={() => setShowVolPicker((v) => !v)}
+            >
+              <Users2 className="h-3.5 w-3.5" /> Select volunteers {involvedVols.length > 0 && `(${involvedVols.length} selected)`} {showVolPicker ? "▲" : "▼"}
+            </button>
+            {showVolPicker && allVolunteers.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {allVolunteers.map((vol) => {
+                  const selected = involvedVols.some((v) => v.id === vol.id);
+                  return (
+                    <button
+                      key={vol.id}
+                      type="button"
+                      onClick={() => toggleVol(vol)}
+                      className={`text-xs px-2.5 py-1 rounded-full border transition ${selected ? "bg-accent text-accent-foreground border-accent" : "bg-transparent text-muted-foreground border-border hover:border-accent"}`}
+                    >
+                      {vol.name}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          <div className="flex justify-end">
             <Button onClick={post} disabled={!title || !content}>{t("ann.post")}</Button>
           </div>
         </div>
