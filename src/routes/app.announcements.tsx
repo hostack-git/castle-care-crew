@@ -167,9 +167,25 @@ function AnnouncementsPage() {
           <article key={a.id} className="rounded-2xl border bg-card p-5 shadow-soft">
             <div className="flex items-center gap-2 mb-2">
               {a.priority === "high" && <Badge className="bg-accent text-accent-foreground">{t("ann.high")}</Badge>}
+              {a.event_date && (
+                <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-accent/10 text-accent font-medium">
+                  <CalendarDays className="h-3 w-3" />
+                  {new Date(a.event_date + "T00:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}
+                </span>
+              )}
               <p className="text-xs text-muted-foreground">{new Date(a.created_at).toLocaleDateString()}</p>
             </div>
             <h3 className="font-display text-lg font-semibold">{a.title}</h3>
+            {a.volunteers_involved && a.volunteers_involved.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                <Users2 className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                {a.volunteers_involved.map((v) => (
+                  <span key={v.id} className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border">
+                    {v.name}
+                  </span>
+                ))}
+              </div>
+            )}
             <p className="text-sm mt-2 whitespace-pre-line leading-relaxed">{a.content}</p>
           </article>
         ))}
