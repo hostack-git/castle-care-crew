@@ -25,6 +25,10 @@ function InvitePage() {
 
   useEffect(() => {
     (async () => {
+      // Clear any existing session so the query runs as anon role (avoids RLS mismatch
+      // when the volunteer already has an active session from a previous invite attempt)
+      await hostackSupabase.auth.signOut();
+
       const { data } = await hostackSupabase
         .from("staff_invitations")
         .select("id, token, name, role, used_at, expires_at")
