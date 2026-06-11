@@ -147,6 +147,7 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
       .from("volunteers")
       .select("id, name, role_type, start_date, end_date, status, whatsapp_number, email, auth_user_id, room")
       .eq("property_id", TORRIDONIA_PROPERTY_ID)
+      .eq("status", "active")
       .order("start_date", { ascending: false });
     setList((data as Volunteer[]) ?? []);
     setLoading(false);
@@ -165,14 +166,17 @@ function VolunteersSection({ currentAuthUserId }: { currentAuthUserId: string | 
   const buildInviteUrl = (token: string) =>
     `https://torridonia.com/staffapp/invite/${token}`;
 
+  const ALLOWED_INVITE_ROLES = new Set(['Manager', 'Team Leader', 'Housekeeping', 'Kitchen Staff', 'Maintenance', 'Volunteer']);
+
   const createInvitation = async (volunteerName: string, roleType: string, vWhatsapp: string) => {
     const staffId = await getCurrentStaffId();
+    const inviteRole = ALLOWED_INVITE_ROLES.has(roleType) ? roleType : 'Volunteer';
     const { data, error } = await hostackSupabase
       .from("staff_invitations")
       .insert({
         property_id: TORRIDONIA_PROPERTY_ID,
         name: volunteerName,
-        role: roleType,
+        role: inviteRole,
         email: `${volunteerName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}@invite.local`,
         token: crypto.randomUUID(),
         invited_by: staffId,
