@@ -627,11 +627,6 @@ function addDaysUTC(ymd: string, n: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-function isManagerRole(role: string | null | undefined): boolean {
-  if (!role) return false;
-  const r = role.toLowerCase();
-  return r.includes("manager") || r === "admin" || r === "owner";
-}
 
 function AdminMatrix() {
   const { t, lang } = useI18n();
@@ -647,6 +642,7 @@ function AdminMatrix() {
   const [copying, setCopying]        = useState(false);
   const [assigning, setAssigning]    = useState<string | null>(null);
   const [volSearch, setVolSearch]    = useState("");
+  const [creating, setCreating]      = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
 
   const days = useMemo(
@@ -661,11 +657,36 @@ function AdminMatrix() {
     return map;
   }, [volunteers]);
 
-  // Volunteers eligible for field tasks (exclude managers)
-  const fieldVolunteers = useMemo(
-    () => volunteers.filter((v) => !isManagerRole(v.role_type)),
-    [volunteers]
-  );
+  const createAndAssign = async (name: string, tplName: string, date: string) => {
+    const tpl = templates.find((t) => t.name === tplName);
+    if (!tpl || !name.trim()) return;
+    setCreating(true);
+    try {
+      const { data: newVol, error: volErr } = await hostackSupabase
+        .from("volunteers")
+        .insert({
+          property_id: TORRIDONIA_PROPERTY_ID,
+          name: name.trim(),
+          status: "active",
+          role_type: "Volunteer",
+          start_date: date,
+          end_date: addDaysUTC(date, 90),
+        })
+        .select("id, name, role_type")
+        .single();
+      if (volErr || !newVol) { toast.error(volErr?.message ?? "Failed to create"); return; }
+      const v = newVol as VolunteerRow;
+      setVolunteers((prev) => [...prev, v].sort((a, b) => a.name.localeCompare(b.name)));
+      await assignVolunteer(tplName, date, v.id);
+      toast.success(`${name.trim()} added and assigned`);
+      setAssigning(null);
+      setVolSearch("");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error creating volunteer");
+    } finally {
+      setCreating(false);
+    }
+  };
 
   const loadData = useCallback(async (daysArr: string[]) => {
     setLoading(true);
@@ -859,10 +880,14 @@ function AdminMatrix() {
                     const cellKey = `${task}__${d}`;
                     const cell = cellShifts(task, d);
                     const isAssigning = assigning === cellKey;
-                    const filtered = fieldVolunteers.filter((v) => {
+                    const filtered = volunteers.filter((v) => {
                       if (!volSearch) return true;
                       return v.name.toLowerCase().includes(volSearch.toLowerCase());
                     });
+                    const exactExists = volunteers.some(
+                      (v) => v.name.toLowerCase() === volSearch.trim().toLowerCase()
+                    );
+                    const showCreate = volSearch.trim().length > 0 && !exactExists;
                     return (
                       <td key={d} className="p-2 align-top min-w-[120px] relative">
                         <div className="flex flex-wrap gap-1">
@@ -918,30 +943,40 @@ function AdminMatrix() {
                               </div>
                             </div>
                             <div className="max-h-52 overflow-y-auto py-1">
-                              {filtered.length === 0 ? (
+                              {filtered.map((v) => {
+                                const alreadyHere = cell.some((s) => s.volunteer_id === v.id);
+                                if (alreadyHere) return null;
+                                const vc = volColorMap.get(v.id) ?? VOL_PALETTE[0];
+                                return (
+                                  <button
+                                    key={v.id}
+                                    type="button"
+                                    onClick={() => assignVolunteer(task, d, v.id)}
+                                    className="w-full text-left px-3 py-1.5 text-xs flex items-center gap-2 transition hover:bg-secondary/60 cursor-pointer"
+                                  >
+                                    <span className={`inline-block w-2 h-2 rounded-full shrink-0 ${vc.dot}`} />
+                                    <div className="min-w-0">
+                                      <div className="font-medium truncate">{v.name}</div>
+                                      {v.role_type && (
+                                        <div className="text-[10px] text-muted-foreground">{v.role_type}</div>
+                                      )}
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                              {showCreate && (
+                                <button
+                                  type="button"
+                                  disabled={creating}
+                                  onClick={() => createAndAssign(volSearch.trim(), task, d)}
+                                  className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 border-t transition hover:bg-accent/10 cursor-pointer text-accent font-medium"
+                                >
+                                  <span className="text-base leading-none">+</span>
+                                  {creating ? "Creating…" : `Create "${volSearch.trim()}"`}
+                                </button>
+                              )}
+                              {filtered.length === 0 && !showCreate && (
                                 <p className="text-xs text-muted-foreground text-center py-3">No results</p>
-                              ) : (
-                                filtered.map((v) => {
-                                  const alreadyHere = cell.some((s) => s.volunteer_id === v.id);
-                                  if (alreadyHere) return null;
-                                  const vc = volColorMap.get(v.id) ?? VOL_PALETTE[0];
-                                  return (
-                                    <button
-                                      key={v.id}
-                                      type="button"
-                                      onClick={() => assignVolunteer(task, d, v.id)}
-                                      className="w-full text-left px-3 py-1.5 text-xs flex items-center gap-2 transition hover:bg-secondary/60 cursor-pointer"
-                                    >
-                                      <span className={`inline-block w-2 h-2 rounded-full shrink-0 ${vc.dot}`} />
-                                      <div className="min-w-0">
-                                        <div className="font-medium truncate">{v.name}</div>
-                                        {v.role_type && (
-                                          <div className="text-[10px] text-muted-foreground">{v.role_type}</div>
-                                        )}
-                                      </div>
-                                    </button>
-                                  );
-                                })
                               )}
                             </div>
                           </div>
