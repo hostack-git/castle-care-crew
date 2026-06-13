@@ -605,8 +605,9 @@ type VolunteerRow = { id: string; name: string; role_type?: string | null };
 type TemplateRow  = { id: string; name: string; start_time: string | null; end_time: string | null };
 
 const TASK_ORDER = [
-  "Breakfast", "Housekeeping", "Laundry", "Cottages",
-  "Maintenance", "Deep Cleaning", "Special Task", "Family Dinners",
+  "Breakfast", "Housekeeping", "Cottages", "Maintenance",
+  "Laundry", "Special Task", "Family Dinners",
+  "Off", "Arrive", "Onboarding",
 ];
 
 function pickName<T extends { name: string }>(v: T | T[] | null): string | null {
@@ -699,10 +700,10 @@ function AdminMatrix() {
   useEffect(() => { loadData(days); }, [weekStart]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const taskNames = useMemo(() => {
+    // Always show all fixed rows; append any unknown templates at the end
     const fromData = [...new Set(shifts.map((s) => pickName(s.shift_templates)).filter(Boolean) as string[])];
-    const ordered = TASK_ORDER.filter((n) => fromData.includes(n));
-    const rest = fromData.filter((n) => !TASK_ORDER.includes(n)).sort();
-    return [...ordered, ...rest];
+    const extra = fromData.filter((n) => !TASK_ORDER.includes(n)).sort();
+    return [...TASK_ORDER, ...extra];
   }, [shifts]);
 
   const cellShifts = (tplName: string, date: string) =>
@@ -831,8 +832,6 @@ function AdminMatrix() {
 
       {loading ? (
         <div className="h-40 rounded-xl bg-secondary/30 animate-pulse" />
-      ) : taskNames.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t("matrix.noShifts")}</p>
       ) : (
         <div className="overflow-x-auto rounded-xl border bg-card">
           <table className="w-full text-xs border-collapse min-w-[600px]">
