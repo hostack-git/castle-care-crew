@@ -994,12 +994,21 @@ function AdminMatrix() {
   );
 }
 
-// ── Manager "Today" — cleaning schedule ─────────────────────────────────
+// ── Manager "Today" — full today view ─────────────────────────────────
 
-function TodayDepartures() {
+type AnnouncementRow = { id: string; title: string; content: string | null };
+
+function AdminTodayView() {
   const [entries, setEntries] = useState<CleaningEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [shiftsToday, setShiftsToday] = useState<OverviewShift[]>([]);
+  const [loadingShifts, setLoadingShifts] = useState(true);
+  const [issues, setIssues] = useState<IssueRow[]>([]);
+  const [loadingIssues, setLoadingIssues] = useState(true);
+  const [resolvingIssue, setResolvingIssue] = useState<string | null>(null);
+  const [todayAnnouncements, setTodayAnnouncements] = useState<AnnouncementRow[]>([]);
 
+  // Load cleaning schedule
   useEffect(() => {
     const today = todayLocalYmd();
     hostackSupabase
@@ -1022,55 +1031,236 @@ function TodayDepartures() {
       .catch(() => { setEntries([]); setLoading(false); });
   }, []);
 
-  if (loading) return <div className="h-28 rounded-2xl bg-secondary/40 animate-pulse" />;
+  // Load today's shifts
+  useEffect(() => {
+    setLoadingShifts(true);
+    const today = todayLocalYmd();
+    hostackSupabase
+      .from("shifts")
+      .select("id, volunteer_id, volunteers(id, name, whatsapp_number), shift_templates(name, start_time, end_time)")
+      .eq("property_id", TORRIDONIA_PROPERTY_ID)
+      .eq("shift_date", today)
+      .eq("status", "scheduled")
+      .then(({ data, error }) => {
+        if (error) console.error(error.message);
+        setShiftsToday((data as unknown as OverviewShift[]) ?? []);
+        setLoadingShifts(false);
+      });
+  }, []);
+
+  // Load issues
+  const loadIssues = useCallback(() => {
+    setLoadingIssues(true);
+    hostackSupabase
+      .from("issues")
+      .select("id, title, category, status, reporter_name, manager_notes, created_at")
+      .eq("property_id", TORRIDONIA_PROPERTY_ID)
+      .order("created_at", { ascending: false })
+      .limit(20)
+      .then(({ data, error }) => {
+        if (error) console.error(error.message);
+        setIssues((data as IssueRow[]) ?? []);
+        setLoadingIssues(false);
+      });
+  }, []);
+
+  useEffect(() => { loadIssues(); }, [loadIssues]);
+
+  // Load today's announcements
+  useEffect(() => {
+    const today = todayLocalYmd();
+    hostackSupabase
+      .from("announcements")
+      .select("id, title, content")
+      .eq("property_id", TORRIDONIA_PROPERTY_ID)
+      .eq("event_date", today)
+      .then(({ data, error }) => {
+        if (error) console.error(error.message);
+        setTodayAnnouncements((data as AnnouncementRow[]) ?? []);
+      });
+  }, []);
+
+  const resolveIssue = async (id: string) => {
+    setResolvingIssue(id);
+    const { error } = await hostackSupabase
+      .from("issues")
+      .update({ status: "resolved", resolved_at: new Date().toISOString() })
+      .eq("id", id);
+    if (error) { toast.error(error.message); setResolvingIssue(null); return; }
+    setResolvingIssue(null);
+    loadIssues();
+  };
 
   const bbRooms = entries.filter((e) => e.room_type === "room");
   const cottages = entries.filter((e) => e.room_type === "cottage");
-
-  if (bbRooms.length === 0 && cottages.length === 0) return (
-    <div className="rounded-2xl border border-dashed bg-secondary/30 p-6 text-center text-muted-foreground space-y-2">
-      <Calendar className="h-6 w-6 mx-auto" />
-      <p className="text-sm">No rooms scheduled for cleaning today.</p>
-      <Link to="/app/admin/cleaning" className="text-xs text-accent hover:underline block">
-        Edit cleaning schedule →
-      </Link>
-    </div>
-  );
+  const pendingIssues = issues.filter((i) => i.status === "pending");
+  const resolvedIssues = issues.filter((i) => i.status !== "pending");
 
   return (
-    <section className="space-y-4">
-      {bbRooms.length > 0 && (
-        <div className="space-y-2">
-          <h2 className="font-display text-lg font-semibold flex items-center gap-2">
-            <Home className="h-4 w-4 text-emerald-500" /> B&amp;B Rooms to clean
+    <div className="space-y-6">
+      {/* Cleaning schedule */}
+      <section className="space-y-4">
+        <h2 className="font-display text-xl font-semibold flex items-center gap-2">
+          <Calendar className="h-5 w-5 text-accent" /> Cleaning today
+        </h2>
+        {loading ? (
+          <div className="h-28 rounded-2xl bg-secondary/40 animate-pulse" />
+        ) : bbRooms.length === 0 && cottages.length === 0 ? (
+          <div className="rounded-2xl border border-dashed bg-secondary/30 p-6 text-center text-muted-foreground space-y-2">
+            <Calendar className="h-6 w-6 mx-auto" />
+            <p className="text-sm">No rooms scheduled for cleaning today.</p>
+            <Link to="/app/admin/cleaning" className="text-xs text-accent hover:underline block">
+              Edit cleaning schedule →
+            </Link>
+          </div>
+        ) : (
+          <>
+            {bbRooms.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="font-display text-lg font-semibold flex items-center gap-2">
+                  <Home className="h-4 w-4 text-emerald-500" /> B&amp;B Rooms to clean
+                </h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {bbRooms.map((r) => (
+                    <div key={r.id} className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5">
+                      <p className="font-semibold text-sm text-emerald-900">{r.room_name}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {cottages.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="font-display text-lg font-semibold flex items-center gap-2">
+                  <TreePine className="h-4 w-4 text-teal-500" /> Cottages to clean
+                </h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {cottages.map((r) => (
+                    <div key={r.id} className="rounded-xl border border-teal-200 bg-teal-50 px-3 py-2.5">
+                      <p className="font-semibold text-sm text-teal-900">{r.room_name}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <Link to="/app/admin/cleaning" className="text-xs text-accent hover:underline block">
+              Edit cleaning schedule →
+            </Link>
+          </>
+        )}
+      </section>
+
+      {/* On shift today */}
+      <section className="space-y-3">
+        <h2 className="font-display text-xl font-semibold flex items-center gap-2">
+          <CalendarCheck className="h-5 w-5 text-accent" /> On shift today
+        </h2>
+        <div className="rounded-2xl border bg-card p-4 shadow-soft">
+          {loadingShifts ? (
+            <div className="space-y-2">
+              {[1, 2].map((i) => <div key={i} className="h-10 rounded-lg bg-secondary/40 animate-pulse" />)}
+            </div>
+          ) : shiftsToday.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No shifts scheduled today.</p>
+          ) : (
+            <ul className="divide-y">
+              {shiftsToday.map((s, i) => {
+                const vol = Array.isArray(s.volunteers) ? s.volunteers[0] : s.volunteers;
+                const tpl = Array.isArray(s.shift_templates) ? s.shift_templates[0] : s.shift_templates;
+                const wa = vol?.whatsapp_number?.replace(/[^\d]/g, "");
+                return (
+                  <li key={s.id ?? i} className="py-2.5 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm">{vol?.name ?? "—"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {tpl?.name ?? "—"}
+                        {tpl?.start_time ? ` · ${tpl.start_time.slice(0, 5)}` : ""}
+                        {tpl?.end_time ? `–${tpl.end_time.slice(0, 5)}` : ""}
+                      </p>
+                    </div>
+                    {wa && (
+                      <a href={`https://wa.me/${wa}`} target="_blank" rel="noopener noreferrer">
+                        <Button size="sm" variant="outline" className="shrink-0 gap-1.5">
+                          <MessageCircle className="h-3.5 w-3.5" />
+                        </Button>
+                      </a>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      </section>
+
+      {/* Open issues */}
+      <section className="space-y-3">
+        <h2 className="font-display text-xl font-semibold flex items-center gap-2">
+          <AlertTriangle className="h-5 w-5 text-amber-500" /> Open issues
+          {!loadingIssues && pendingIssues.length > 0 && (
+            <Badge className="bg-amber-500 text-white text-xs">{pendingIssues.length} pending</Badge>
+          )}
+        </h2>
+        {loadingIssues ? (
+          <div className="space-y-2">
+            {[1, 2].map((i) => <div key={i} className="h-10 rounded-lg bg-secondary/40 animate-pulse" />)}
+          </div>
+        ) : issues.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No issues reported.</p>
+        ) : (
+          <ul className="space-y-2">
+            {[...pendingIssues, ...resolvedIssues].map((issue) => (
+              <li key={issue.id} className={`rounded-xl border p-3 space-y-1 ${issue.status === "pending" ? "border-amber-200 bg-amber-50" : "border-border bg-secondary/20"}`}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full border ${issue.status === "pending" ? "bg-amber-100 text-amber-800 border-amber-200" : "bg-emerald-100 text-emerald-800 border-emerald-200"}`}>
+                        {issue.category}
+                      </span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${issue.status === "pending" ? "bg-amber-200/60 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>
+                        {issue.status === "pending" ? "Pending" : "Resolved"}
+                      </span>
+                    </div>
+                    <p className="font-medium text-sm mt-1">{issue.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {issue.reporter_name ?? "Unknown"} · {new Date(issue.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                    </p>
+                  </div>
+                  {issue.status === "pending" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="shrink-0 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                      disabled={resolvingIssue === issue.id}
+                      onClick={() => resolveIssue(issue.id)}
+                    >
+                      {resolvingIssue === issue.id ? "…" : "Mark resolved"}
+                    </Button>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* Today's announcements */}
+      {todayAnnouncements.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="font-display text-xl font-semibold flex items-center gap-2">
+            <MessageCircle className="h-5 w-5 text-accent" /> Today's announcements
           </h2>
-          <div className="grid grid-cols-2 gap-2">
-            {bbRooms.map((r) => (
-              <div key={r.id} className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5">
-                <p className="font-semibold text-sm text-emerald-900">{r.room_name}</p>
+          <div className="space-y-2">
+            {todayAnnouncements.map((a) => (
+              <div key={a.id} className="rounded-xl border bg-card p-4 shadow-soft space-y-1">
+                <p className="font-semibold text-sm">{a.title}</p>
+                {a.content && <p className="text-sm text-muted-foreground">{a.content}</p>}
               </div>
             ))}
           </div>
-        </div>
+        </section>
       )}
-      {cottages.length > 0 && (
-        <div className="space-y-2">
-          <h2 className="font-display text-lg font-semibold flex items-center gap-2">
-            <TreePine className="h-4 w-4 text-teal-500" /> Cottages to clean
-          </h2>
-          <div className="grid grid-cols-2 gap-2">
-            {cottages.map((r) => (
-              <div key={r.id} className="rounded-xl border border-teal-200 bg-teal-50 px-3 py-2.5">
-                <p className="font-semibold text-sm text-teal-900">{r.room_name}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-      <Link to="/app/admin/cleaning" className="text-xs text-accent hover:underline block">
-        Edit cleaning schedule →
-      </Link>
-    </section>
+    </div>
   );
 }
 
