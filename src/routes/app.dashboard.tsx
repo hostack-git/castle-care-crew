@@ -1306,8 +1306,7 @@ function OverviewSection() {
     const weekEndStr = `${weekEnd.getFullYear()}-${String(weekEnd.getMonth() + 1).padStart(2, "0")}-${String(weekEnd.getDate()).padStart(2, "0")}`;
     const mon = startOfWeekMondayUTC(new Date());
     const weekMon = `${mon.getUTCFullYear()}-${String(mon.getUTCMonth() + 1).padStart(2, "0")}-${String(mon.getUTCDate()).padStart(2, "0")}`;
-    const sun = addDaysUTC(mon, 6);
-    const weekSun = `${sun.getUTCFullYear()}-${String(sun.getUTCMonth() + 1).padStart(2, "0")}-${String(sun.getUTCDate()).padStart(2, "0")}`;
+    const weekSun = addDaysUTC(weekMon, 6);
     Promise.all([
       hostackSupabase.from("volunteers").select("id", { count: "exact" })
         .eq("property_id", TORRIDONIA_PROPERTY_ID).eq("status", "active"),
