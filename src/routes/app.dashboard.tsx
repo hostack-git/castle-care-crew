@@ -1272,7 +1272,7 @@ type OverviewShift = { id: string; volunteer_id: string | null; volunteers: { id
 function OverviewSection() {
   const [stats, setStats] = useState<{
     activeVolunteers: number;
-    shiftsToday: number;
+    weekShifts: number;
     upcomingDepartures: { name: string; end_date: string }[];
     upcomingArrivals: { name: string; start_date: string }[];
   } | null>(null);
@@ -1281,15 +1281,6 @@ function OverviewSection() {
   const [volOnProperty, setVolOnProperty] = useState<VolDetail[]>([]);
   const [loadingVols, setLoadingVols] = useState(false);
   const [deactivating, setDeactivating] = useState<string | null>(null);
-
-  const [showShifts, setShowShifts] = useState(false);
-  const [shiftsToday, setShiftsToday] = useState<OverviewShift[]>([]);
-  const [loadingShifts, setLoadingShifts] = useState(true);
-
-  const [issues, setIssues] = useState<IssueRow[]>([]);
-  const [loadingIssues, setLoadingIssues] = useState(true);
-  const [resolvingIssue, setResolvingIssue] = useState<string | null>(null);
-  const [showIssues, setShowIssues] = useState(false);
 
   const loadVols = useCallback(() => {
     setLoadingVols(true);
@@ -1308,71 +1299,31 @@ function OverviewSection() {
 
   useEffect(() => { if (showVolunteers) loadVols(); }, [showVolunteers, loadVols]);
 
-  // Load today's shifts on mount (always visible in card)
-  useEffect(() => {
-    setLoadingShifts(true);
-    const today = todayLocalYmd();
-    hostackSupabase
-      .from("shifts")
-      .select("id, volunteer_id, volunteers(id, name, whatsapp_number), shift_templates(name, start_time, end_time)")
-      .eq("property_id", TORRIDONIA_PROPERTY_ID)
-      .eq("shift_date", today)
-      .eq("status", "scheduled")
-      .then(({ data, error }) => {
-        if (error) console.error(error.message);
-        setShiftsToday((data as unknown as OverviewShift[]) ?? []);
-        setLoadingShifts(false);
-      });
-  }, []);
-
-  const loadIssues = useCallback(() => {
-    setLoadingIssues(true);
-    hostackSupabase
-      .from("issues")
-      .select("id, title, category, status, reporter_name, manager_notes, created_at")
-      .eq("property_id", TORRIDONIA_PROPERTY_ID)
-      .order("created_at", { ascending: false })
-      .limit(20)
-      .then(({ data, error }) => {
-        if (error) console.error(error.message);
-        setIssues((data as IssueRow[]) ?? []);
-        setLoadingIssues(false);
-      });
-  }, []);
-
-  useEffect(() => { loadIssues(); }, [loadIssues]);
-
-  const resolveIssue = async (id: string) => {
-    setResolvingIssue(id);
-    const { error } = await hostackSupabase
-      .from("issues")
-      .update({ status: "resolved", resolved_at: new Date().toISOString() })
-      .eq("id", id);
-    if (error) { toast.error(error.message); setResolvingIssue(null); return; }
-    setResolvingIssue(null);
-    loadIssues();
-  };
-
   useEffect(() => {
     const today = todayLocalYmd();
     const weekEnd = new Date();
     weekEnd.setDate(weekEnd.getDate() + 7);
     const weekEndStr = `${weekEnd.getFullYear()}-${String(weekEnd.getMonth() + 1).padStart(2, "0")}-${String(weekEnd.getDate()).padStart(2, "0")}`;
+    const mon = startOfWeekMondayUTC(new Date());
+    const weekMon = `${mon.getUTCFullYear()}-${String(mon.getUTCMonth() + 1).padStart(2, "0")}-${String(mon.getUTCDate()).padStart(2, "0")}`;
+    const sun = addDaysUTC(mon, 6);
+    const weekSun = `${sun.getUTCFullYear()}-${String(sun.getUTCMonth() + 1).padStart(2, "0")}-${String(sun.getUTCDate()).padStart(2, "0")}`;
     Promise.all([
       hostackSupabase.from("volunteers").select("id", { count: "exact" })
         .eq("property_id", TORRIDONIA_PROPERTY_ID).eq("status", "active"),
       hostackSupabase.from("shifts").select("id", { count: "exact" })
-        .eq("property_id", TORRIDONIA_PROPERTY_ID).eq("shift_date", today).eq("status", "scheduled"),
+        .eq("property_id", TORRIDONIA_PROPERTY_ID)
+        .gte("shift_date", weekMon).lte("shift_date", weekSun).eq("status", "scheduled"),
       hostackSupabase.from("volunteers").select("name, end_date")
         .eq("property_id", TORRIDONIA_PROPERTY_ID).eq("status", "active")
         .gte("end_date", today).lte("end_date", weekEndStr).order("end_date", { ascending: true }),
       hostackSupabase.from("volunteers").select("name, start_date")
         .eq("property_id", TORRIDONIA_PROPERTY_ID).eq("status", "active")
         .gte("start_date", today).lte("start_date", weekEndStr).order("start_date", { ascending: true }),
-    ]).then(([volRes, shiftsTodayRes, depsRes, arrivalsRes]) => {
+    ]).then(([volRes, weekShiftsRes, depsRes, arrivalsRes]) => {
       setStats({
         activeVolunteers: volRes.count ?? 0,
-        shiftsToday: shiftsTodayRes.count ?? 0,
+        weekShifts: weekShiftsRes.count ?? 0,
         upcomingDepartures: (depsRes.data ?? []) as { name: string; end_date: string }[],
         upcomingArrivals: (arrivalsRes.data ?? []) as { name: string; start_date: string }[],
       });
@@ -1403,136 +1354,44 @@ function OverviewSection() {
 
   if (!stats) return <div className="h-28 rounded-xl bg-secondary/30 animate-pulse" />;
 
-  const minutesSaved = (stats.shiftsToday) * 2;
+  const minutesSaved = stats.weekShifts * 2;
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         <button onClick={() => setShowVolunteers(true)}
           className="rounded-xl bg-secondary/40 p-4 space-y-1 text-left hover:bg-secondary/60 transition">
           <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Users className="h-3.5 w-3.5" /> Active volunteers</p>
           <p className="text-2xl font-semibold">{stats.activeVolunteers}</p>
           <p className="text-xs text-muted-foreground">tap to manage</p>
         </button>
-        <button onClick={() => setShowShifts(true)}
-          className="rounded-xl bg-secondary/40 p-4 space-y-1 text-left hover:bg-secondary/60 transition">
-          <p className="text-xs text-muted-foreground flex items-center gap-1.5"><CalendarCheck className="h-3.5 w-3.5" /> Shifts today</p>
-          <p className="text-2xl font-semibold">{stats.shiftsToday}</p>
-          <p className="text-xs text-muted-foreground">scheduled</p>
-        </button>
         <div className="rounded-xl bg-secondary/40 p-4 space-y-1">
-          <p className="text-xs text-muted-foreground flex items-center gap-1.5"><TrendingUp className="h-3.5 w-3.5" /> Time saved</p>
+          <p className="text-xs text-muted-foreground flex items-center gap-1.5"><TrendingUp className="h-3.5 w-3.5" /> Time saved this week</p>
           <p className="text-2xl font-semibold">{minutesSaved} min</p>
-          <p className="text-xs text-muted-foreground">today</p>
+          <p className="text-xs text-muted-foreground">{stats.weekShifts} shifts</p>
         </div>
-      </div>
-
-      {/* Issues section */}
-      <div className="rounded-2xl border bg-card shadow-soft overflow-hidden">
-        <button
-          type="button"
-          className="w-full flex items-center justify-between p-4 text-left hover:bg-secondary/30 transition"
-          onClick={() => setShowIssues((v) => !v)}
-        >
-          <span className="font-medium text-sm flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-amber-500" /> Issues
-          </span>
-          <span className="flex items-center gap-2">
-            {!loadingIssues && issues.filter((i) => i.status === "pending").length > 0 && (
-              <Badge className="bg-amber-500 text-white text-xs">
-                {issues.filter((i) => i.status === "pending").length} pending
-              </Badge>
-            )}
-            <span className="text-xs text-muted-foreground">{showIssues ? "▲" : "▼"}</span>
-          </span>
-        </button>
-
-        {showIssues && (
-          <div className="border-t p-4 space-y-2">
-            {loadingIssues ? (
-              <div className="space-y-2">
-                {[1, 2].map((i) => <div key={i} className="h-10 rounded-lg bg-secondary/40 animate-pulse" />)}
-              </div>
-            ) : issues.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No issues reported.</p>
-            ) : (
-              <ul className="space-y-2">
-                {issues.map((issue) => (
-                  <li key={issue.id} className={`rounded-xl border p-3 space-y-1 ${issue.status === "pending" ? "border-amber-200 bg-amber-50" : "border-border bg-secondary/20"}`}>
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full border ${issue.status === "pending" ? "bg-amber-100 text-amber-800 border-amber-200" : "bg-emerald-100 text-emerald-800 border-emerald-200"}`}>
-                            {issue.category}
-                          </span>
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${issue.status === "pending" ? "bg-amber-200/60 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>
-                            {issue.status === "pending" ? "Pending" : "Resolved"}
-                          </span>
-                        </div>
-                        <p className="font-medium text-sm mt-1">{issue.title}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {issue.reporter_name ?? "Unknown"} · {new Date(issue.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
-                        </p>
-                      </div>
-                      {issue.status === "pending" && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="shrink-0 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-50"
-                          disabled={resolvingIssue === issue.id}
-                          onClick={() => resolveIssue(issue.id)}
-                        >
-                          {resolvingIssue === issue.id ? "…" : "Mark resolved"}
-                        </Button>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* On shift today card */}
-      <div className="rounded-2xl border bg-card p-5 shadow-soft space-y-3">
-        <h3 className="font-medium text-sm flex items-center gap-2">
-          <CalendarCheck className="h-4 w-4 text-accent" /> On shift today
-        </h3>
-        {loadingShifts ? (
-          <div className="space-y-2">
-            {[1,2].map((i) => <div key={i} className="h-10 rounded-lg bg-secondary/40 animate-pulse" />)}
-          </div>
-        ) : shiftsToday.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No shifts scheduled today.</p>
-        ) : (
-          <ul className="divide-y">
-            {shiftsToday.map((s, i) => {
-              const vol = Array.isArray(s.volunteers) ? s.volunteers[0] : s.volunteers;
-              const tpl = Array.isArray(s.shift_templates) ? s.shift_templates[0] : s.shift_templates;
-              const wa = vol?.whatsapp_number?.replace(/[^\d]/g, "");
-              return (
-                <li key={s.id ?? i} className="py-2.5 flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="font-medium text-sm">{vol?.name ?? "—"}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {tpl?.name ?? "—"}
-                      {tpl?.start_time ? ` · ${tpl.start_time.slice(0,5)}` : ""}
-                      {tpl?.end_time ? `–${tpl.end_time.slice(0,5)}` : ""}
-                    </p>
-                  </div>
-                  {wa && (
-                    <a href={`https://wa.me/${wa}`} target="_blank" rel="noopener noreferrer">
-                      <Button size="sm" variant="outline" className="shrink-0 gap-1.5">
-                        <MessageCircle className="h-3.5 w-3.5" />
-                      </Button>
-                    </a>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        )}
+        <div className="rounded-xl bg-secondary/40 p-4 space-y-1">
+          <p className="text-xs text-muted-foreground flex items-center gap-1.5"><UserX className="h-3.5 w-3.5 text-amber-500" /> Departures this week</p>
+          <p className="text-2xl font-semibold">{stats.upcomingDepartures.length}</p>
+          {stats.upcomingDepartures.length > 0 && (
+            <ul className="space-y-0.5 pt-1">
+              {stats.upcomingDepartures.map((v) => (
+                <li key={v.name} className="text-xs text-muted-foreground truncate">{v.name} <span className="text-amber-600">· {fmtDate(v.end_date)}</span></li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div className="rounded-xl bg-secondary/40 p-4 space-y-1">
+          <p className="text-xs text-muted-foreground flex items-center gap-1.5"><UserPlus className="h-3.5 w-3.5 text-emerald-500" /> Arrivals this week</p>
+          <p className="text-2xl font-semibold">{stats.upcomingArrivals.length}</p>
+          {stats.upcomingArrivals.length > 0 && (
+            <ul className="space-y-0.5 pt-1">
+              {stats.upcomingArrivals.map((v) => (
+                <li key={v.name} className="text-xs text-muted-foreground truncate">{v.name} <span className="text-emerald-600">· {fmtDate(v.start_date)}</span></li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
 
       <div className="grid sm:grid-cols-2 gap-4">
@@ -1617,37 +1476,6 @@ function OverviewSection() {
         </DialogContent>
       </Dialog>
 
-      {/* Shifts today dialog — data already loaded via on-mount effect */}
-      <Dialog open={showShifts} onOpenChange={setShowShifts}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><CalendarCheck className="h-4 w-4" /> Shifts today</DialogTitle>
-            <DialogDescription>{new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}</DialogDescription>
-          </DialogHeader>
-          {loadingShifts ? (
-            <p className="text-sm text-muted-foreground">Loading…</p>
-          ) : shiftsToday.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No shifts scheduled today.</p>
-          ) : (
-            <ul className="divide-y max-h-80 overflow-y-auto">
-              {shiftsToday.map((s, i) => {
-                const vol = Array.isArray(s.volunteers) ? s.volunteers[0] : s.volunteers;
-                const tpl = Array.isArray(s.shift_templates) ? s.shift_templates[0] : s.shift_templates;
-                return (
-                  <li key={s.id ?? i} className="py-3">
-                    <p className="font-medium text-sm">{vol?.name ?? "—"}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {tpl?.name ?? "—"}
-                      {tpl?.start_time ? ` · ${tpl.start_time.slice(0, 5)}` : ""}
-                      {tpl?.end_time ? `–${tpl.end_time.slice(0, 5)}` : ""}
-                    </p>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
@@ -1668,18 +1496,18 @@ function Dashboard() {
         </h1>
       </header>
 
-      <Tabs defaultValue="overview" className="space-y-4">
+      <Tabs defaultValue="today" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="today">Today</TabsTrigger>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-4">
-          <OverviewSection />
+        <TabsContent value="today" className="space-y-6">
+          <AdminTodayView />
         </TabsContent>
 
-        <TabsContent value="today" className="space-y-6">
-          <TodayDepartures />
+        <TabsContent value="overview" className="space-y-6">
+          <OverviewSection />
           <AdminMatrix />
         </TabsContent>
       </Tabs>
