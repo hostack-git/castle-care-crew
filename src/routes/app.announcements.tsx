@@ -19,6 +19,12 @@ type Ann = {
   volunteers_involved: { id: string; name: string }[] | null;
 };
 
+const MONTHS_SHORT = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+function fmtDayMonth(ymd: string): string {
+  const d = new Date(ymd + "T00:00:00Z");
+  return `${d.getUTCDate()} ${MONTHS_SHORT[d.getUTCMonth()]}`;
+}
+
 function todayLocalYmd(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -170,10 +176,10 @@ function AnnouncementsPage() {
               {a.event_date && (
                 <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-accent/10 text-accent font-medium">
                   <CalendarDays className="h-3 w-3" />
-                  {new Date(a.event_date + "T00:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}
+                  {fmtDayMonth(a.event_date!)}
                 </span>
               )}
-              <p className="text-xs text-muted-foreground">{new Date(a.created_at).toLocaleDateString()}</p>
+              <p className="text-xs text-muted-foreground">{fmtDayMonth(a.created_at.slice(0, 10))}</p>
             </div>
             <h3 className="font-display text-lg font-semibold">{a.title}</h3>
             {a.volunteers_involved && a.volunteers_involved.length > 0 && (

@@ -100,6 +100,12 @@ function ymdDate(d: Date) {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
 }
 
+const MONTHS_SHORT = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+function fmtDayMonth(ymd: string): string {
+  const d = new Date(ymd + "T00:00:00Z");
+  return `${d.getUTCDate()} ${MONTHS_SHORT[d.getUTCMonth()]}`;
+}
+
 function todayLocalYmd(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -256,10 +262,13 @@ function VolunteerDashboard() {
     acc.set(s.shift_date, arr);
     return acc;
   }, new Map<string, VolShift[]>());
-  const shiftByDate = new Map(shifts.map((s) => [s.shift_date, s]));
   const todayStr = ymdDate(new Date());
-  const todayShift = volunteerId ? shiftByDate.get(todayStr) : null;
-  const todayTpl = todayShift ? pickTemplate(todayShift.shift_templates) : null;
+  const todayShifts = volunteerId ? (shiftsByDate.get(todayStr) ?? []) : [];
+  const todayPrimaryShift = todayShifts.find((s) => {
+    const n = pickTemplate(s.shift_templates)?.name ?? "";
+    return n !== "Family Dinners" && n !== "Off";
+  }) ?? todayShifts[0] ?? null;
+  const todayTpl = todayPrimaryShift ? pickTemplate(todayPrimaryShift.shift_templates) : null;
   const todayTasks = shiftTasks.filter((t) => t.shift_date === todayStr);
   const tasksByDate = shiftTasks.reduce((acc, t) => {
     const arr = acc.get(t.shift_date) ?? [];
@@ -295,16 +304,22 @@ function VolunteerDashboard() {
             <p className="text-xs font-medium uppercase tracking-wide opacity-60">{t("dash.todayShift")}</p>
             {volunteerId === null && volunteerLinked === false ? (
               <p className="font-semibold text-lg mt-0.5 text-muted-foreground">Awaiting shift assignment</p>
-            ) : todayTpl ? (
-              <>
-                <p className="font-semibold text-lg mt-0.5">
-                  {todayTpl.name}
-                  {todayTpl.start_time ? ` · ${fmtTime(todayTpl.start_time)}–${fmtTime(todayTpl.end_time)}` : ""}
-                </p>
-                {todayShift?.notes && (
-                  <p className="text-xs mt-1 opacity-70 italic">{todayShift.notes}</p>
-                )}
-              </>
+            ) : todayShifts.length > 0 ? (
+              <div className="mt-0.5 space-y-1">
+                {todayShifts.map((s) => {
+                  const tpl = pickTemplate(s.shift_templates);
+                  if (!tpl || tpl.name === "Off") return null;
+                  return (
+                    <div key={s.id}>
+                      <p className="font-semibold text-lg leading-tight">
+                        {tpl.name}
+                        {tpl.start_time ? ` · ${fmtTime(tpl.start_time)}–${fmtTime(tpl.end_time)}` : ""}
+                      </p>
+                      {s.notes && <p className="text-xs opacity-70 italic">{s.notes}</p>}
+                    </div>
+                  );
+                })}
+              </div>
             ) : (
               <p className="font-semibold text-lg mt-0.5 text-muted-foreground">Free today 🌿</p>
             )}
@@ -350,7 +365,7 @@ function VolunteerDashboard() {
         </div>
 
         <p className="text-xs text-muted-foreground">
-          {days[0].toLocaleDateString(locale, { day: "numeric", month: "short" })} – {days[6].toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" })}
+          {fmtDayMonth(startStr)} – {fmtDayMonth(endStr)}
         </p>
 
         {loading ? (
@@ -364,29 +379,46 @@ function VolunteerDashboard() {
               const isToday = dateStr === ymdDate(new Date());
               const dayTasks = tasksByDate.get(dateStr) ?? [];
 
-              // Linked volunteer: show their single shift
+              // Linked volunteer: show all their shifts for this day
               if (volunteerId) {
-                const s = shiftByDate.get(dateStr);
-                const tpl = s ? pickTemplate(s.shift_templates) : null;
+                const dayShiftsLinked = shiftsByDate.get(dateStr) ?? [];
+                const primaryShift = dayShiftsLinked.find((s) => {
+                  const n = pickTemplate(s.shift_templates)?.name ?? "";
+                  return n !== "Family Dinners" && n !== "Off";
+                }) ?? dayShiftsLinked[0] ?? null;
+                const primaryTpl = primaryShift ? pickTemplate(primaryShift.shift_templates) : null;
+                const hasRealShift = dayShiftsLinked.some((s) => {
+                  const n = pickTemplate(s.shift_templates)?.name ?? "";
+                  return n !== "Off";
+                });
                 return (
-                  <div key={dateStr} className={`rounded-2xl border p-3 transition ${isToday ? "ring-2 ring-accent/40 shadow-warm" : ""} ${tpl ? shiftColor(tpl.name) : "bg-card text-card-foreground border-border"}`}>
+                  <div key={dateStr} className={`rounded-2xl border p-3 transition ${isToday ? "ring-2 ring-accent/40 shadow-warm" : ""} ${primaryTpl ? shiftColor(primaryTpl.name) : "bg-card text-card-foreground border-border"}`}>
                     <div className="flex items-center gap-3">
                       <div className="text-center min-w-[40px]">
                         <p className="text-[10px] uppercase font-mono font-medium opacity-70">{d.toLocaleDateString(locale, { weekday: "short" }).slice(0, 3).toUpperCase()}</p>
                         <p className={`text-lg font-semibold leading-none ${isToday ? "text-accent" : ""}`}>{d.getUTCDate()}</p>
                       </div>
                       <div className="flex-1 min-w-0">
-                        {tpl ? (
-                          <>
-                            <p className="font-medium text-sm">{tpl.name}</p>
-                            {(tpl.start_time || tpl.end_time) && (
-                              <p className="text-xs opacity-70 flex items-center gap-1 mt-0.5">
-                                <Clock className="h-3 w-3" />
-                                {fmtTime(tpl.start_time ?? null)}{tpl.end_time ? ` – ${fmtTime(tpl.end_time)}` : ""}
-                              </p>
-                            )}
-                            {s?.notes && <p className="text-xs opacity-60 italic mt-0.5 truncate">{s.notes}</p>}
-                          </>
+                        {hasRealShift ? (
+                          <div className="space-y-1">
+                            {dayShiftsLinked.map((s) => {
+                              const tpl = pickTemplate(s.shift_templates);
+                              if (!tpl || tpl.name === "Off") return null;
+                              return (
+                                <div key={s.id}>
+                                  <p className="font-medium text-sm">{tpl.name}
+                                    {(tpl.start_time || tpl.end_time) && (
+                                      <span className="text-xs opacity-70 ml-1">
+                                        <Clock className="h-3 w-3 inline mr-0.5" />
+                                        {fmtTime(tpl.start_time ?? null)}{tpl.end_time ? `–${fmtTime(tpl.end_time)}` : ""}
+                                      </span>
+                                    )}
+                                  </p>
+                                  {s.notes && <p className="text-xs opacity-60 italic truncate">{s.notes}</p>}
+                                </div>
+                              );
+                            })}
+                          </div>
                         ) : (
                           <p className="text-sm text-muted-foreground">—</p>
                         )}
@@ -790,7 +822,7 @@ function AdminMatrix() {
           <div className="flex items-center gap-1">
             <Button variant="outline" size="icon" onClick={prevWeek}><ChevronLeft className="h-4 w-4" /></Button>
             <Button variant="ghost" size="sm" className="text-xs" onClick={thisWeek}>
-              {days[0]} – {days[6]}
+              {fmtDayMonth(days[0])} – {fmtDayMonth(days[6])}
             </Button>
             <Button variant="outline" size="icon" onClick={nextWeek}><ChevronRight className="h-4 w-4" /></Button>
           </div>
